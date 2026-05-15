@@ -19,8 +19,11 @@ import lombok.Setter;
 @Table(name = "users") // 'user'는 일부 DB 예약어일 수 있으므로 복수형 권장
 public class User {
 
-    @Id
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
+    
+    @Column(unique = true, nullable = false)
+    private String loginId;
 
     private String password;
     
