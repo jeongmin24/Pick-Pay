@@ -5,17 +5,17 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.ssafy.pickpay.dao.UserDao;
+import com.ssafy.pickpay.dao.UserRepository;
 import com.ssafy.pickpay.domain.User;
 
 
 @Component
 public class DataInitializer implements CommandLineRunner {
 
-	private final UserDao userRepository;
+	private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     
-	public DataInitializer(UserDao userRepository, PasswordEncoder passwordEncoder) {
+	public DataInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder) {
 		super();
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;

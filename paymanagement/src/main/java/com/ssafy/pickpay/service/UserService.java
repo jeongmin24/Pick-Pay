@@ -1,6 +1,7 @@
 package com.ssafy.pickpay.service;
 
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -8,22 +9,25 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.ssafy.pickpay.dao.UserDao;
+import com.ssafy.pickpay.dao.UserRepository;
 import com.ssafy.pickpay.domain.User;
 import com.ssafy.pickpay.dto.UserRequestDTO;
+import com.ssafy.pickpay.dto.UserResponseDTO;
 
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService implements UserDetailsService {
 	
-	private final UserDao userRepository;
+	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
+	private final JwtService jwtService;
 
-	public UserService(UserDao userRepository, PasswordEncoder passwordEncoder) {
+	public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
 		super();
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
+		this.jwtService = jwtService;
 	}
 	
 	// 자체 로그인 회원 가입 (존재 여부)
@@ -85,6 +89,37 @@ public class UserService implements UserDetailsService {
 	}
 
 	
-	// 자체/소셜 유저 정보 조회
+	// 자체 유저 정보 조회
+	@Transactional(readOnly = true)
+	public UserResponseDTO readUser() {
+		String loginId = SecurityContextHolder.getContext().getAuthentication().getName();
+		
+		User user = userRepository.findByLoginId(loginId)
+				.orElseThrow(() -> new UsernameNotFoundException("해당 유저를 찾을 수 없습니다." + loginId));
+		
+		return new UserResponseDTO(loginId, user.getNickname());
+	}
+	
+	// 자체 로그인 회원 탈퇴
+	@Transactional
+	public void deleteUser(UserRequestDTO dto) throws AccessDeniedException {
+		
+		SecurityContext context = SecurityContextHolder.getContext();
+		String sessionLoginId = context.getAuthentication().getName();
+		String sessionRole = context.getAuthentication().getAuthorities().iterator().next().getAuthority();
+		
+		boolean isOwner = sessionLoginId.equals(dto.getLoginId());
+		
+		if(!isOwner) {
+			throw new AccessDeniedException("본인만 삭제할 수 있습니다");
+		}
+		
+		// 유저 제거 
+		userRepository.deleteByLoginId(dto.getLoginId());
+		// 리프레시 토큰 제거 
+		jwtService.removeRefreshUser(dto.getLoginId());
+		
+	}
+	
 
 }
