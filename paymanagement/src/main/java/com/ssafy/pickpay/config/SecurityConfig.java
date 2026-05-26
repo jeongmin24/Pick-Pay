@@ -4,6 +4,9 @@ import com.ssafy.pickpay.handler.LoginSuccessHandler;
 import com.ssafy.pickpay.handler.LogoutSuccessHandler;
 import com.ssafy.pickpay.service.JwtService;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +28,7 @@ import com.ssafy.pickpay.filter.JWTFilter;
 import com.ssafy.pickpay.filter.LoginFilter;
 
 import jakarta.servlet.http.HttpServletResponse;
+import tools.jackson.databind.ObjectMapper;
 
 @Configuration
 @EnableWebSecurity
@@ -34,13 +38,15 @@ public class SecurityConfig {
 	private final AuthenticationConfiguration authenticationConfiguration;
 	private final AuthenticationSuccessHandler loginSuccessHandler;
 	private final JwtService jwtService;
+	private final ObjectMapper objectMapper;
 	
-	public SecurityConfig(AuthenticationConfiguration authenticationConfiguration, @Qualifier("LoginSuccessHandler") AuthenticationSuccessHandler loginSuccessHandler, LoginSuccessHandler loginSuccessHandler_1, JwtService jwtService) {
+	public SecurityConfig(AuthenticationConfiguration authenticationConfiguration, @Qualifier("LoginSuccessHandler") AuthenticationSuccessHandler loginSuccessHandler, LoginSuccessHandler loginSuccessHandler_1, JwtService jwtService, ObjectMapper objectMapper) {
 		super();
 		this.authenticationConfiguration = authenticationConfiguration;
 		this.loginSuccessHandler = loginSuccessHandler;
 		this.loginSuccessHandler_1 = loginSuccessHandler_1;
 		this.jwtService = jwtService;
+		this.objectMapper = objectMapper;
 	}
 	
 
@@ -85,7 +91,12 @@ public class SecurityConfig {
 	                    .authenticationEntryPoint((request, response, authException) -> {
 	                    	response.setContentType("application/json;charset=UTF-8");
 	                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401 응답
-	                        response.getWriter().write("{\"message\": \"인증 정보가 유효하지 않습니다.\"}");
+//	                        response.getWriter().write("{\"message\": \"인증 정보가 유효하지 않습니다.\"}");
+	                        Map<String, String> errorResponse = new HashMap<>();
+	                        errorResponse.put("message", "인증 정보가 유효하지 않습니다");
+	                        String jsonResult = objectMapper.writeValueAsString(errorResponse);
+	                        response.getWriter().write(jsonResult);
+	                        
 	                    })
 	                    // 403 응답은 RestControllerAdvice에서 
 	            );
