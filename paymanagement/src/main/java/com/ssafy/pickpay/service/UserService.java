@@ -9,10 +9,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.ssafy.pickpay.dao.UserRepository;
 import com.ssafy.pickpay.domain.User;
 import com.ssafy.pickpay.dto.UserRequestDTO;
 import com.ssafy.pickpay.dto.UserResponseDTO;
+import com.ssafy.pickpay.repository.UserRepository;
 
 import org.springframework.transaction.annotation.Transactional;
 

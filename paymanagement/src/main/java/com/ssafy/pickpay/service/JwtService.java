@@ -3,9 +3,9 @@ package com.ssafy.pickpay.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.ssafy.pickpay.dao.RefreshRepository;
 import com.ssafy.pickpay.dto.JWTResponseDTO;
 import com.ssafy.pickpay.dto.RefreshRequestDTO;
+import com.ssafy.pickpay.repository.RefreshRepository;
 import com.ssafy.pickpay.util.JWTUtil;
 import com.ssafy.pickpay.util.RefreshEntity;
 

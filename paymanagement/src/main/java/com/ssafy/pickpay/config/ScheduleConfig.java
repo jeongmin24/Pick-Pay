@@ -6,7 +6,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.ssafy.pickpay.dao.RefreshRepository;
+import com.ssafy.pickpay.repository.RefreshRepository;
 
 @Component
 public class ScheduleConfig {

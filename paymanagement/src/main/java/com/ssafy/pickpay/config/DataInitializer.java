@@ -5,8 +5,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.ssafy.pickpay.dao.UserRepository;
 import com.ssafy.pickpay.domain.User;
+import com.ssafy.pickpay.repository.UserRepository;
 
 
 @Component

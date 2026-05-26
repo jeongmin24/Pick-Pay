@@ -1,4 +1,4 @@
-package com.ssafy.pickpay.dao;
+package com.ssafy.pickpay.repository;
 
 import java.util.Optional;
 
