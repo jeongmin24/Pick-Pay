@@ -59,17 +59,13 @@ public class SecurityConfig {
 	@Bean
 	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-	    // CSRF 보안 필터 disable
+	    // CSRF, 기본 폼로그인, Basic 인증 비활성화
 	    http
 	            .csrf(AbstractHttpConfigurer::disable);
 
-	    // CORS 설정
-
-	    // 기본 Form 기반 인증 필터들 disable
 	    http
 	            .formLogin(AbstractHttpConfigurer::disable);
 
-	    // 기본 Basic 인증 필터 disable
 	    http
 	            .httpBasic(AbstractHttpConfigurer::disable);
 
@@ -93,7 +89,7 @@ public class SecurityConfig {
 	                    })
 	                    // 403 응답은 RestControllerAdvice에서 
 	            );
-	    
+	    // 커스텀 필터 등록
 	    http.addFilterBefore(new LoginFilter(authenticationManager(authenticationConfiguration), loginSuccessHandler), UsernamePasswordAuthenticationFilter.class);
 
 	    // 세션 필터 설정 (STATELESS)
