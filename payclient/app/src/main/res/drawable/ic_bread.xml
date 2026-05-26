@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    
+    <!-- Sliced Bread Shape -->
+    <!-- M 20,40 -> start 
+         Q 20,20 50,20 Q 80,20 80,40 -> top curve
+         L 85,75 Q 85,85 75,85 -> right bottom corner
+         L 25,85 Q 15,85 15,75 -> left bottom corner
+         Z -> close -->
+    <path
+        android:fillColor="#F48FB1"
+        android:pathData="M20,35 Q20,15 50,15 Q80,15 80,35 L82,75 Q82,85 72,85 L28,85 Q18,85 18,75 Z" />
+    
+    <!-- Crust outline -->
+    <path
+        android:strokeColor="#F06292"
+        android:strokeWidth="3"
+        android:pathData="M20,35 Q20,15 50,15 Q80,15 80,35 L82,75 Q82,85 72,85 L28,85 Q18,85 18,75 Z" />
+
+    <!-- Cute Eyes -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M38,50 A3,3 0 1 1 38,50.1 Z M62,50 A3,3 0 1 1 62,50.1 Z" />
+    
+    <!-- Cute Smile -->
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M45,60 Q50,65 55,60" />
+</vector>
