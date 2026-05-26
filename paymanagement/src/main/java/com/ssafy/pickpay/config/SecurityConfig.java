@@ -80,6 +80,7 @@ public class SecurityConfig {
 	            .authorizeHttpRequests(auth -> auth
 	            		.requestMatchers("/jwt/exchange", "/jwt/refresh").permitAll()
 	            		.requestMatchers(HttpMethod.POST, "/user/exist", "/user").permitAll()
+	            		.requestMatchers("/error").permitAll()
 	            		.requestMatchers(HttpMethod.GET, "/user").hasRole("USER")
 	            		.requestMatchers(HttpMethod.PUT, "/user").hasRole("USER")
 	            		.requestMatchers(HttpMethod.DELETE, "/user").hasRole("USER")
@@ -91,7 +92,6 @@ public class SecurityConfig {
 	                    .authenticationEntryPoint((request, response, authException) -> {
 	                    	response.setContentType("application/json;charset=UTF-8");
 	                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401 응답
-//	                        response.getWriter().write("{\"message\": \"인증 정보가 유효하지 않습니다.\"}");
 	                        Map<String, String> errorResponse = new HashMap<>();
 	                        errorResponse.put("message", "인증 정보가 유효하지 않습니다");
 	                        String jsonResult = objectMapper.writeValueAsString(errorResponse);

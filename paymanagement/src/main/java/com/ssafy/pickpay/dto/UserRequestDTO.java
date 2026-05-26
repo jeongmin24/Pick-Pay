@@ -17,7 +17,8 @@ public class UserRequestDTO {
     		groups = {existGroup.class, addGroup.class, updateGroup.class, deleteGroup.class},
     		message = "아이디는 필수 입력 항목입니다."
     		) 
-    @Size(min = 4, max = 20, message = "아이디는 4자 이상 20자 이하로 입력해야 합니다.")
+    @Size(min = 4, max = 20, message = "아이디는 4자 이상 20자 이하로 입력해야 합니다.",
+    		groups = {existGroup.class, addGroup.class, updateGroup.class, deleteGroup.class})
 	private String loginId;
     
     @Pattern(
