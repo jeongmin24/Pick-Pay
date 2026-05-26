@@ -109,7 +109,13 @@ public class SecurityConfig {
 	                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 	    // 로그아웃 핸들러 등록 
 	    http
-	    	.logout(logout -> logout.addLogoutHandler(new LogoutSuccessHandler(jwtService)));
+	    	.logout(logout -> logout
+	    			.logoutUrl("/logout")
+	    			.addLogoutHandler(new LogoutSuccessHandler(jwtService))
+	    			.logoutSuccessHandler((request, response, authentication) -> {
+	    				response.setStatus(HttpServletResponse.SC_OK);
+	    			})
+	    		);
 	    http
 	    	.addFilterBefore(new JWTFilter(), LogoutFilter.class);
 	    
