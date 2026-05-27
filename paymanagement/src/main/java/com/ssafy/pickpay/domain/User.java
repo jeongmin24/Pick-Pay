@@ -16,10 +16,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.Builder;
 
 @Entity
 @Getter @Setter @Builder
@@ -29,7 +29,7 @@ import lombok.Setter;
 @EntityListeners(AuditingEntityListener.class)
 public class User {
 
-    
+
 	@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
     
