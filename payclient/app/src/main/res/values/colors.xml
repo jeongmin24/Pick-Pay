@@ -2,7 +2,8 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="baby_pink">#FCE4EC</color>
-    <color name="deep_pink">#F06292</color>
-    <color name="primary_pink">#F48FB1</color>
+    <color name="baby_blue">#ECEEDF</color>
+    <color name="deep_brown">#CFAB8D</color>
+    <color name="beige">#D9C4B0</color>
+    <color name="blue">#BBDCE5</color>
 </resources>
