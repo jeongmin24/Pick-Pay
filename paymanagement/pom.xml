@@ -109,6 +109,14 @@
 		    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 		    <version>3.0.3</version>
 		</dependency>
+		
+		<!-- Source: https://mvnrepository.com/artifact/com.google.firebase/firebase-admin -->
+		<dependency>
+		    <groupId>com.google.firebase</groupId>
+		    <artifactId>firebase-admin</artifactId>
+		    <version>9.2.0</version>
+		    <scope>compile</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
