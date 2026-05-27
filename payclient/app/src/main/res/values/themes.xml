@@ -2,8 +2,8 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.Payclient" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- Customize your light theme here. -->
-        <item name="colorPrimary">@color/primary_pink</item>
-        <item name="android:windowBackground">@color/baby_pink</item>
+        <item name="colorPrimary">@color/beige</item>
+        <item name="android:windowBackground">@color/baby_blue</item>
     </style>
 
     <style name="Theme.Payclient" parent="Base.Theme.Payclient" />

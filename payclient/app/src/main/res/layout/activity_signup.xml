@@ -30,7 +30,7 @@
                 android:text="회원가입"
                 android:textSize="24sp"
                 android:textStyle="bold"
-                android:textColor="@color/deep_pink"
+                android:textColor="@color/deep_brown"
                 android:layout_marginTop="4dp" />
 
             <LinearLayout
@@ -47,8 +47,8 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:hint="아이디"
-                    app:boxStrokeColor="@color/primary_pink"
-                    app:hintTextColor="@color/deep_pink">
+                    app:boxStrokeColor="@color/beige"
+                    app:hintTextColor="@color/deep_brown">
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_signup_id"
                         android:layout_width="match_parent"
@@ -64,7 +64,7 @@
                     android:text="중복 확인"
                     android:textSize="12sp"
                     android:layout_marginStart="8dp"
-                    android:backgroundTint="@color/primary_pink" />
+                    android:backgroundTint="@color/beige" />
             </LinearLayout>
 
             <com.google.android.material.textfield.TextInputLayout
@@ -73,8 +73,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="비밀번호"
-                app:boxStrokeColor="@color/primary_pink"
-                app:hintTextColor="@color/deep_pink"
+                app:boxStrokeColor="@color/beige"
+                app:hintTextColor="@color/deep_brown"
                 app:passwordToggleEnabled="true"
                 android:layout_marginTop="8dp">
                 <com.google.android.material.textfield.TextInputEditText
@@ -91,8 +91,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="비밀번호 확인"
-                app:boxStrokeColor="@color/primary_pink"
-                app:hintTextColor="@color/deep_pink"
+                app:boxStrokeColor="@color/beige"
+                app:hintTextColor="@color/deep_brown"
                 app:passwordToggleEnabled="true"
                 android:layout_marginTop="8dp">
                 <com.google.android.material.textfield.TextInputEditText
@@ -109,8 +109,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="닉네임"
-                app:boxStrokeColor="@color/primary_pink"
-                app:hintTextColor="@color/deep_pink"
+                app:boxStrokeColor="@color/beige"
+                app:hintTextColor="@color/deep_brown"
                 android:layout_marginTop="8dp">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_signup_nickname"
@@ -126,7 +126,7 @@
                 android:layout_height="52dp"
                 android:text="가입하기"
                 android:textSize="16sp"
-                android:backgroundTint="@color/primary_pink"
+                android:backgroundTint="@color/beige"
                 android:layout_marginTop="20dp" />
 
         </LinearLayout>
@@ -137,7 +137,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:visibility="gone"
-        android:indeterminateTint="@color/deep_pink"
+        android:indeterminateTint="@color/deep_brown"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
