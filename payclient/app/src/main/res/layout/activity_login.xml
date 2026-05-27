@@ -28,7 +28,7 @@
             android:text="Pick Pay"
             android:textSize="28sp"
             android:textStyle="bold"
-            android:textColor="@color/deep_pink"
+            android:textColor="@color/deep_brown"
             android:layout_marginTop="4dp" />
 
         <com.google.android.material.textfield.TextInputLayout
@@ -37,8 +37,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="아이디"
-            app:boxStrokeColor="@color/primary_pink"
-            app:hintTextColor="@color/deep_pink"
+            app:boxStrokeColor="@color/beige"
+            app:hintTextColor="@color/deep_brown"
             android:layout_marginTop="24dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_login_id"
@@ -54,10 +54,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="비밀번호"
-            app:boxStrokeColor="@color/primary_pink"
-            app:hintTextColor="@color/deep_pink"
+            app:boxStrokeColor="@color/beige"
+            app:hintTextColor="@color/deep_brown"
             app:passwordToggleEnabled="true"
-            app:passwordToggleTint="@color/primary_pink"
+            app:passwordToggleTint="@color/beige"
             android:layout_marginTop="8dp">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_password"
@@ -73,7 +73,7 @@
             android:layout_height="52dp"
             android:text="로그인"
             android:textSize="16sp"
-            android:backgroundTint="@color/primary_pink"
+            android:backgroundTint="@color/beige"
             android:layout_marginTop="20dp" />
 
         <Button
@@ -82,7 +82,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="회원가입"
-            android:textColor="@color/deep_pink"
+            android:textColor="@color/deep_brown"
             android:layout_marginTop="4dp" />
 
     </LinearLayout>
@@ -92,7 +92,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:visibility="gone"
-        android:indeterminateTint="@color/deep_pink"
+        android:indeterminateTint="@color/deep_brown"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"

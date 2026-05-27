@@ -19,7 +19,7 @@
         android:id="@+id/bottom_navigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/deep_pink"
+        android:background="@color/deep_brown"
         app:menu="@menu/bottom_nav_menu"
 
         app:itemTextColor="#FFFFFF"
