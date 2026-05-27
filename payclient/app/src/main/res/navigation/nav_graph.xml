@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    app:startDestination="@id/fragment_home"
+    android:id="@+id/nav_graph">
+    <fragment
+        android:id="@+id/fragment_home"
+        android:name="com.ssafy.payclient.fragment.HomeFragment"
+        android:label="HomeFragment"
+        tools:layout="@layout/fragment_home" />
+
+    <fragment
+        android:id="@+id/fragment_order"
+        android:name="com.ssafy.payclient.fragment.OrderFragment"
+        android:label="OrderFragment"
+        tools:layout="@layout/fragment_order" />
+
+    <fragment
+        android:id="@+id/fragment_review"
+        android:name="com.ssafy.payclient.fragment.ReviewFragment"
+        android:label="ReviewFragment"
+        tools:layout="@layout/fragment_review" />
+
+    <fragment
+        android:id="@+id/fragment_profile"
+        android:name="com.ssafy.payclient.fragment.ProfileFragment"
+        android:label="ProfileFragment"
+        tools:layout="@layout/fragment_profile" />
+
+</navigation>

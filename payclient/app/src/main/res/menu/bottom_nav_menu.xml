@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/fragment_home"
+        android:icon="@drawable/family_home_24px"
+        android:title="홈" />
+    <item
+        android:id="@+id/fragment_order"
+        android:icon="@drawable/coffee_24px"
+        android:title="주문" />
+    <item
+        android:id="@+id/fragment_review"
+        android:icon="@drawable/reviews_24px"
+        android:title="리뷰" />
+    <item
+        android:id="@+id/fragment_profile"
+        android:icon="@drawable/person_pin_24px"
+        android:title="마이페이지" />
+
+</menu>

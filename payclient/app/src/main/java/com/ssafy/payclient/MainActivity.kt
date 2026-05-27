@@ -6,6 +6,8 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.setupWithNavController
 import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.network.RetrofitClient
 import com.ssafy.payclient.data.repository.AuthRepository
@@ -31,35 +33,37 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         initViews()
-        observeViewModel()
+//        observeViewModel()
     }
 
     private fun initViews() {
-        binding.btnLogout.setOnClickListener {
-            viewModel.logout()
-        }
+        val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        val navController = navHostFragment.navController
+        binding.bottomNavigation.setupWithNavController(navController)
+        binding.bottomNavigation.itemIconTintList = null
+
     }
 
-    private fun observeViewModel() {
-        lifecycleScope.launch {
-            viewModel.logoutState.collect { state ->
-                when (state) {
-                    is UiState.Loading -> {
-                        binding.btnLogout.isEnabled = false
-                    }
-                    is UiState.Success -> {
-                        navigateToLogin()
-                    }
-                    is UiState.Error -> {
-                        binding.btnLogout.isEnabled = true
-                        Toast.makeText(this@MainActivity, state.message, Toast.LENGTH_SHORT).show()
-                        // 실패하더라도 로그아웃 처리를 하고 싶다면 여기서 navigateToLogin() 호출 가능
-                    }
-                    else -> {}
-                }
-            }
-        }
-    }
+//    private fun observeViewModel() {
+//        lifecycleScope.launch {
+//            viewModel.logoutState.collect { state ->
+//                when (state) {
+//                    is UiState.Loading -> {
+//                        binding.btnLogout.isEnabled = false
+//                    }
+//                    is UiState.Success -> {
+//                        navigateToLogin()
+//                    }
+//                    is UiState.Error -> {
+//                        binding.btnLogout.isEnabled = true
+//                        Toast.makeText(this@MainActivity, state.message, Toast.LENGTH_SHORT).show()
+//                        // 실패하더라도 로그아웃 처리를 하고 싶다면 여기서 navigateToLogin() 호출 가능
+//                    }
+//                    else -> {}
+//                }
+//            }
+//        }
+//    }
 
     private fun navigateToLogin() {
         val intent = Intent(this, LoginActivity::class.java)
