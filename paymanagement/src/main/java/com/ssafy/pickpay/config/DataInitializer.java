@@ -36,6 +36,8 @@ public class DataInitializer implements CommandLineRunner {
 				System.out.println("테스트용 유저 데이터 10개 생성 완료");
 		}
 	}
+	
+	
     
     
     
