@@ -34,6 +34,7 @@ public class DataInitializer implements CommandLineRunner {
 	                        .loginId("user" + i)
 	                        .password(passwordEncoder.encode("1234")) 
 	                        .nickname("테스터" + i)
+	                        .imageUrl("https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png")
 	                        .build();
 	                userRepository.save(user);
 	            }

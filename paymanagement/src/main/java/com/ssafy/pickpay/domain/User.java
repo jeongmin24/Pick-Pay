@@ -51,7 +51,7 @@ public class User {
     	this.nickname = dto.getNickname();
     }
 
-    
+    private String imageUrl;
 
 	
 
