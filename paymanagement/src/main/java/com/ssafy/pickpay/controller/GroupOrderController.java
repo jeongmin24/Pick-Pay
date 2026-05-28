@@ -2,6 +2,7 @@ package com.ssafy.pickpay.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -9,7 +10,6 @@ import com.ssafy.pickpay.domain.GroupOrder;
 import com.ssafy.pickpay.dto.GroupOrderRequestDTO;
 import com.ssafy.pickpay.service.GroupOrderService;
 
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import lombok.RequiredArgsConstructor;
 
 @RestController
