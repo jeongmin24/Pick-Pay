@@ -29,7 +29,6 @@ import lombok.Builder;
 @EntityListeners(AuditingEntityListener.class)
 public class User {
 
-  
 
 	@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
@@ -53,6 +52,5 @@ public class User {
 
     private String imageUrl;
 
-	
 
 }
