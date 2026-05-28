@@ -1,6 +1,7 @@
 package com.ssafy.pickpay.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,9 +22,12 @@ public class GroupOrderController {
 	
 	// 그룹 주문 방 생성
 	@PostMapping
-	public ResponseEntity<GroupOrder> createGroup(@RequestBody GroupOrderRequestDTO requestDto) {
-        // 서비스 로직 호출 (RDB 저장 및 Firebase 노드 생성)
-        GroupOrder createdOrder = groupOrderService.createSession(requestDto);
+	public ResponseEntity<GroupOrder> createGroup(Authentication authentication) {
+        
+		String loginId = authentication.getName(); 
+		
+		// 서비스 로직 호출 (RDB 저장 및 Firebase 노드 생성)
+        GroupOrder createdOrder = groupOrderService.createSession(loginId);
         
         // 200 OK와 함께 생성된 방 정보 반환
         return ResponseEntity.ok(createdOrder);
