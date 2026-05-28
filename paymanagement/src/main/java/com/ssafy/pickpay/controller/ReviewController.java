@@ -1,5 +1,7 @@
 package com.ssafy.pickpay.controller;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,5 +32,10 @@ public class ReviewController {
 	@GetMapping("/{reviewId}")
 	public ResponseEntity<ReviewResponseDTO> getReview(@PathVariable("reviewId") Long reivewId) {
 		return ResponseEntity.ok(reviewService.getReviewDetails(reivewId));
+	}
+	
+	@GetMapping
+	public ResponseEntity<List<ReviewResponseDTO>> getAllReviews() {
+		return ResponseEntity.ok(reviewService.getAllReviews());
 	}
 }

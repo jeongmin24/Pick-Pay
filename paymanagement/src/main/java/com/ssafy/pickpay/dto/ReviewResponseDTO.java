@@ -27,6 +27,6 @@ public class ReviewResponseDTO {
 
         this.userId = review.getUser().getUserId();
         this.nickname = review.getUser().getNickname();
-        this.profileUrl = review.getUser().getFcmToken();
+        this.profileUrl = review.getUser().getImageUrl();
 	}
 }
