@@ -9,6 +9,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -19,13 +20,15 @@ import com.ssafy.pickpay.domain.OrderItems;
 import com.ssafy.pickpay.domain.User;
 import com.ssafy.pickpay.dto.FirebaseCartItemDTO;
 import com.ssafy.pickpay.dto.GroupOrderRequestDTO;
+import com.ssafy.pickpay.dto.ReceiptResponseDTO;
+import com.ssafy.pickpay.dto.ReceiptResponseDTO.OrderItemDTO;
+import com.ssafy.pickpay.dto.ReceiptResponseDTO.UserReceiptDTO;
 import com.ssafy.pickpay.repository.GroupOrderRepository;
 import com.ssafy.pickpay.repository.MenuRepository;
 import com.ssafy.pickpay.repository.OrderItemsRepository;
 import com.ssafy.pickpay.repository.OrderRepository;
 import com.ssafy.pickpay.repository.UserRepository;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -76,18 +79,17 @@ public class GroupOrderService {
     	groupOrder.closeAndSetPayType(payType);
     	
     	try {
-            // 2) Firebase에서 데이터 수신
-            List<FirebaseCartItemDTO> firebaseItems = firebaseSyncService.getCartItems(groupId.toString());
+            List<FirebaseCartItemDTO> firebaseItems = firebaseSyncService.getCartItems(groupId.toString()); // items 긁어오기
             
             if (firebaseItems.isEmpty()) {
                 throw new IllegalStateException("장바구니가 비어 있어 마감할 수 없습니다.");
             }
 
-            // 3) 데이터를 userId를 기준으로 그룹화 (Map<Long, List<FirebaseCartItemDto>>)
+            // 1: [ ] / 2: [ ] 형식으로 분류 
             Map<Long, List<FirebaseCartItemDTO>> itemsByUser = firebaseItems.stream()
-                    .collect(Collectors.groupingBy(FirebaseCartItemDTO::getUserId));
+                    .collect(Collectors.groupingBy(FirebaseCartItemDTO::getUserId)); // 리스트에 있는 아이템을 userId 기준으로 그룹화 
 
-            // 4) 각 유저별로 Order(주문서)와 OrderItems(메세 내역) 생성
+            // 분류한 Map을 DB에 저장 
             for (Map.Entry<Long, List<FirebaseCartItemDTO>> entry : itemsByUser.entrySet()) {
                 Long userId = entry.getKey();
                 List<FirebaseCartItemDTO> userCartItems = entry.getValue();
@@ -96,7 +98,7 @@ public class GroupOrderService {
                 User user = userRepository.findById(userId)
                         .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다. ID: " + userId));
 
-                // Order 생성 및 영속화 (먼저 저장되어야 OrderItems가 참조할 ID가 생김)
+                // Order를 먼저 저장 
                 Order order = Order.createOrder(groupOrder, user);
                 orderRepository.save(order);
 
@@ -137,5 +139,51 @@ public class GroupOrderService {
             e.printStackTrace();
             throw new RuntimeException("주문 마감 및 결제 방식 설정 중 오류가 발생했습니다.", e);
         }
+    }
+    
+    // 영수증 조회 
+    @Transactional(readOnly = true)
+    public ReceiptResponseDTO getReceipt(Long groupId) {
+    	
+    	GroupOrder groupOrder = groupOrderRepository.findById(groupId)
+    			.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 그룹입니다"));
+    	
+    	List<Order> orders = orderRepository.findByGroupOrder_GroupId(groupId);
+    	
+    	// 영수증 리스트, 그룹 price 
+    	Long totalGroupPrice = 0L;
+    	List<UserReceiptDTO> userReceiptList = new ArrayList<>();
+    	
+    	// 모든 주문서를 돌면서 영수증 상세 내역 채우기 
+    	for(Order order : orders) {
+    		totalGroupPrice += order.getTotalPrice();
+    		List<OrderItems> rawOrderItems = orderItemsRepository.findByOrder_OrderId(order.getOrderId());
+    		List<OrderItemDTO> itemDTOList = rawOrderItems.stream()
+    				.map(item -> OrderItemDTO.builder()
+    						.menuName(item.getProduct().getName())
+    						.quantity(item.getQuantity())
+    						.price(item.getProduct().getPrice())
+    						.build()
+    						)
+    				.collect(Collectors.toList());
+    		
+    		UserReceiptDTO userReceiptDTO = UserReceiptDTO.builder()
+    				.userId(order.getUser().getUserId())
+    				.nickname(order.getUser().getNickname())
+    				.userTotalPrice(order.getTotalPrice())
+    				.items(itemDTOList)
+    				.build();
+    		
+    		userReceiptList.add(userReceiptDTO);
+    	}
+    	
+    	return ReceiptResponseDTO.builder()
+    			.groupId(groupOrder.getGroupId())
+    			.payType(groupOrder.getPayType())
+    			.totalGroupPrice(totalGroupPrice)
+    			.userReceipts(userReceiptList)
+    			.build();
+    	
+    	
     }
 }

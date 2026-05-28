@@ -2,6 +2,7 @@ package com.ssafy.pickpay.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ssafy.pickpay.domain.GroupOrder;
 import com.ssafy.pickpay.dto.GroupOrderRequestDTO;
+import com.ssafy.pickpay.dto.ReceiptResponseDTO;
 import com.ssafy.pickpay.service.GroupOrderService;
 
 import lombok.RequiredArgsConstructor;
@@ -42,6 +44,15 @@ public class GroupOrderController {
 			){
 		groupOrderService.closeSession(groupId, payType);
 		return ResponseEntity.ok("주문이 성공적으로 마감되었습니다.");
+	}
+	
+	// 영수증 조회 api 
+	@GetMapping("/{groupId}/receipt")
+	public ResponseEntity<ReceiptResponseDTO> getReceipt(@PathVariable Long groupId) {
+		
+		ReceiptResponseDTO receipt = groupOrderService.getReceipt(groupId);
+		
+		return ResponseEntity.ok(receipt);
 	}
 
 }
