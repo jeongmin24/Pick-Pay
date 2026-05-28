@@ -38,7 +38,7 @@ public class GroupOrder {
         GroupOrder groupOrder = new GroupOrder();
         groupOrder.setHost(host);
         groupOrder.setStatus("OPEN");
-        groupOrder.setShareLink(UUID.randomUUID().toString()); // 초대 링크용 고유 UUID 생성
+        groupOrder.setShareLink(UUID.randomUUID().toString()); // 초대 링크용 고유 UUID 생성 -> 도메인 주소를 포함해서 링크를 생성할것 
         return groupOrder;
     }
     
