@@ -54,7 +54,7 @@ class ReviewFragment : Fragment(R.layout.fragment_review) {
 
         reviewAdapter.setOnItemClickListener { review ->
             val intent = Intent(requireContext(), ReviewDetailActivity::class.java).apply {
-                putExtra("reviewId", review.reviewId)
+                putExtra("review_data", review)
             }
             startActivity(intent)
         }
