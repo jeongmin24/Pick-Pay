@@ -1,60 +1,93 @@
 package com.ssafy.payclient.fragment
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.ssafy.payclient.BuildConfig.BASE_URL
 import com.ssafy.payclient.R
+import com.ssafy.payclient.ui.review.ReviewDetailActivity
+import com.ssafy.payclient.data.api.ReviewApiService
+import com.ssafy.payclient.data.local.TokenManager
+import com.ssafy.payclient.data.network.RetrofitClient
+import com.ssafy.payclient.databinding.FragmentReviewBinding
+import com.ssafy.payclient.ui.review.ReviewAdapter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
+class ReviewFragment : Fragment(R.layout.fragment_review) {
 
-/**
- * A simple [Fragment] subclass.
- * Use the [ReviewFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
-class ReviewFragment : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
+    private var _binding: FragmentReviewBinding? = null
+    private val binding get() = _binding!!
+    private lateinit var reviewAdapter: ReviewAdapter
+    private lateinit var apiService: ReviewApiService
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        _binding = FragmentReviewBinding.bind(view)
+
+        initRetrofit()
+        setupRecyclerView()
+        fetchReviewsWithCoroutine()
+    }
+
+    private fun initRetrofit() {
+        val tokenManager = TokenManager(requireContext())
+        apiService = RetrofitClient.getReviewApiService(tokenManager)
+
+    }
+
+    private fun setupRecyclerView() {
+        reviewAdapter = ReviewAdapter()
+        binding.recyclerViewReviews.apply {
+            adapter = reviewAdapter
+            layoutManager = LinearLayoutManager(requireContext())
+        }
+
+        reviewAdapter.setOnItemClickListener { review ->
+            val intent = Intent(requireContext(), ReviewDetailActivity::class.java).apply {
+                putExtra("reviewId", review.reviewId)
+            }
+            startActivity(intent)
         }
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_review, container, false)
-    }
+    private fun fetchReviewsWithCoroutine() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val reviews = withContext(Dispatchers.IO) {
+                    apiService.getAllReviews()
+                }
 
-    companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment ReviewFragment.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            ReviewFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
+                if (isAdded) {
+                    context?.let { safeContext ->
+                        Toast.makeText(safeContext, "가져온 리뷰 개수: ${reviews.size}개", Toast.LENGTH_SHORT).show()
+                    }
+
+                    reviewAdapter.setReviews(reviews)
+                }
+            } catch (e: Exception) {
+                if (isAdded) {
+                    context?.let { safeContext ->
+                        Toast.makeText(safeContext, "오류 발생: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
+        }
     }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+
 }

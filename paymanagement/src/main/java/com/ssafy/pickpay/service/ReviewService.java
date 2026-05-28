@@ -1,5 +1,7 @@
 package com.ssafy.pickpay.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +49,14 @@ public class ReviewService {
 				.orElseThrow(() -> new IllegalArgumentException("리뷰를 찾을 수 없습니다."));
 		
 		return new ReviewResponseDTO(review);
+	}
+	
+	public List<ReviewResponseDTO> getAllReviews() {
+		List<Review> reviews = reviewRepository.findAllWithUser();
+		
+		return reviews.stream()
+	            .map(ReviewResponseDTO::new) // 각 Review 엔티티를 ReviewResponseDTO로 변환 (new ReviewResponseDTO(review))
+	            .toList();
 	}
 	
 }
