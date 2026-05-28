@@ -4,6 +4,10 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -14,10 +18,14 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Payclient"
         android:usesCleartextTraffic="true">
+        <activity
+            android:name=".ui.review.ReviewAddActivity"
+            android:exported="false" />
+
         <service
             android:name=".data.api.ReviewApiService"
             android:enabled="true"
-            android:exported="true"></service>
+            android:exported="true" />
 
         <activity
             android:name=".ui.review.ReviewDetailActivity"

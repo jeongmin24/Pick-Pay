@@ -17,6 +17,7 @@ import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.network.RetrofitClient
 import com.ssafy.payclient.databinding.FragmentReviewBinding
 import com.ssafy.payclient.ui.review.ReviewAdapter
+import com.ssafy.payclient.ui.review.ReviewAddActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -37,6 +38,11 @@ class ReviewFragment : Fragment(R.layout.fragment_review) {
         initRetrofit()
         setupRecyclerView()
         fetchReviewsWithCoroutine()
+
+        binding.fabAddReview.setOnClickListener {
+            val intent = Intent(requireContext(), ReviewAddActivity::class.java)
+            startActivity(intent)
+        }
     }
 
     private fun initRetrofit() {
