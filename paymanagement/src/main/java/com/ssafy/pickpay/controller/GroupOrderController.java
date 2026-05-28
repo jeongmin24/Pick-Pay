@@ -2,9 +2,12 @@ package com.ssafy.pickpay.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ssafy.pickpay.domain.GroupOrder;
@@ -26,11 +29,19 @@ public class GroupOrderController {
         
 		String loginId = authentication.getName(); 
 		
-		// 서비스 로직 호출 (RDB 저장 및 Firebase 노드 생성)
         GroupOrder createdOrder = groupOrderService.createSession(loginId);
         
-        // 200 OK와 함께 생성된 방 정보 반환
         return ResponseEntity.ok(createdOrder);
     }
+	
+	// 방장 주문 마감
+	@PatchMapping("/{groupId}/close")
+	public ResponseEntity<String> closeGroupOrder(
+			@PathVariable Long groupId,
+			@RequestParam String payType
+			){
+		groupOrderService.closeSession(groupId, payType);
+		return ResponseEntity.ok("주문이 성공적으로 마감되었습니다.");
+	}
 
 }

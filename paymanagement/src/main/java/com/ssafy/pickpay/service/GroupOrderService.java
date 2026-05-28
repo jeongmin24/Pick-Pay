@@ -133,6 +133,8 @@ public class GroupOrderService {
             groupRef.updateChildrenAsync(updates);
 
         } catch (Exception e) {
+        	System.err.println("마감 에러 원인: " + e.getMessage());
+            e.printStackTrace();
             throw new RuntimeException("주문 마감 및 결제 방식 설정 중 오류가 발생했습니다.", e);
         }
     }

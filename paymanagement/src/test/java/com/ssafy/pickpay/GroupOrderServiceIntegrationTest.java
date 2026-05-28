@@ -55,8 +55,8 @@ public class GroupOrderServiceIntegrationTest {
         GroupOrder groupOrder = GroupOrder.createGroupOrder(host);
         groupOrderRepository.save(groupOrder);
 
-        Menu menu1 = new Menu(); menu1.setName("아이스아메리카노"); menu1.setPrice(20000L); menu1.setIsActive(true);
-        Menu menu2 = new Menu(); menu2.setName("아이스카페라떼"); menu2.setPrice(3000L); menu2.setIsActive(true);
+        Menu menu1 = Menu.builder().name("아이스아메리카노").price(20000L).isActive(true).build();
+        Menu menu2 = Menu.builder().name("아이스카페라떼").price(3000L).isActive(true).build(); 
         menuRepository.save(menu1);
         menuRepository.save(menu2);
 
