@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -40,11 +42,7 @@ public class GroupOrderService {
 	// 그룹 주문 세선 생성
     @Transactional
     public GroupOrder createSession(GroupOrderRequestDTO requestDto) {
-    	System.out.println("====== [디버깅] 들어온 requestDto 객체: " + requestDto);
-    	if (requestDto != null) {
-            System.out.println("====== [디버깅] 들어온 hostId 값: " + requestDto.getHostId());
-        }
-    	
+  
         User host = userRepository.findById(requestDto.getHostId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
 
@@ -58,6 +56,7 @@ public class GroupOrderService {
         initialData.put("status", "OPEN");
         initialData.put("hostId", host.getUserId());
         ref.setValueAsync(initialData);
+        
 
         return savedOrder;
     }

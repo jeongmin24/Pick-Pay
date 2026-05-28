@@ -20,7 +20,7 @@ public class FirebaseConfig {
 
             FirebaseOptions options = FirebaseOptions.builder()
                     .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-                    .setDatabaseUrl("https://Pickpay.firebaseio.com") // 콘솔에서 확인 가능
+                    .setDatabaseUrl("https://pickpay-be337-default-rtdb.firebaseio.com") // 콘솔에서 확인 가능
                     .build();
 
             if (FirebaseApp.getApps().isEmpty()) {
