@@ -25,9 +25,16 @@ public class FirebaseConfig {
 
             if (FirebaseApp.getApps().isEmpty()) {
                 FirebaseApp.initializeApp(options);
+                System.out.println("Firebase Admin SDK 초기화 성공");
+            } else {
+            	System.out.println("Firebase App이 이미 초기화 되어있습니다.");
             }
+            
+            System.out.println("활성화된 Firebase 앱 개수:" + FirebaseApp.getApps().size());
 		} catch(Exception e) {
+			System.out.println("firebase 초기화 중 에러 발생");
 			e.printStackTrace();
+			throw new IllegalStateException("Firebase 초기화 실패", e);
 		}
 	}
 

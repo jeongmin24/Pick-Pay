@@ -20,4 +20,13 @@ public class OrderItems {
     private Menu product;
 
     private Integer quantity;
+    
+    // 개별 메뉴 생성 메서드 
+    public static OrderItems createOrderItem(Order order, Menu product, int quantity) {
+        OrderItems orderItem = new OrderItems();
+        orderItem.setOrder(order);
+        orderItem.setProduct(product);
+        orderItem.setQuantity(quantity);
+        return orderItem;
+    }
 }
