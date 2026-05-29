@@ -12,6 +12,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.ssafy.pickpay.domain.CustomUserDetails;
 import com.ssafy.pickpay.util.JWTUtil;
 
 import jakarta.servlet.FilterChain;
@@ -36,12 +37,14 @@ public class JWTFilter extends OncePerRequestFilter {
 		String accessToken = authorization.split(" ")[1];
 		
 		if(JWTUtil.isValid(accessToken, true)) {
+			Long userId = JWTUtil.getUserId(accessToken);
 			String loginId = JWTUtil.getLoginId(accessToken);
 			String role = JWTUtil.getRole(accessToken);
 			
-			List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(role)); // 권한리스트
+			CustomUserDetails principal = new CustomUserDetails(userId, loginId, role);
 			
-			Authentication auth = new UsernamePasswordAuthenticationToken(loginId, null, authorities);
+			Authentication auth = new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()); // CustomUserDetails 를 넘기자
+			
 			SecurityContextHolder.getContext().setAuthentication(auth);
 			
 			filterChain.doFilter(request, response);
