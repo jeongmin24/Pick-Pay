@@ -3,6 +3,7 @@ package com.ssafy.pickpay.controller;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,9 +25,11 @@ public class ReviewController {
 	private final ReviewService reviewService;
 	
 	@PostMapping
-	public ResponseEntity<Long> createReview(@RequestHeader("X-USER-ID") Long userId,
+	public ResponseEntity<Long> createReview(
+			Authentication authentication,
 			@RequestBody ReviewRequestDTO request) {
-		return ResponseEntity.ok(reviewService.createReview(userId, request));
+//		Long userId = Long.parseLong(authentication.getName());
+		return ResponseEntity.ok(reviewService.createReview(1L, request));
 	}
 	
 	@GetMapping("/{reviewId}")

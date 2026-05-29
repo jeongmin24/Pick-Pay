@@ -50,7 +50,6 @@ public class DataInitializer implements CommandLineRunner {
 
 						Review review = Review.builder()
 								.user(writer) // 찾아온 유저 객체를 리뷰에 매핑
-								.order(null)  // Order는 일단 null 처리
 								.content("테스터" + i + "님이 작성한 가짜 리뷰입니다. 아주 만족스러워요!")
 								.rating(5 - (int)(i % 2)) // 별점 5점, 4점 번갈아가며 부여
 								.imageUrl("https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png")
