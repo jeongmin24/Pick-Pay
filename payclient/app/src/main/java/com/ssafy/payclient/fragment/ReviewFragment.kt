@@ -7,9 +7,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.ssafy.payclient.BuildConfig.BASE_URL
+import com.ssafy.payclient.MainViewModel
 import com.ssafy.payclient.R
 import com.ssafy.payclient.ui.review.ReviewDetailActivity
 import com.ssafy.payclient.data.api.ReviewApiService
@@ -30,6 +32,7 @@ class ReviewFragment : Fragment(R.layout.fragment_review) {
     private val binding get() = _binding!!
     private lateinit var reviewAdapter: ReviewAdapter
     private lateinit var apiService: ReviewApiService
+    private val reviewViewModel: MainViewModel by activityViewModels()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -37,12 +40,16 @@ class ReviewFragment : Fragment(R.layout.fragment_review) {
 
         initRetrofit()
         setupRecyclerView()
-        fetchReviewsWithCoroutine()
 
         binding.fabAddReview.setOnClickListener {
             val intent = Intent(requireContext(), ReviewAddActivity::class.java)
             startActivity(intent)
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        fetchReviewsWithCoroutine()
     }
 
     private fun initRetrofit() {
@@ -74,9 +81,9 @@ class ReviewFragment : Fragment(R.layout.fragment_review) {
                 }
 
                 if (isAdded) {
-                    context?.let { safeContext ->
-                        Toast.makeText(safeContext, "가져온 리뷰 개수: ${reviews.size}개", Toast.LENGTH_SHORT).show()
-                    }
+//                    context?.let { safeContext ->
+//                        Toast.makeText(safeContext, "가져온 리뷰 개수: ${reviews.size}개", Toast.LENGTH_SHORT).show()
+//                    }
 
                     reviewAdapter.setReviews(reviews)
                 }
