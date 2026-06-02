@@ -17,7 +17,7 @@ import com.ssafy.pickpay.repository.UserRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class UserService implements UserDetailsService {
+public class UserService{
 	
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
@@ -54,20 +54,20 @@ public class UserService implements UserDetailsService {
 	}
 	
 
-    // 자체 로그인
-	@Transactional(readOnly = true)
-	@Override
-	public UserDetails loadUserByUsername(String loginId) throws UsernameNotFoundException {
-		User user = userRepository.findByLoginId(loginId)
-				.orElseThrow(()-> new UsernameNotFoundException(loginId));
-		
-		return org.springframework.security.core.userdetails.User.builder()
-				.username(user.getLoginId()) // 스프링시큐리티의 경우 계정 식별자는 username 
-				.password(user.getPassword())
-				.roles("USER") // ROLE_USER -> authentication 용! 
-				.build();
-	}
-	
+//    // 자체 로그인
+//	@Transactional(readOnly = true)
+//	@Override
+//	public UserDetails loadUserByUsername(String loginId) throws UsernameNotFoundException {
+//		User user = userRepository.findByLoginId(loginId)
+//				.orElseThrow(()-> new UsernameNotFoundException(loginId));
+//		
+//		return org.springframework.security.core.userdetails.User.builder()
+//				.username(user.getLoginId()) // 스프링시큐리티의 경우 계정 식별자는 username 
+//				.password(user.getPassword())
+//				.roles("USER") // ROLE_USER -> authentication 용! 
+//				.build();
+//	}
+//	
 	
     // 자체 로그인 회원 정보 수정
 	@Transactional

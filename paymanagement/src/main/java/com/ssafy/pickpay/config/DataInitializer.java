@@ -5,8 +5,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ssafy.pickpay.domain.Menu;
 import com.ssafy.pickpay.domain.Review;
 import com.ssafy.pickpay.domain.User;
+import com.ssafy.pickpay.repository.MenuRepository;
 import com.ssafy.pickpay.repository.ReviewRepository;
 import com.ssafy.pickpay.repository.UserRepository;
 
@@ -16,12 +18,14 @@ public class DataInitializer implements CommandLineRunner {
 
 	private final UserRepository userRepository;
 	private final ReviewRepository reviewRepository;
+	private final MenuRepository menuRepository;
     private final PasswordEncoder passwordEncoder;
     
-	public DataInitializer(UserRepository userRepository, ReviewRepository reviewRepository, PasswordEncoder passwordEncoder) {
+	public DataInitializer(UserRepository userRepository, ReviewRepository reviewRepository, PasswordEncoder passwordEncoder, MenuRepository menuRepository) {
 		super();
 		this.userRepository = userRepository;
 		this.reviewRepository = reviewRepository;
+		this.menuRepository = menuRepository;
 		this.passwordEncoder = passwordEncoder;
 	}
 	
@@ -34,6 +38,7 @@ public class DataInitializer implements CommandLineRunner {
 	                        .loginId("user" + i)
 	                        .password(passwordEncoder.encode("1234")) 
 	                        .nickname("테스터" + i)
+	                        .imageUrl("https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png")
 	                        .build();
 	                userRepository.save(user);
 	            }
@@ -49,7 +54,6 @@ public class DataInitializer implements CommandLineRunner {
 
 						Review review = Review.builder()
 								.user(writer) // 찾아온 유저 객체를 리뷰에 매핑
-								.order(null)  // Order는 일단 null 처리
 								.content("테스터" + i + "님이 작성한 가짜 리뷰입니다. 아주 만족스러워요!")
 								.rating(5 - (int)(i % 2)) // 별점 5점, 4점 번갈아가며 부여
 								.imageUrl("https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png")
@@ -58,6 +62,24 @@ public class DataInitializer implements CommandLineRunner {
 						reviewRepository.save(review);
 					}
 					System.out.println("테스트용 리뷰 데이터 5개 생성 완료 (유저 ID 1~5 사용)");
+				}
+				
+			// 3. 메뉴 테스트 데이터 생성
+				if (menuRepository.count() == 0) {
+					Menu menu1 = Menu.builder().name("아이스아메리카노").price(6000L).build();
+					Menu menu2 = Menu.builder().name("아이스카페라떼").price(7000L).build();
+					Menu menu3 = Menu.builder().name("민트초코프라푸치노").price(15000L).build();
+					Menu menu4 = Menu.builder().name("아이스바닐라라떼").price(5000L).build();
+					Menu menu5 = Menu.builder().name("에스프레소").price(7500L).build();
+					
+					// Repository에 일괄 저장
+					menuRepository.save(menu1);
+					menuRepository.save(menu2);
+					menuRepository.save(menu3);
+					menuRepository.save(menu4);
+					menuRepository.save(menu5);
+					
+					System.out.println("테스트용 메뉴 데이터 5개 생성 완료");
 				}
 	}
 	

@@ -21,6 +21,12 @@ public class JWTUtil {
         accessTokenExpiresIn = 3600L * 1000; // 1시간
         refreshTokenExpiresIn = 604800L * 1000; // 7일
     }
+    
+    // JWT 클레임 userId(PK) 파싱 
+    public static Long getUserId(String token) {
+    	return Jwts.parser().verifyWith(secretKey).build()
+    			.parseSignedClaims(token).getPayload().get("userId", Long.class);
+    }
 
     // JWT 클레임 loginId 파싱
     public static String getLoginId(String token) {
@@ -55,13 +61,14 @@ public class JWTUtil {
     }
 
     // JWT(Access/Refresh) 생성
-    public static String createJWT(String loginId, String role, Boolean isAccess) {
+    public static String createJWT(Long userId, String loginId, String role, Boolean isAccess) {
 
         long now = System.currentTimeMillis();
         long expiry = isAccess ? accessTokenExpiresIn : refreshTokenExpiresIn;
         String type = isAccess ? "access" : "refresh";
 
         return Jwts.builder()
+        		.claim("userId", userId)
                 .claim("sub", loginId)
                 .claim("role", role)
                 .claim("type", type)

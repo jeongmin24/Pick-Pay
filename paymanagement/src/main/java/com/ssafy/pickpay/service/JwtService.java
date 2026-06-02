@@ -51,11 +51,12 @@ public class JwtService {
             throw new RuntimeException("유효하지 않은 refreshToken입니다.");
         }
 
+        Long userId = JWTUtil.getUserId(refreshToken);
         String loginId = JWTUtil.getLoginId(refreshToken);
         String role = JWTUtil.getRole(refreshToken);
 
-        String newAccessToken = JWTUtil.createJWT(loginId, role, true);
-        String newRefreshToken = JWTUtil.createJWT(loginId, role, false);
+        String newAccessToken = JWTUtil.createJWT(userId, loginId, role, true);
+        String newRefreshToken = JWTUtil.createJWT(userId, loginId, role, false);
 
         RefreshEntity newRefreshEntity = RefreshEntity.builder()
                 .loginId(loginId)
@@ -92,11 +93,12 @@ public class JwtService {
             throw new RuntimeException("유효하지 않은 refreshToken입니다.");
         }
 
+        Long userId = JWTUtil.getUserId(refreshToken);
         String loginId = JWTUtil.getLoginId(refreshToken);
         String role = JWTUtil.getRole(refreshToken);
 
-        String newAccessToken = JWTUtil.createJWT(loginId, role, true);
-        String newRefreshToken = JWTUtil.createJWT(loginId, role, false);
+        String newAccessToken = JWTUtil.createJWT(userId, loginId, role, true);
+        String newRefreshToken = JWTUtil.createJWT(userId, loginId, role, false);
 
         RefreshEntity newRefreshEntity = RefreshEntity.builder()
                 .loginId(loginId)

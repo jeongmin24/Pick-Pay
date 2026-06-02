@@ -19,10 +19,10 @@ public class Review {
 
     @Column(columnDefinition = "TEXT")
     private String imageUrl;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id")
-    private Order order;
+//
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "order_id")
+//    private Order order;
 
     @Column(columnDefinition = "TEXT")
     private String content;
@@ -32,10 +32,10 @@ public class Review {
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    public Review(String imageUrl, User user, Order order, String content, Integer rating) {
+    public Review(String imageUrl, User user, String content, Integer rating) {
         this.imageUrl = imageUrl;
         this.user = user;
-        this.order = order;
+//        this.order = order;
         this.content = content;
         this.rating = rating;
     }
@@ -43,7 +43,7 @@ public class Review {
     private Review(Builder builder) {
         this.imageUrl = builder.imageUrl;
         this.user = builder.user;
-        this.order = builder.order;
+//        this.order = builder.order;
         this.content = builder.content;
         this.rating = builder.rating;
     }
@@ -61,7 +61,7 @@ public class Review {
     public static final class Builder {
         private String imageUrl;
         private User user;
-        private Order order;
+//        private Order order;
         private String content;
         private Integer rating;
 
@@ -78,10 +78,10 @@ public class Review {
             return this;
         }
 
-        public Builder order(Order order) {
-            this.order = order;
-            return this;
-        }
+//        public Builder order(Order order) {
+//            this.order = order;
+//            return this;
+//        }
 
         public Builder content(String content) {
             this.content = content;

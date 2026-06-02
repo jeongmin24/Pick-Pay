@@ -67,6 +67,16 @@ gen-external-apklibs
 hs_err_pid*
 replay_pid*
 
+# 비밀키 파일 제외
+paymanagement/src/main/resources/firebase-service-key.json
+
+# image file
+paymanagement/upload/
+
+# 맥북 시스템 파일 제외
+.DS_Store
+paymanagement/.DS_Store
+
 ### Kotlin ###
 # Compiled class file
 
@@ -81,3 +91,6 @@ replay_pid*
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 
 # End of https://www.toptal.com/developers/gitignore/api/java,kotlin,android
+
+# 비밀키 파일 제외
+paymanagement/src/main/resources/firebase-service-key.json
