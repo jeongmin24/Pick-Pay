@@ -16,14 +16,7 @@ class OrderFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_order, container, false)
 
-        val btnIndividual = view.findViewById<Button>(R.id.btn_individual_order)
-        val btnGroup = view.findViewById<Button>(R.id.btn_group_order)
 
-        // 단체 주문 버튼 클릭 시
-        btnGroup.setOnClickListener {
-            // GroupOrderFragment로 화면 전환 (Navigation Component를 쓰신다면 findNavController 사용)
-
-        }
 
         return view
     }
