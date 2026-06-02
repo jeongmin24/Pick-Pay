@@ -19,7 +19,6 @@ import com.ssafy.pickpay.domain.Order;
 import com.ssafy.pickpay.domain.OrderItems;
 import com.ssafy.pickpay.domain.User;
 import com.ssafy.pickpay.dto.FirebaseCartItemDTO;
-import com.ssafy.pickpay.dto.GroupOrderRequestDTO;
 import com.ssafy.pickpay.dto.ReceiptResponseDTO;
 import com.ssafy.pickpay.dto.ReceiptResponseDTO.OrderItemDTO;
 import com.ssafy.pickpay.dto.ReceiptResponseDTO.UserReceiptDTO;
@@ -44,10 +43,10 @@ public class GroupOrderService {
 	
 	// 그룹 주문 세선 생성
     @Transactional
-    public GroupOrder createSession(String loginId) {
+    public GroupOrder createSession(Long userId) {
   
-    	// 로그인한 사용자의 loginId -> DB에서 방장할 유저 조회 
-        User host = userRepository.findByLoginId(loginId)
+    	// 로그인한 사용자의 userId(PK) -> DB에서 방장할 유저 조회 
+        User host = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
 
         // RDB에 방 정보 저장
@@ -60,7 +59,7 @@ public class GroupOrderService {
 
         Map<String, Object> initialData = new HashMap<>();
         initialData.put("status", "OPEN");
-        initialData.put("hostId", host.getUserId()); // 유저의 PK 숫자를 Firebase에 기입 
+        initialData.put("hostId", userId); // 유저의 PK 숫자를 Firebase에 기입 
         
         // 비동기로 안전하게 쓰기
         ref.setValueAsync(initialData);

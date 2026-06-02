@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ssafy.pickpay.domain.CustomUserDetails;
 import com.ssafy.pickpay.domain.GroupOrder;
-import com.ssafy.pickpay.dto.GroupOrderRequestDTO;
+import com.ssafy.pickpay.dto.GroupOrderCreateResponse;
 import com.ssafy.pickpay.dto.ReceiptResponseDTO;
 import com.ssafy.pickpay.service.GroupOrderService;
 
@@ -28,13 +28,22 @@ public class GroupOrderController {
 	
 	// 그룹 주문 방 생성
 	@PostMapping
-	public ResponseEntity<GroupOrder> createGroup(Authentication authentication) {
+	public ResponseEntity<GroupOrderCreateResponse> createGroup(Authentication authentication) {
         
-		String loginId = authentication.getName(); 
+		// String loginId = authentication.getName(); // authentication에서 userId 받아올수 있음  
+		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+		Long userId = userDetails.getUserId();
 		
-        GroupOrder createdOrder = groupOrderService.createSession(loginId);
+		// groupOrderService -> Entity 
+        GroupOrder createdOrder = groupOrderService.createSession(userId);
         
-        return ResponseEntity.ok(createdOrder);
+        // DTO로 변환
+        GroupOrderCreateResponse response = new GroupOrderCreateResponse(
+        		createdOrder.getGroupId(),
+        		createdOrder.getShareLink(),
+        		createdOrder.getStatus()
+        		);
+        return ResponseEntity.ok(response);
     }
 	
 	// 방장 주문 마감
