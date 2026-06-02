@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -24,7 +25,16 @@ import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.model.ReviewRequestDTO
 import com.ssafy.payclient.data.network.RetrofitClient
 import com.ssafy.payclient.databinding.ActivityReviewAddBinding
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
 
 class ReviewAddActivity : AppCompatActivity() {
     private lateinit var binding: ActivityReviewAddBinding
@@ -48,7 +58,7 @@ class ReviewAddActivity : AppCompatActivity() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
-            openGallery() // ◀ 권한 수락 시 바로 갤러리 오픈!
+            openGallery() // 권한 수락 시 바로 갤러리 오픈!
         } else {
             Toast.makeText(this, "권한을 허용해야 사진을 첨부할 수 있습니다.", Toast.LENGTH_SHORT).show()
         }
@@ -95,7 +105,7 @@ class ReviewAddActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            sendReviewToServer(content, rating, imageUrl)
+            sendReviewToServer(content, rating)
         }
     }
     private fun checkPhotoPermission() {
@@ -118,17 +128,19 @@ class ReviewAddActivity : AppCompatActivity() {
         )
     }
 
-    private fun sendReviewToServer(content: String, rating: Int, imageUrl: String) {
-        val reviewRequest = ReviewRequestDTO(
-            content = content,
-            rating = rating,
-            imageUrl = imageUrl
-        )
-
+    private fun sendReviewToServer(content: String, rating: Int) {
         lifecycleScope.launch {
             try {
-                // 토큰은 RetrofitClient의 Interceptor가 자동으로 담아 날려줍니다!
-                val newReviewId = reviewApiService.createReview(reviewRequest)
+                val contentBody = content
+                val ratingBody = rating.toString()
+
+                val imagePart = withContext(Dispatchers.IO) {
+                    selectedImageUri?.let { uri -> prepareMultipartPart(uri) }
+                }
+
+                val newReviewId = withContext(Dispatchers.IO) {
+                    reviewApiService.createReview(contentBody, ratingBody, imagePart)
+                }
 
                 if (newReviewId > 0) {
                     Toast.makeText(this@ReviewAddActivity, "리뷰가 정상적으로 등록되었습니다! (No.$newReviewId)", Toast.LENGTH_SHORT).show()
@@ -143,5 +155,27 @@ class ReviewAddActivity : AppCompatActivity() {
         }
     }
 
+    private fun prepareMultipartPart(fileUri: Uri): MultipartBody.Part? {
+        val contentResolver = contentResolver
+
+        val fileName = contentResolver.query(fileUri, null, null, null, null)?.use { cursor ->
+            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            cursor.moveToFirst()
+            cursor.getString(nameIndex)
+        } ?: "review_image.jpg"
+
+        val inputStream: InputStream? = contentResolver.openInputStream(fileUri)
+        val tempFile = File(cacheDir, fileName)
+
+        inputStream?.use { input ->
+            FileOutputStream(tempFile).use { output ->
+                input.copyTo(output) // 파일 데이터 싹 복사
+            }
+        }
+
+        val mediaType = contentResolver.getType(fileUri)?.toMediaTypeOrNull()
+        val requestFile = RequestBody.create(mediaType, tempFile)
+        return MultipartBody.Part.createFormData("image", tempFile.name, requestFile)
+    }
 
 }

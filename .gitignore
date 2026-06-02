@@ -67,6 +67,9 @@ gen-external-apklibs
 hs_err_pid*
 replay_pid*
 
+# image file
+paymanagement/upload/
+
 ### Kotlin ###
 # Compiled class file
 
