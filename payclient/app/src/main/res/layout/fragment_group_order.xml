@@ -8,36 +8,35 @@
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar">
 
         <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar_order"
+            android:id="@+id/toolbar_group_order"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="#FFFFFF"
-            app:title="주문하기"
-            app:titleTextColor="#333333" />
+            android:background="#FF5A5F"
+            app:title="함께 주문하기"
+            app:titleTextColor="#FFFFFF"
+            app:navigationIcon="@android:drawable/ic_media_previous" />
+
+        <TextView
+            android:id="@+id/tv_group_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#FF5A5F"
+            android:paddingHorizontal="16dp"
+            android:paddingBottom="12dp"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:text="방 상태 정보..."/>
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_menu_list"
+        android:id="@+id/rv_group_menu_list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingTop="8dp"
-        android:clipToPadding="false"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
-
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_personal_cart"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginBottom="16dp"
-        android:src="@drawable/outline_shopping_cart_24"
-        android:layout_gravity="bottom|start"
-        app:backgroundTint="#FFFFFF"
-        app:tint="#FF5A5F"/>
 
     <LinearLayout
         android:layout_width="wrap_content"
@@ -50,29 +49,27 @@
         android:clipChildren="false"
         android:clipToPadding="false">
 
-        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-            android:id="@+id/fab_create_group"
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_share_link"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:text="방 생성"
-            android:visibility="gone" />
-
-        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-            android:id="@+id/fab_join_group"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:text="방 입장"
-            android:visibility="gone" />
+            android:src="@android:drawable/ic_menu_share" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_group_menu"
+            android:id="@+id/fab_chat"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@android:drawable/ic_menu_more"
-            app:backgroundTint="#FF5A5F"
-            app:tint="#FFFFFF"/>
+            android:layout_marginBottom="16dp"
+            android:src="@android:drawable/ic_dialog_email" />
+
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/fab_group_cart"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:icon="@drawable/outline_shopping_cart_24"
+            app:iconTint="@null"
+            />
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
