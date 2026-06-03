@@ -16,6 +16,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import com.ssafy.payclient.R
 import com.ssafy.payclient.data.local.TokenManager
+import com.ssafy.payclient.data.network.RetrofitClient
 import com.ssafy.payclient.databinding.FragmentOrderBinding
 import com.ssafy.payclient.ui.menu.MenuAdapter
 import com.ssafy.payclient.ui.menu.MenuUiState
@@ -94,8 +95,7 @@ class OrderFragment : Fragment() {
         // 4. 방 생성 버튼
         binding.fabCreateGroup.setOnClickListener {
             toggleFab() // 메뉴 먼저 닫기
-            val generatedGroupId = 1L
-            navigateToGroupOrder(generatedGroupId, isHost = true)
+            createGroupOrder()
         }
 
         // 5. 방 입장 버튼
@@ -114,6 +114,53 @@ class OrderFragment : Fragment() {
                 }
                 .setNegativeButton("취소", null)
                 .show()
+        }
+    }
+
+    private fun createGroupOrder() {
+        val tokenManager = TokenManager(requireContext())
+        val groupOrderApiService = RetrofitClient.getGroupOrderApiService(tokenManager)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val response = groupOrderApiService.createGroupOrder()
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+
+                    if (body != null) {
+                        Toast.makeText(
+                            requireContext(),
+                            "방 생성 성공: ${body.groupId}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        navigateToGroupOrder(
+                            groupId = body.groupId,
+                            isHost = true
+                        )
+                    } else {
+                        Toast.makeText(
+                            requireContext(),
+                            "방 생성 응답이 비어 있습니다.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        "방 생성 실패: ${response.code()}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+            } catch (e: Exception) {
+                Toast.makeText(
+                    requireContext(),
+                    "방 생성 오류: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
     }
 

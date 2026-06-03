@@ -42,3 +42,7 @@ data class OrderItemDTO(
     val quantity: Int,
     val price: Long
 )
+
+data class CloseGroupOrderRequest(
+    val payType: String
+)

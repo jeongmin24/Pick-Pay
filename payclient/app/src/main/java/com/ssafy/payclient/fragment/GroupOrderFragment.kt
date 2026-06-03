@@ -33,7 +33,7 @@ class GroupOrderFragment : Fragment() {
     private lateinit var database: DatabaseReference
     private var groupId: Long = -1L
     private var isHost: Boolean = false
-    private var currentUserId: Long = 2L
+    private var currentUserId: Long = -1L
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -49,10 +49,11 @@ class GroupOrderFragment : Fragment() {
 
         groupId = arguments?.getLong("GROUP_ID") ?: -1L
         isHost = arguments?.getBoolean("IS_HOST") ?: false
+        currentUserId = arguments?.getLong("USER_ID") ?: -1L
 
         binding.tvGroupStatus.text = "현재 방 번호: $groupId | 방장 여부: $isHost\n메뉴를 담으면 실시간으로 공유됩니다."
 
-        setupToolbar() // 🔥 상단바 설정 추가
+        setupToolbar()
         setupRecyclerView()
         setupFabs()
         observeViewModel()
@@ -114,19 +115,54 @@ class GroupOrderFragment : Fragment() {
             val bundle = Bundle().apply {
                 putLong("GROUP_ID", groupId)
                 putBoolean("IS_HOST", isHost)
+                putLong("USER_ID", currentUserId)
             }
             findNavController().navigate(R.id.action_fragment_group_order_to_fragment_group_cart, bundle)
         }
     }
 
     private fun addItemToFirebaseCart(menuName: String, menuId: Long, quantity: Int) {
-        val itemsRef = database.child("group_orders").child(groupId.toString()).child("items")
         val itemKey = "user${currentUserId}_item_${menuId}"
-        val newCartItem = CartItem(menuName, menuId, quantity, currentUserId)
 
-        itemsRef.child(itemKey).setValue(newCartItem).addOnSuccessListener {
-            Toast.makeText(context, "$menuName 담기 성공", Toast.LENGTH_SHORT).show()
-        }
+        val itemRef = database
+            .child("group_orders")
+            .child(groupId.toString())
+            .child("items")
+            .child(itemKey)
+
+        itemRef.runTransaction(object : Transaction.Handler {
+
+            override fun doTransaction(currentData: MutableData): Transaction.Result {
+                val currentItem = currentData.getValue(CartItem::class.java)
+
+                if (currentItem == null) {
+                    currentData.value = CartItem(
+                        menuName = menuName,
+                        menuId = menuId,
+                        quantity = quantity,
+                        userId = currentUserId
+                    )
+                } else {
+                    currentData.value = currentItem.copy(
+                        quantity = currentItem.quantity + quantity
+                    )
+                }
+
+                return Transaction.success(currentData)
+            }
+
+            override fun onComplete(
+                error: DatabaseError?,
+                committed: Boolean,
+                currentData: DataSnapshot?
+            ) {
+                if (committed) {
+                    Toast.makeText(context, "$menuName 담기 성공", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "담기 실패: ${error?.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
     }
 
     override fun onDestroyView() {
