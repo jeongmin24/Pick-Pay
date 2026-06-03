@@ -15,6 +15,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import com.ssafy.payclient.R
+import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.databinding.FragmentOrderBinding
 import com.ssafy.payclient.ui.menu.MenuAdapter
 import com.ssafy.payclient.ui.menu.MenuUiState
@@ -134,9 +135,13 @@ class OrderFragment : Fragment() {
     }
 
     private fun navigateToGroupOrder(groupId: Long, isHost: Boolean) {
+        val tokenManager = TokenManager(requireContext())
+        val myUserId = tokenManager.getUserId()
+
         val bundle = Bundle().apply {
             putLong("GROUP_ID", groupId)
             putBoolean("IS_HOST", isHost)
+            putLong("USER_ID", myUserId)
         }
         findNavController().navigate(R.id.action_fragment_order_to_fragment_group_order, bundle)
     }

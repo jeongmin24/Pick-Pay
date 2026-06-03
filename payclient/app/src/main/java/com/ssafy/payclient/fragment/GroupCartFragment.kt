@@ -13,10 +13,14 @@ import com.ssafy.payclient.databinding.FragmentGroupCartBinding
 
 class GroupCartFragment : Fragment() {
 
+    // binding
     private var _binding: FragmentGroupCartBinding? = null
     private val binding get() = _binding!!
 
+    // firebase DB
     private lateinit var database: DatabaseReference
+
+    // 필요한 상태변수 및 리스너
     private var groupId: Long = -1L
     private var isHost: Boolean = false
     private var cartItemsListener: ValueEventListener? = null
@@ -86,7 +90,7 @@ class GroupCartFragment : Fragment() {
 
     private fun closeOrderAndProceedToPayment() {
         Toast.makeText(context, "주문 마감 API 호출 완료!\n결제 화면으로 이동합니다.", Toast.LENGTH_LONG).show()
-        // 결제 화면 Fragment로 전환 (추후 구현)
+        // /api/groups/{groupId}/close 호출 후 결제화면으로 이동
     }
 
     override fun onDestroyView() {
