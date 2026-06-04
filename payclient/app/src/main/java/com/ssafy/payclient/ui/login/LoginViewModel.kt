@@ -1,5 +1,6 @@
 package com.ssafy.payclient.ui.login
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ssafy.payclient.data.local.TokenManager
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
+private const val TAG = "LoginViewModel_싸피"
 class LoginViewModel(
     private val repository: AuthRepository,
     private val tokenManager: TokenManager
@@ -32,6 +34,8 @@ class LoginViewModel(
                     val tokens = response.body()!!
                     tokenManager.saveAccessToken(tokens.accessToken)
                     tokenManager.saveRefreshToken(tokens.refreshToken)
+                    Log.d(TAG, "accessToken=${tokenManager.accessToken?.take(20)}")
+                    Log.d(TAG, "userId=${tokenManager.getUserId()}")
                     _loginState.value = UiState.Success(Unit)
                 } else {
                     _loginState.value = UiState.Error("로그인 실패: ${response.message()}")
