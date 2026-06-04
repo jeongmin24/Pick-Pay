@@ -185,6 +185,11 @@ class OrderFragment : Fragment() {
         val tokenManager = TokenManager(requireContext())
         val myUserId = tokenManager.getUserId()
 
+        if (myUserId <= 0L) {
+            Toast.makeText(requireContext(), "로그인 정보가 없습니다. 다시 로그인해주세요.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val bundle = Bundle().apply {
             putLong("GROUP_ID", groupId)
             putBoolean("IS_HOST", isHost)
