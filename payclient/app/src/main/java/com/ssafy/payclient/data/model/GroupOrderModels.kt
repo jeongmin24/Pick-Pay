@@ -14,12 +14,8 @@ data class UserDto(
 // 방 생성 응답
 data class GroupOrderResponse(
     val groupId: Long,
-    val host: UserDto?,
     val shareLink: String?,
-    val status: String?,
-    val pickupUser: UserDto?,
-    val payType: String?,
-    val createdAt: String?
+    val status: String?
 )
 
 // 2. GET /api/groups/{groupId}/receipt

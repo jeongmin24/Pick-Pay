@@ -109,7 +109,23 @@ class OrderFragment : Fragment() {
                 .setPositiveButton("입장") { _, _ ->
                     val roomIdStr = input.text.toString()
                     if (roomIdStr.isNotEmpty()) {
-                        navigateToGroupOrder(roomIdStr.toLong(), isHost = false)
+
+                        val tokenManager = TokenManager(requireContext())
+                        val myUserId = tokenManager.getUserId()
+
+                        if (myUserId <= 0L) {
+                            Toast.makeText(
+                                requireContext(),
+                                "userId가 없습니다. 다시 로그인해주세요.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            navigateToGroupOrder(
+                                groupId = roomIdStr.toLong(),
+                                isHost = false,
+                                userId = myUserId
+                            )
+                        }
                     }
                 }
                 .setNegativeButton("취소", null)
@@ -129,6 +145,17 @@ class OrderFragment : Fragment() {
                     val body = response.body()
 
                     if (body != null) {
+                        val myUserId = tokenManager.getUserId()
+
+                        if (myUserId <= 0L) {
+                            Toast.makeText(
+                                requireContext(),
+                                "방 생성은 성공했지만 userId가 없습니다.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@launch
+                        }
+
                         Toast.makeText(
                             requireContext(),
                             "방 생성 성공: ${body.groupId}",
@@ -137,7 +164,8 @@ class OrderFragment : Fragment() {
 
                         navigateToGroupOrder(
                             groupId = body.groupId,
-                            isHost = true
+                            isHost = true,
+                            userId = myUserId
                         )
                     } else {
                         Toast.makeText(
@@ -181,19 +209,18 @@ class OrderFragment : Fragment() {
         isFabExpanded = !isFabExpanded
     }
 
-    private fun navigateToGroupOrder(groupId: Long, isHost: Boolean) {
+    private fun navigateToGroupOrder(groupId: Long, isHost: Boolean, userId: Long) {
         val tokenManager = TokenManager(requireContext())
-        val myUserId = tokenManager.getUserId()
 
-        if (myUserId <= 0L) {
-            Toast.makeText(requireContext(), "로그인 정보가 없습니다. 다시 로그인해주세요.", Toast.LENGTH_SHORT).show()
+        if (userId <= 0L) {
+            Toast.makeText(requireContext(), "로그인 정보가 없습니다. 다시 로그인해주세요.: $userId", Toast.LENGTH_SHORT).show()
             return
         }
 
         val bundle = Bundle().apply {
             putLong("GROUP_ID", groupId)
             putBoolean("IS_HOST", isHost)
-            putLong("USER_ID", myUserId)
+            putLong("USER_ID", userId)
         }
         findNavController().navigate(R.id.action_fragment_order_to_fragment_group_order, bundle)
     }
