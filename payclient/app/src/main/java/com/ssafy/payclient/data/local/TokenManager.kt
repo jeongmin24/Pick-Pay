@@ -19,12 +19,15 @@ class TokenManager(context: Context) {
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
 
-    private var _accessToken: String? = null
-    val accessToken: String? get() = _accessToken
+    val accessToken: String?
+        get() = sharedPreferences.getString("access_token", null)
 
     fun saveAccessToken(token: String) {
-        _accessToken = token
+        sharedPreferences.edit()
+            .putString("access_token", token)
+            .apply()
     }
+
 
     fun saveRefreshToken(token: String) {
         sharedPreferences.edit().putString("refresh_token", token).apply()
@@ -35,25 +38,33 @@ class TokenManager(context: Context) {
     }
 
     fun clear() {
-        _accessToken = null
-        sharedPreferences.edit().remove("refresh_token").apply()
+        sharedPreferences.edit()
+            .remove("access_token")
+            .remove("refresh_token")
+            .apply()
     }
 
     fun getUserId(): Long {
-        // 액세스 토큰이 없으면 -1 반환
-        val token = _accessToken ?: return -1L
+        val token = accessToken ?: return -1L
 
         return try {
             val split = token.split(".")
             if (split.size != 3) return -1L
 
-            val payloadString = String(Base64.decode(split[1], Base64.URL_SAFE))
-            val jsonObject = JSONObject(payloadString)
+            val payloadString = String(
+                Base64.decode(
+                    split[1],
+                    Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING
+                )
+            )
 
+            val jsonObject = JSONObject(payloadString)
             jsonObject.getLong("userId")
+
         } catch (e: Exception) {
             e.printStackTrace()
             -1L
         }
     }
+
 }

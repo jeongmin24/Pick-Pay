@@ -80,24 +80,3 @@ object RetrofitClient {
     }
 }
 
-//    fun getApiService(tokenManager: TokenManager): AuthApiService {
-//        return authApiService ?: synchronized(this) {
-//            val loggingInterceptor = HttpLoggingInterceptor().apply {
-//                level = HttpLoggingInterceptor.Level.BODY
-//            }
-//
-//            val client = OkHttpClient.Builder()
-//                .addInterceptor(AuthInterceptor(tokenManager))
-//                .addInterceptor(loggingInterceptor)
-//                .authenticator(TokenAuthenticator(tokenManager, Provider { getApiService(tokenManager) }))
-//                .build()
-//
-//            val retrofit = Retrofit.Builder()
-//                .baseUrl(BASE_URL)
-//                .addConverterFactory(GsonConverterFactory.create())
-//                .client(client)
-//                .build()
-//
-//            retrofit.create(AuthApiService::class.java).also { authApiService = it }
-//        }
-//    }
