@@ -26,16 +26,16 @@ object RetrofitClient {
     }
 
     fun getApiService(tokenManager: TokenManager): AuthApiService {
-        init(tokenManager) // 들어온 tokenManager를 전역 변수에 등록
+        init(tokenManager)
         return authApiService ?: synchronized(this) {
-            authApiService ?: buildHttpClient().let { client ->
+            authApiService ?: buildAuthHttpClient().let { client ->
                 buildRetrofit(client).create(AuthApiService::class.java).also { authApiService = it }
             }
         }
     }
 
     fun getReviewApiService(tokenManager: TokenManager): ReviewApiService {
-        init(tokenManager) // 들어온 tokenManager를 전역 변수에 등록
+        init(tokenManager)
         return reviewApiService ?: synchronized(this) {
             reviewApiService ?: buildHttpClient().let { client ->
                 buildRetrofit(client).create(ReviewApiService::class.java).also { reviewApiService = it }
@@ -56,6 +56,17 @@ object RetrofitClient {
     }
 
     // 공통 OkHttpClient 빌더
+    private fun buildAuthHttpClient(): OkHttpClient {
+        val tm = sharedTokenManager ?: throw IllegalStateException("TokenManager가 초기화되지 않았습니다.")
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+        return OkHttpClient.Builder()
+            .addInterceptor(AuthInterceptor(tm)) // 로그인 때 쓰던 바로 그 객체가 바인딩됨!
+            .addInterceptor(loggingInterceptor)
+            .build()
+    }
+
     private fun buildHttpClient(): OkHttpClient {
         val tm = sharedTokenManager ?: throw IllegalStateException("TokenManager가 초기화되지 않았습니다.")
         val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -67,8 +78,6 @@ object RetrofitClient {
             .authenticator(TokenAuthenticator(tm, Provider { getApiService(tm) }))
             .build()
     }
-
-
 
     // 공통 Retrofit 빌더
     private fun buildRetrofit(client: OkHttpClient): Retrofit {
