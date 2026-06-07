@@ -1,6 +1,5 @@
 package com.ssafy.payclient.data.api
 
-import com.ssafy.payclient.data.model.ReviewRequestDTO
 import com.ssafy.payclient.data.model.ReviewResponseDTO
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
