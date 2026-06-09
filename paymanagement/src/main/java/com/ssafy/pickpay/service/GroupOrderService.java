@@ -19,6 +19,7 @@ import com.ssafy.pickpay.domain.Order;
 import com.ssafy.pickpay.domain.OrderItems;
 import com.ssafy.pickpay.domain.User;
 import com.ssafy.pickpay.dto.FirebaseCartItemDTO;
+import com.ssafy.pickpay.dto.GroupJoinResponseDTO;
 import com.ssafy.pickpay.dto.ReceiptResponseDTO;
 import com.ssafy.pickpay.dto.ReceiptResponseDTO.OrderItemDTO;
 import com.ssafy.pickpay.dto.ReceiptResponseDTO.UserReceiptDTO;
@@ -68,7 +69,29 @@ public class GroupOrderService {
         return savedOrder;
     }
 	
-	// 초대 링크 접속시 그룹 정보 확인
+	// shareToken으로 GroupOrder 조회 후 방장 여부 계산
+    @Transactional(readOnly = true)
+    public GroupJoinResponseDTO joinGroup(Long userId, String shareToken) {
+    	GroupOrder groupOrder = groupOrderRepository.findByShareToken(shareToken)
+    			.orElseThrow(() -> new IllegalArgumentException("유효하지 않은 초대링크 입니다."));
+    	
+    	String status = groupOrder.getStatus();
+    	
+    	if("PAID".equals(status)) {
+    		throw new IllegalStateException("이미 결제가 완료된 그룹방입니다.");
+    	}
+    	
+    	if ("LOCKED".equals(status)) {
+            throw new IllegalStateException("이미 주문이 마감된 그룹방입니다.");
+        }
+    	
+    	boolean isHost = groupOrder.getHost().getUserId().equals(userId);
+    	
+    	return new GroupJoinResponseDTO(
+    			groupOrder.getGroupId(),
+    			groupOrder.getStatus(),
+    			isHost);
+    }
 	
 	// 방장 주문 마감 처리 
     @Transactional

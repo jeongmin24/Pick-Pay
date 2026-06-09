@@ -18,8 +18,8 @@ public class GroupOrder {
     @JoinColumn(name = "host_id")
     private User host;
 
-    @Column(unique = true)
-    private String shareLink;
+    @Column(nullable = false, unique = true, length = 100)
+    private String shareToken;
 
     @Column(length = 50)
     private String status;
@@ -38,7 +38,7 @@ public class GroupOrder {
         GroupOrder groupOrder = new GroupOrder();
         groupOrder.setHost(host);
         groupOrder.setStatus("OPEN");
-        groupOrder.setShareLink(UUID.randomUUID().toString()); // 초대 링크용 고유 UUID 생성 -> 도메인 주소를 포함해서 링크를 생성할것 
+        groupOrder.setShareToken(UUID.randomUUID().toString()); // 초대 링크용 고유 UUID 생성 -> 도메인 주소 포함XXX 
         return groupOrder;
     }
     
