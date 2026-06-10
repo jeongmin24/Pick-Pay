@@ -40,6 +40,9 @@ android {
         viewBinding = true
         buildConfig = true
     }
+    androidResources {
+        noCompress.add("bin")
+    }
 }
 
 dependencies {
@@ -69,6 +72,8 @@ dependencies {
 
     // Glide 라이브러리 추가
     implementation("com.github.bumptech.glide:glide:4.16.0")
+
+    implementation("com.google.mediapipe:tasks-genai:0.10.14")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
