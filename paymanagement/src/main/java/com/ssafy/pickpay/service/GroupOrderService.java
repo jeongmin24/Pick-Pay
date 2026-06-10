@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -45,6 +46,13 @@ public class GroupOrderService {
 	// 그룹 주문 세선 생성
     @Transactional
     public GroupOrder createSession(Long userId) {
+    	
+    	// 이미 유저가 만든 OPEN 방이 있는지 확인
+    	Optional<GroupOrder> existingGroupOrder =
+    			groupOrderRepository.findByHost_UserIdAndStatus(userId, "OPEN");
+    	if(existingGroupOrder.isPresent()) {
+    		return existingGroupOrder.get(); // 이미 방이 있으면 기존 방 반환
+    	}
   
     	// 로그인한 사용자의 userId(PK) -> DB에서 방장할 유저 조회 
         User host = userRepository.findById(userId)
