@@ -35,6 +35,10 @@ class GroupOrderFragment : Fragment() {
     private var isHost: Boolean = false
     private var currentUserId: Long = -1L
 
+    private var shareLink: String? = null
+
+    private var groupStatus: String = "OPEN"
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -50,13 +54,41 @@ class GroupOrderFragment : Fragment() {
         groupId = arguments?.getLong("GROUP_ID") ?: -1L
         isHost = arguments?.getBoolean("IS_HOST") ?: false
         currentUserId = arguments?.getLong("USER_ID") ?: -1L
+        shareLink = arguments?.getString("SHARE_LINK")
 
-        binding.tvGroupStatus.text = "현재 방 번호: $groupId | 방장 여부: $isHost\n메뉴를 담으면 실시간으로 공유됩니다."
+        binding.tvGroupStatus.text =
+            "현재 방 번호: $groupId | 방장 여부: $isHost\n메뉴를 담으면 실시간으로 공유됩니다."
 
         setupToolbar()
         setupRecyclerView()
         setupFabs()
         observeViewModel()
+        observeGroupStatus()
+
+    }
+
+    private fun observeGroupStatus() {
+        database
+            .child("group_orders")
+            .child(groupId.toString())
+            .child("status")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val status = snapshot.getValue(String::class.java) ?: "OPEN"
+                    groupStatus = status
+
+                    binding.tvGroupStatus.text =
+                        "현재 방 번호: $groupId | 방장 여부: $isHost | 상태: $groupStatus\n메뉴를 담으면 실시간으로 공유됩니다."
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Toast.makeText(
+                        requireContext(),
+                        "방 상태 확인 실패: ${error.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            })
     }
 
     private fun setupToolbar() {
@@ -99,11 +131,26 @@ class GroupOrderFragment : Fragment() {
 
     private fun setupFabs() {
         binding.fabShareLink.setOnClickListener {
+            val link = shareLink
+
+            if (link.isNullOrBlank()) {
+                Toast.makeText(
+                    requireContext(),
+                    "공유 링크가 없습니다.",
+                    Toast.LENGTH_SHORT
+                ).show()
+                return@setOnClickListener
+            }
+
             val shareIntent = Intent().apply {
                 action = Intent.ACTION_SEND
-                putExtra(Intent.EXTRA_TEXT, "픽페이 함께 주문에 초대합니다!\n초대 코드: $groupId")
+                putExtra(
+                    Intent.EXTRA_TEXT,
+                    "픽페이 함께 주문에 초대합니다!\n$link"
+                )
                 type = "text/plain"
             }
+
             startActivity(Intent.createChooser(shareIntent, "초대 링크 공유"))
         }
 
@@ -122,6 +169,17 @@ class GroupOrderFragment : Fragment() {
     }
 
     private fun addItemToFirebaseCart(menuName: String, menuId: Long, quantity: Int) {
+
+        // LOCKED or PAID 상태면 장바구니 담기 X
+        if (groupStatus != "OPEN") {
+            Toast.makeText(
+                requireContext(),
+                "주문이 마감되어 더 이상 메뉴를 담을 수 없습니다.",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
         val itemKey = "user${currentUserId}_item_${menuId}"
 
         val itemRef = database

@@ -1,5 +1,6 @@
 package com.ssafy.payclient.fragment
 
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -16,6 +17,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import com.ssafy.payclient.R
 import com.ssafy.payclient.data.local.TokenManager
+import com.ssafy.payclient.data.model.GroupJoinRequest
 import com.ssafy.payclient.data.network.RetrofitClient
 import com.ssafy.payclient.databinding.FragmentOrderBinding
 import com.ssafy.payclient.ui.menu.MenuAdapter
@@ -102,30 +104,22 @@ class OrderFragment : Fragment() {
         binding.fabJoinGroup.setOnClickListener {
             toggleFab() // 메뉴 먼저 닫기
             val input = EditText(requireContext())
-            input.hint = "입장할 방 번호를 입력하세요"
+            input.hint = "초대 링크 또는 초대 토큰을 입력하세요"
+
             AlertDialog.Builder(requireContext())
                 .setTitle("방 입장하기")
                 .setView(input)
                 .setPositiveButton("입장") { _, _ ->
-                    val roomIdStr = input.text.toString()
-                    if (roomIdStr.isNotEmpty()) {
+                    val inputText = input.text.toString()
 
-                        val tokenManager = TokenManager(requireContext())
-                        val myUserId = tokenManager.getUserId()
-
-                        if (myUserId <= 0L) {
-                            Toast.makeText(
-                                requireContext(),
-                                "userId가 없습니다. 다시 로그인해주세요.",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        } else {
-                            navigateToGroupOrder(
-                                groupId = roomIdStr.toLong(),
-                                isHost = false,
-                                userId = myUserId
-                            )
-                        }
+                    if (inputText.isNotBlank()) {
+                        joinGroupOrder(inputText)
+                    } else {
+                        Toast.makeText(
+                            requireContext(),
+                            "초대 링크 또는 토큰을 입력해주세요.",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
                 .setNegativeButton("취소", null)
@@ -165,7 +159,8 @@ class OrderFragment : Fragment() {
                         navigateToGroupOrder(
                             groupId = body.groupId,
                             isHost = true,
-                            userId = myUserId
+                            userId = myUserId,
+                            shareLink = body.shareLink
                         )
                     } else {
                         Toast.makeText(
@@ -209,7 +204,7 @@ class OrderFragment : Fragment() {
         isFabExpanded = !isFabExpanded
     }
 
-    private fun navigateToGroupOrder(groupId: Long, isHost: Boolean, userId: Long) {
+    private fun navigateToGroupOrder(groupId: Long, isHost: Boolean, userId: Long, shareLink: String?=null) {
         val tokenManager = TokenManager(requireContext())
 
         if (userId <= 0L) {
@@ -221,8 +216,95 @@ class OrderFragment : Fragment() {
             putLong("GROUP_ID", groupId)
             putBoolean("IS_HOST", isHost)
             putLong("USER_ID", userId)
+            putString("SHARE_LINK", shareLink)
         }
+
         findNavController().navigate(R.id.action_fragment_order_to_fragment_group_order, bundle)
+    }
+
+    private fun joinGroupOrder(inputText: String) {
+        val shareToken = extractShareToken(inputText)
+
+        if (shareToken.isBlank()) {
+            Toast.makeText(
+                requireContext(),
+                "초대 링크 또는 토큰을 입력해주세요.",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        val tokenManager = TokenManager(requireContext())
+        val groupOrderApiService = RetrofitClient.getGroupOrderApiService(tokenManager)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val response = groupOrderApiService.joinGroup(
+                    GroupJoinRequest(shareToken)
+                )
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+
+                    if (body != null) {
+                        val myUserId = tokenManager.getUserId()
+
+                        if (myUserId <= 0L) {
+                            Toast.makeText(
+                                requireContext(),
+                                "userId가 없습니다. 다시 로그인해주세요.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@launch
+                        }
+
+                        Toast.makeText(
+                            requireContext(),
+                            "방 입장 성공: ${body.groupId}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                        val shareLink = "pickpay://group/join?token=$shareToken"
+
+                        navigateToGroupOrder(
+                            groupId = body.groupId,
+                            isHost = body.host,
+                            userId = myUserId,
+                            shareLink = shareLink
+                        )
+                    } else {
+                        Toast.makeText(
+                            requireContext(),
+                            "방 입장 응답이 비어 있습니다.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        "방 입장 실패: ${response.code()}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+            } catch (e: Exception) {
+                Toast.makeText(
+                    requireContext(),
+                    "방 입장 오류: ${e.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    private fun extractShareToken(input: String): String {
+        val trimmed = input.trim()
+
+        return if (trimmed.contains("token=")) {
+            Uri.parse(trimmed).getQueryParameter("token") ?: ""
+        } else {
+            trimmed
+        }
     }
 
     override fun onDestroyView() {
