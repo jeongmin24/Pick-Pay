@@ -8,7 +8,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.firebase.database.*
-import com.ssafy.payclient.data.model.CartItem
+import com.ssafy.payclient.data.model.FirebaseCartItem
 import com.ssafy.payclient.databinding.FragmentGroupCartBinding
 
 class GroupCartFragment : Fragment() {
@@ -70,7 +70,7 @@ class GroupCartFragment : Fragment() {
                 val sb = StringBuilder()
 
                 for (itemSnapshot in snapshot.children) {
-                    val item = itemSnapshot.getValue(CartItem::class.java)
+                    val item = itemSnapshot.getValue(FirebaseCartItem::class.java)
                     if (item != null) {
                         sb.append("👤 유저 ${item.userId}\n")
                         sb.append("   └ ${item.menuName} (x${item.quantity})\n\n")

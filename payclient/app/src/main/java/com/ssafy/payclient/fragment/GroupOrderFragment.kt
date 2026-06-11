@@ -15,7 +15,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import com.google.firebase.database.*
 import com.ssafy.payclient.R
-import com.ssafy.payclient.data.model.CartItem
+import com.ssafy.payclient.data.model.FirebaseCartItem
 import com.ssafy.payclient.databinding.FragmentGroupOrderBinding
 import com.ssafy.payclient.ui.menu.MenuAdapter
 import com.ssafy.payclient.ui.menu.MenuUiState
@@ -191,10 +191,10 @@ class GroupOrderFragment : Fragment() {
         itemRef.runTransaction(object : Transaction.Handler {
 
             override fun doTransaction(currentData: MutableData): Transaction.Result {
-                val currentItem = currentData.getValue(CartItem::class.java)
+                val currentItem = currentData.getValue(FirebaseCartItem::class.java)
 
                 if (currentItem == null) {
-                    currentData.value = CartItem(
+                    currentData.value = FirebaseCartItem(
                         menuName = menuName,
                         menuId = menuId,
                         quantity = quantity,

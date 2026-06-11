@@ -2,8 +2,9 @@ package com.ssafy.payclient.data.model
 
 import com.google.firebase.database.IgnoreExtraProperties
 
+// FirebaseDB 읽고 쓰기 전용 장바구니
 @IgnoreExtraProperties
-data class CartItem(
+data class FirebaseCartItem(
     val menuName: String = "",
     val menuId: Long = 0,
     val quantity: Int = 0,
