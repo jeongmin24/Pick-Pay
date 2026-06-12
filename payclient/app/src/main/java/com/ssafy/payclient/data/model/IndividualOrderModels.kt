@@ -26,4 +26,3 @@ data class IndividualReceiptResponseDTO(
     val items: List<OrderItemDTO> // 내가 주문한 메뉴 상세 리스트 (기존 DTO 재사용!)
 )
 
-// 영수증 응답 DTO

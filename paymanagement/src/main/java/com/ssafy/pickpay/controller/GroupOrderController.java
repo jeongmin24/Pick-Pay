@@ -16,7 +16,7 @@ import com.ssafy.pickpay.domain.GroupOrder;
 import com.ssafy.pickpay.dto.GroupJoinRequestDTO;
 import com.ssafy.pickpay.dto.GroupJoinResponseDTO;
 import com.ssafy.pickpay.dto.GroupOrderCreateResponse;
-import com.ssafy.pickpay.dto.ReceiptResponseDTO;
+import com.ssafy.pickpay.dto.GroupOrderReceiptResponseDTO;
 import com.ssafy.pickpay.service.GroupOrderService;
 
 import lombok.RequiredArgsConstructor;
@@ -72,9 +72,9 @@ public class GroupOrderController {
 	
 	// 영수증 조회 api 
 	@GetMapping("/{groupId}/receipt")
-	public ResponseEntity<ReceiptResponseDTO> getReceipt(@PathVariable Long groupId) {
+	public ResponseEntity<GroupOrderReceiptResponseDTO> getReceipt(@PathVariable Long groupId) {
 		
-		ReceiptResponseDTO receipt = groupOrderService.getReceipt(groupId);
+		GroupOrderReceiptResponseDTO receipt = groupOrderService.getReceipt(groupId);
 		
 		return ResponseEntity.ok(receipt);
 	}
