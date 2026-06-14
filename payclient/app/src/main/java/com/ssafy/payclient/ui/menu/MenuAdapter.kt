@@ -8,7 +8,7 @@ import com.ssafy.payclient.databinding.ItemMenuBinding
 
 
 class MenuAdapter(
-    private val menuList: List<MenuDTO>,
+    private var menuList: List<MenuDTO>,
     private val onItemClick: (MenuDTO) -> Unit
 ) : RecyclerView.Adapter<MenuAdapter.MenuViewHolder>() {
 
@@ -42,4 +42,9 @@ class MenuAdapter(
     }
 
     override fun getItemCount(): Int = menuList.size
+
+    fun updateList(newList: List<MenuDTO>) {
+        menuList = newList
+        notifyDataSetChanged()
+    }
 }

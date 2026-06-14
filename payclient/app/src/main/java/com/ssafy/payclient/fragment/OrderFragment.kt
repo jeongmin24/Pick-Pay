@@ -69,10 +69,7 @@ class OrderFragment : Fragment() {
                     when (state) {
                         is MenuUiState.Loading -> {}
                         is MenuUiState.Success -> {
-                            menuAdapter = MenuAdapter(state.menuList) { selectedMenu ->
-                                Toast.makeText(context, "${selectedMenu.menuName} (개인 장바구니에 담김)", Toast.LENGTH_SHORT).show()
-                            }
-                            binding.rvMenuList.adapter = menuAdapter
+                            menuAdapter.updateList(state.menuList)
                         }
                         is MenuUiState.Error -> {
                             Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
