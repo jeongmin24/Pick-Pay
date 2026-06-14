@@ -62,7 +62,7 @@ class ReviewDetailActivity : AppCompatActivity() {
     private fun initOnDeviceLLM() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val modelFile = File(filesDir, "gemma-3n-E2B-it-int4.litertlm")
+                val modelFile = File(filesDir, "gemma-4-E2B-it.litertlm")
 
                 if(!modelFile.exists()) {
                     throw IllegalStateException (
