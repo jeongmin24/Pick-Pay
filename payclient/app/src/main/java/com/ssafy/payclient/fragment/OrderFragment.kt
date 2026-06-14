@@ -16,6 +16,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import com.ssafy.payclient.R
+import com.ssafy.payclient.data.local.PersonalCartStore
 import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.model.GroupJoinRequest
 import com.ssafy.payclient.data.network.RetrofitClient
@@ -54,6 +55,7 @@ class OrderFragment : Fragment() {
 
     private fun setupRecyclerView() {
         menuAdapter = MenuAdapter(emptyList()) { selectedMenu ->
+            PersonalCartStore.add(selectedMenu)
             Toast.makeText(context, "${selectedMenu.menuName} (개인 장바구니에 담김)", Toast.LENGTH_SHORT).show()
         }
         binding.rvMenuList.apply {
@@ -83,7 +85,7 @@ class OrderFragment : Fragment() {
     private fun setupClickListeners() {
         // 1. 개인 카트 버튼
         binding.fabPersonalCart.setOnClickListener {
-            Toast.makeText(context, "개인 장바구니 화면으로 이동", Toast.LENGTH_SHORT).show()
+            findNavController().navigate(R.id.action_fragment_order_to_fragment_cart)
         }
 
         // 2. 메인 FAB (더보기) 클릭 시 확장/축소 토글
