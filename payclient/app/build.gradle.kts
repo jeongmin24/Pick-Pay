@@ -74,13 +74,10 @@ dependencies {
     // Glide 라이브러리 추가
     implementation("com.github.bumptech.glide:glide:4.16.0")
 
-<<<<<<< HEAD
     implementation("com.google.mediapipe:tasks-genai:0.10.14")
-=======
     // realtime database SDK
     implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
     implementation("com.google.firebase:firebase-database")
->>>>>>> f8cc4248cccb228663fa16f6963a094fd5b36203
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
