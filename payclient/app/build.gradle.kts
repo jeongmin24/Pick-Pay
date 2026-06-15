@@ -15,6 +15,10 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        ndk {
+            abiFilters.addAll(listOf("arm64-v8a", "x86_64"))
+        }
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // gradle.properties에 정의된 BASE_URL을 사용 (String 타입이므로 따옴표 처리가 필요합니다)
@@ -42,7 +46,12 @@ android {
         buildConfig = true
     }
     androidResources {
-        noCompress.add("bin")
+        noCompress.addAll(listOf("bin", "litertlm", "task"))
+    }
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 
@@ -74,7 +83,8 @@ dependencies {
     // Glide 라이브러리 추가
     implementation("com.github.bumptech.glide:glide:4.16.0")
 
-    implementation("com.google.mediapipe:tasks-genai:0.10.14")
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.12.0")
+
     // realtime database SDK
     implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
     implementation("com.google.firebase:firebase-database")
