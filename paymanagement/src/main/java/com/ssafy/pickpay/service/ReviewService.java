@@ -47,7 +47,7 @@ public class ReviewService {
 				}
 				String savedFilename = UUID.randomUUID().toString() + extension;
 
-				// 하드디스크 디렉토리에 바이너리 파일 복사 슛
+				// 하드디스크 디렉토리에 바이너리 파일 복사
 				File targetFile = new File(dir.getAbsolutePath() + File.separator + savedFilename);
 				image.transferTo(targetFile);
 

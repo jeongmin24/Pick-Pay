@@ -28,4 +28,30 @@
         android:label="ProfileFragment"
         tools:layout="@layout/fragment_profile" />
 
+    <fragment
+        android:id="@+id/fragment_order"
+        android:name="com.ssafy.payclient.fragment.OrderFragment"
+        android:label="OrderFragment"
+        tools:layout="@layout/fragment_order">
+        <action
+            android:id="@+id/action_fragment_order_to_fragment_group_order"
+            app:destination="@id/fragment_group_order" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/fragment_group_order"
+        android:name="com.ssafy.payclient.fragment.GroupOrderFragment"
+        android:label="GroupOrderFragment"
+        tools:layout="@layout/fragment_group_order">
+        <action
+            android:id="@+id/action_fragment_group_order_to_fragment_group_cart"
+            app:destination="@id/fragment_group_cart" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/fragment_group_cart"
+        android:name="com.ssafy.payclient.fragment.GroupCartFragment"
+        android:label="GroupCartFragment"
+        tools:layout="@layout/fragment_group_cart" />
+
 </navigation>

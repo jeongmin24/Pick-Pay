@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -69,6 +70,10 @@ dependencies {
 
     // Glide 라이브러리 추가
     implementation("com.github.bumptech.glide:glide:4.16.0")
+
+    // realtime database SDK
+    implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
+    implementation("com.google.firebase:firebase-database")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
