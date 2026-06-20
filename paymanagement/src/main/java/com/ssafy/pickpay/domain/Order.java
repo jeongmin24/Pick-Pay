@@ -3,6 +3,9 @@ package com.ssafy.pickpay.domain;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+
+import com.ssafy.pickpay.common.OrderStatus;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -24,8 +27,9 @@ public class Order {
 
     private Long totalPrice;
 
-    @Column(length = 50)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 50, nullable = false)
+    private OrderStatus status;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -36,7 +40,25 @@ public class Order {
         order.setGroupOrder(groupOrder);
         order.setUser(user);
         order.setTotalPrice(0L); // 초기값 설정 (나중에 계산 후 업데이트)
-        order.setStatus("WAITING_PAYMENT"); // 결제 대기 상태
+        order.setStatus(OrderStatus.PENDING); // 결제 대기 상태
         return order;
+    }
+    
+    public void markPaid() {
+    	if(this.status == OrderStatus.PAID) {
+    		return;
+    	}
+    	if (this.status != OrderStatus.PENDING) {
+            throw new IllegalStateException("결제 대기 상태의 주문만 결제 완료 처리할 수 있습니다.");
+        }
+    	this.status = OrderStatus.PAID;
+    }
+    
+    public void markPaymentFailed() {
+        this.status = OrderStatus.PAYMENT_FAILED;
+    }
+
+    public void cancel() {
+        this.status = OrderStatus.CANCELLED;
     }
 }

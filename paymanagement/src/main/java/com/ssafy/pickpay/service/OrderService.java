@@ -48,7 +48,7 @@ public class OrderService {
     	return new IndividualOrderCreateResponseDTO(
     			order.getOrderId(),
     			order.getTotalPrice(),
-    			order.getStatus()
+    			order.getStatus().name() // enum -> String
     			);
     	
     }
@@ -145,7 +145,7 @@ public class OrderService {
     	return new IndividualOrderReceiptResponseDTO(
     			order.getOrderId(),
     			order.getTotalPrice(),
-    			order.getStatus(),
+    			order.getStatus().name(),
     			order.getCreatedAt(),
     			items
     			);
