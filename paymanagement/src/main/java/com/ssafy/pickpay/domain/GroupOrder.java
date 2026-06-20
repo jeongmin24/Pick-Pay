@@ -60,9 +60,10 @@ public class GroupOrder {
         return groupOrder;
     }
 
+    // 주문 마감 및 결제 방식 확정 
     public void closeAndSetPayType(String payType) {
         if (this.status != GroupOrderStatus.OPEN) {
-            throw new IllegalStateException("Only open group orders can be closed.");
+            throw new IllegalStateException("이미 마감되었거나 종료된 주문 세션입니다..");
         }
 
         this.status = GroupOrderStatus.LOCKED;
@@ -75,7 +76,7 @@ public class GroupOrder {
         }
 
         if (this.status != GroupOrderStatus.LOCKED) {
-            throw new IllegalStateException("Only locked group orders can be marked as paid.");
+            throw new IllegalStateException("LOCKED 상태의 그룹만 PAID 전환이 가능합니다.");
         }
 
         this.status = GroupOrderStatus.PAID;
