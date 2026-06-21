@@ -124,6 +124,13 @@
 		    <artifactId>spring-dotenv</artifactId>
 		    <version>4.0.0</version>
 		</dependency>
+		
+		<!-- Hashids -->
+		<dependency>
+		    <groupId>org.hashids</groupId>
+		    <artifactId>hashids</artifactId>
+		    <version>1.0.3</version>
+		</dependency>
 	</dependencies>
 
 	<build>
