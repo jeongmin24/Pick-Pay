@@ -31,6 +31,5 @@ public class Menu {
     private String imageUrl;
     private Boolean isActive;
 
-    @OneToOne(mappedBy = "menu", cascade = CascadeType.ALL)
-    private Inventory inventory;
+    private Integer stockQuantity;
 }

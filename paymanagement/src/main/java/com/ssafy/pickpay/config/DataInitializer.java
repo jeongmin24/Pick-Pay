@@ -66,11 +66,11 @@ public class DataInitializer implements CommandLineRunner {
 				
 			// 3. 메뉴 테스트 데이터 생성
 				if (menuRepository.count() == 0) {
-					Menu menu1 = Menu.builder().name("아이스아메리카노").price(6000L).build();
-					Menu menu2 = Menu.builder().name("아이스카페라떼").price(7000L).build();
-					Menu menu3 = Menu.builder().name("민트초코프라푸치노").price(15000L).build();
-					Menu menu4 = Menu.builder().name("아이스바닐라라떼").price(5000L).build();
-					Menu menu5 = Menu.builder().name("에스프레소").price(7500L).build();
+					Menu menu1 = Menu.builder().name("아이스아메리카노").price(6000L).stockQuantity(10).build();
+					Menu menu2 = Menu.builder().name("아이스카페라떼").price(7000L).stockQuantity(10).build();
+					Menu menu3 = Menu.builder().name("민트초코프라푸치노").price(15000L).stockQuantity(10).build();
+					Menu menu4 = Menu.builder().name("아이스바닐라라떼").price(5000L).stockQuantity(10).build();
+					Menu menu5 = Menu.builder().name("에스프레소").price(7500L).stockQuantity(10).build();
 					
 					// Repository에 일괄 저장
 					menuRepository.save(menu1);
