@@ -32,4 +32,14 @@ public class Menu {
     private Boolean isActive;
 
     private Integer stockQuantity;
+    
+    public void decreaseStock(int quantity) {
+    	int restStock = this.stockQuantity - quantity;
+    	
+    	if(restStock < 0) {
+    		throw new IllegalStateException("물량 부족으로 재고를 줄일 수 없습니다. 현재 재고: \" + this.stockQuantity");
+    	}
+    	
+    	this.stockQuantity = restStock;
+    }
 }
