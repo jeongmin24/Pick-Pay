@@ -45,7 +45,7 @@ public class GroupOrderController {
         GroupOrderCreateResponse response = new GroupOrderCreateResponse(
         		createdOrder.getGroupId(),
         		shareLink,
-        		createdOrder.getStatus(),
+        		createdOrder.getStatus().name(),
         		true // 방을 생성하면 방장 true 
         		);
         return ResponseEntity.ok(response);
