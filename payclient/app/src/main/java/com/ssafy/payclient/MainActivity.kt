@@ -45,7 +45,14 @@ class MainActivity : AppCompatActivity() {
 
 
         initViews()
+        handlePaymentDeepLink(intent)
 //        observeViewModel()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handlePaymentDeepLink(intent)
     }
 
     private fun initViews() {
@@ -54,6 +61,17 @@ class MainActivity : AppCompatActivity() {
         binding.bottomNavigation.setupWithNavController(navController)
         binding.bottomNavigation.itemIconTintList = null
 
+    }
+
+    private fun handlePaymentDeepLink(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme != "tosspayments" || uri.host != "payment") return
+
+        val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
+        val navController = navHostFragment?.navController ?: return
+        navController.currentBackStackEntry
+            ?.savedStateHandle
+            ?.set(PAYMENT_DEEP_LINK_URI, uri.toString())
     }
 
 //    private fun observeViewModel() {
@@ -82,5 +100,9 @@ class MainActivity : AppCompatActivity() {
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
+    }
+
+    companion object {
+        const val PAYMENT_DEEP_LINK_URI = "PAYMENT_DEEP_LINK_URI"
     }
 }
