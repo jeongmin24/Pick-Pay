@@ -1,7 +1,7 @@
 package com.ssafy.payclient.data.model
 
 // 주문시 SQLite에 저장한 장바구니 리스트를 서버로 보냄
-data class IndividualOrderRequest(
+data class IndividualOrderRequesDTOt(
     val items: List<CartItemRequest>
 )
 
