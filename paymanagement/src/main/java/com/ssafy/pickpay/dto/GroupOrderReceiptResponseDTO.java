@@ -11,7 +11,7 @@ import lombok.Setter;
 
 @Getter @Builder
 @NoArgsConstructor @AllArgsConstructor
-public class ReceiptResponseDTO {
+public class GroupOrderReceiptResponseDTO {
 	
 	private Long groupId;
 	private String payType;
@@ -25,15 +25,8 @@ public class ReceiptResponseDTO {
 		private Long userId;
 		private String nickname;
 		private Long userTotalPrice;
-		private List<OrderItemDTO> items; // 사용자가 시킨 메뉴들
+		private List<OrderReceiptItemDTO> items; // 사용자가 시킨 메뉴들
 	}
 	
-	@Getter @Builder
-	@NoArgsConstructor @AllArgsConstructor
-	public static class OrderItemDTO {
-		private String menuName;
-		private int quantity;
-		private Long price;
-	}
 
 }

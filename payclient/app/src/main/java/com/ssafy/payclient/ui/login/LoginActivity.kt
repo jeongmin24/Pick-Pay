@@ -32,9 +32,9 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 자동 로그인 체크: 저장된 RefreshToken이 있으면 바로 메인으로 이동
+        // 자동 로그인 체크: 저장된 AccessToken + RefreshToken이 있으면 바로 메인으로 이동
         val tokenManager = TokenManager(applicationContext)
-        if (tokenManager.getRefreshToken() != null) {
+        if (tokenManager.accessToken != null && tokenManager.getRefreshToken() != null) {
             startActivity(Intent(this, MainActivity::class.java))
             finish()
             return
