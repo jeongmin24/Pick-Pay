@@ -16,6 +16,10 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        ndk {
+            abiFilters.addAll(listOf("arm64-v8a", "x86_64"))
+        }
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
     }
@@ -39,6 +43,14 @@ android {
     buildFeatures {
         viewBinding = true
         buildConfig = true
+    }
+    androidResources {
+        noCompress.addAll(listOf("bin", "litertlm", "task"))
+    }
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 
@@ -70,9 +82,12 @@ dependencies {
     // Glide 라이브러리 추가
     implementation("com.github.bumptech.glide:glide:4.16.0")
 
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.12.0")
+
     // realtime database SDK
     implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
     implementation("com.google.firebase:firebase-database")
+//    implementation(libs.litertlm)
 
     // Toss Payments Android SDK 추가 (버전 0.1.15 적용)
     implementation("com.github.tosspayments:payment-sdk-android:0.1.15")

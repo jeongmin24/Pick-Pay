@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.ssafy.payclient.R
 import com.ssafy.payclient.data.local.PersonalCartStore
 import com.ssafy.payclient.databinding.ActivityCartBinding
 import com.ssafy.payclient.ui.cart.CartAdapter
@@ -85,6 +86,16 @@ class CartFragment : Fragment() {
         binding.rvCartItems.visibility = if (isEmpty) View.GONE else View.VISIBLE
         binding.btnOrder.isEnabled = !isEmpty
         binding.tvTotalPrice.text = "${PersonalCartStore.getTotalPrice()} 원"
+    }
+
+    override fun onResume() {
+        super.onResume()
+        activity?.findViewById<View>(R.id.bottom_navigation)?.visibility = View.GONE
+    }
+
+    override fun onStop() {
+        super.onStop()
+        activity?.findViewById<View>(R.id.bottom_navigation)?.visibility = View.VISIBLE
     }
 
     override fun onDestroyView() {

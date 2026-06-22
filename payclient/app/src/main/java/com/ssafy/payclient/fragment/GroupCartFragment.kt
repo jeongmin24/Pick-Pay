@@ -15,6 +15,7 @@ import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.MutableData
 import com.google.firebase.database.Transaction
 import com.google.firebase.database.ValueEventListener
+import com.ssafy.payclient.R
 import com.ssafy.payclient.data.model.FirebaseCartItem
 import com.ssafy.payclient.databinding.FragmentGroupCartBinding
 import com.ssafy.payclient.ui.cart.GroupCartAdapter
@@ -168,6 +169,16 @@ class GroupCartFragment : Fragment() {
     private fun closeOrderAndProceedToPayment() {
         Toast.makeText(context, "Close order API will be connected next.", Toast.LENGTH_LONG).show()
         // /api/groups/{groupId}/close 호출 후 결제화면으로 이동
+    }
+
+    override fun onResume() {
+        super.onResume()
+        activity?.findViewById<View>(R.id.bottom_navigation)?.visibility = View.GONE
+    }
+
+    override fun onStop() {
+        super.onStop()
+        activity?.findViewById<View>(R.id.bottom_navigation)?.visibility = View.VISIBLE
     }
 
     override fun onDestroyView() {
