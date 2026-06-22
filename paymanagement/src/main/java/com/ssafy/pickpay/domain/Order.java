@@ -80,4 +80,8 @@ public class Order {
     public void cancel() {
         this.status = OrderStatus.CANCELLED;
     }
+    
+    public boolean isPaid() {
+        return this.status == OrderStatus.PAID;
+    }
 }

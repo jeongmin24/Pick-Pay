@@ -4,8 +4,14 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import com.ssafy.pickpay.common.OrderStatus;
 import com.ssafy.pickpay.domain.Order;
+
+import jakarta.persistence.LockModeType;
 
 
 public interface OrderRepository extends JpaRepository<Order, Long>{
@@ -21,4 +27,19 @@ public interface OrderRepository extends JpaRepository<Order, Long>{
 	// orderNo 조회용 PG사에서 넘어온 orderId(orderNo) 기준으로 주문을 찾음 
 	Optional<Order> findByOrderNo(String orderNo);
 	Optional<Order> findByOrderNoAndUser_UserId(String orderNo, Long userId);
+	
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        select o
+        from Order o
+        join fetch o.user u
+        left join fetch o.groupOrder g
+        where o.orderNo = :orderNo
+    """)
+    Optional<Order> findByOrderNoForUpdate(@Param("orderNo") String orderNo);
+	
+	boolean existsByGroupOrder_GroupIdAndStatusNot(
+            Long groupId,
+            OrderStatus status
+    );
 }
