@@ -15,6 +15,7 @@ import com.ssafy.pickpay.domain.Menu;
 import com.ssafy.pickpay.domain.Order;
 import com.ssafy.pickpay.domain.OrderItems;
 import com.ssafy.pickpay.domain.User;
+import com.ssafy.pickpay.common.GroupOrderStatus;
 import com.ssafy.pickpay.dto.FirebaseCartItemDTO;
 import com.ssafy.pickpay.repository.GroupOrderRepository;
 import com.ssafy.pickpay.repository.MenuRepository;
@@ -80,7 +81,7 @@ public class GroupOrderServiceIntegrationTest {
 
         
         GroupOrder updatedGroup = groupOrderRepository.findById(groupOrder.getGroupId()).orElseThrow();
-        assertThat(updatedGroup.getStatus()).isEqualTo("LOCKED");
+        assertThat(updatedGroup.getStatus()).isEqualTo(GroupOrderStatus.LOCKED);
         assertThat(updatedGroup.getPayType()).isEqualTo("더치페이");
 
         List<Order> orders = orderRepository.findAll();

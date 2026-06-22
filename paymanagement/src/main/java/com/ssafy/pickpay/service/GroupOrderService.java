@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -13,16 +14,18 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.ssafy.pickpay.common.GroupOrderStatus;
 import com.ssafy.pickpay.domain.GroupOrder;
 import com.ssafy.pickpay.domain.Menu;
 import com.ssafy.pickpay.domain.Order;
 import com.ssafy.pickpay.domain.OrderItems;
 import com.ssafy.pickpay.domain.User;
+import com.ssafy.pickpay.dto.CartItemRequest;
 import com.ssafy.pickpay.dto.FirebaseCartItemDTO;
-import com.ssafy.pickpay.dto.GroupOrderRequestDTO;
-import com.ssafy.pickpay.dto.ReceiptResponseDTO;
-import com.ssafy.pickpay.dto.ReceiptResponseDTO.OrderItemDTO;
-import com.ssafy.pickpay.dto.ReceiptResponseDTO.UserReceiptDTO;
+import com.ssafy.pickpay.dto.GroupJoinResponseDTO;
+import com.ssafy.pickpay.dto.GroupOrderReceiptResponseDTO;
+import com.ssafy.pickpay.dto.GroupOrderReceiptResponseDTO.UserReceiptDTO;
+import com.ssafy.pickpay.dto.OrderReceiptItemDTO;
 import com.ssafy.pickpay.repository.GroupOrderRepository;
 import com.ssafy.pickpay.repository.MenuRepository;
 import com.ssafy.pickpay.repository.OrderItemsRepository;
@@ -35,6 +38,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class GroupOrderService {
 	
+	private final OrderService orderService;
 	private final GroupOrderRepository groupOrderRepository;
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
@@ -44,10 +48,17 @@ public class GroupOrderService {
 	
 	// 그룹 주문 세선 생성
     @Transactional
-    public GroupOrder createSession(String loginId) {
+    public GroupOrder createSession(Long userId) {
+    	
+    	// 이미 유저가 만든 OPEN 방이 있는지 확인
+    	Optional<GroupOrder> existingGroupOrder =
+    			groupOrderRepository.findByHost_UserIdAndStatus(userId, GroupOrderStatus.OPEN);
+    	if(existingGroupOrder.isPresent()) {
+    		return existingGroupOrder.get(); // 이미 방이 있으면 기존 방 반환
+    	}
   
-    	// 로그인한 사용자의 loginId -> DB에서 방장할 유저 조회 
-        User host = userRepository.findByLoginId(loginId)
+    	// 로그인한 사용자의 userId(PK) -> DB에서 방장할 유저 조회 
+        User host = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
 
         // RDB에 방 정보 저장
@@ -59,8 +70,8 @@ public class GroupOrderService {
                 .getReference("group_orders/" + savedOrder.getGroupId());
 
         Map<String, Object> initialData = new HashMap<>();
-        initialData.put("status", "OPEN");
-        initialData.put("hostId", host.getUserId()); // 유저의 PK 숫자를 Firebase에 기입 
+        initialData.put("status", GroupOrderStatus.OPEN.name());
+        initialData.put("hostId", userId); // 유저의 PK 숫자를 Firebase에 기입 
         
         // 비동기로 안전하게 쓰기
         ref.setValueAsync(initialData);
@@ -69,13 +80,45 @@ public class GroupOrderService {
         return savedOrder;
     }
 	
-	// 초대 링크 접속시 그룹 정보 확인
+	// shareToken으로 GroupOrder 조회 후 방장 여부 계산
+    @Transactional(readOnly = true)
+    public GroupJoinResponseDTO joinGroup(Long userId, String shareToken) {
+    	GroupOrder groupOrder = groupOrderRepository.findByShareToken(shareToken)
+    			.orElseThrow(() -> new IllegalArgumentException("유효하지 않은 초대링크 입니다."));
+    	
+    	GroupOrderStatus status = groupOrder.getStatus();
+    	
+    	if(status == GroupOrderStatus.PAID) {
+    		throw new IllegalStateException("이미 결제가 완료된 그룹방입니다.");
+    	}
+    	
+    	if (status == GroupOrderStatus.LOCKED) {
+            throw new IllegalStateException("이미 주문이 마감된 그룹방입니다.");
+        }
+    	
+    	boolean isHost = groupOrder.getHost().getUserId().equals(userId);
+    	
+    	return new GroupJoinResponseDTO(
+    			groupOrder.getGroupId(),
+    			groupOrder.getStatus().name(),
+    			isHost);
+    }
 	
 	// 방장 주문 마감 처리 
     @Transactional
     public void closeSession(Long groupId, String payType) {
+    	
     	GroupOrder groupOrder = groupOrderRepository.findById(groupId)
     			.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 그룹입니다."));
+    	
+    	if(groupOrder.getStatus() == GroupOrderStatus.PAID) {
+    		throw new IllegalStateException("이미 결제가 완료된 그룹방입니다.");
+    	}
+    	
+    	if (groupOrder.getStatus() == GroupOrderStatus.LOCKED) {
+            throw new IllegalStateException("이미 주문이 마감된 그룹방입니다.");
+        }
+    	
     	groupOrder.closeAndSetPayType(payType);
     	
     	try {
@@ -89,39 +132,16 @@ public class GroupOrderService {
             Map<Long, List<FirebaseCartItemDTO>> itemsByUser = firebaseItems.stream()
                     .collect(Collectors.groupingBy(FirebaseCartItemDTO::getUserId)); // 리스트에 있는 아이템을 userId 기준으로 그룹화 
 
-            // 분류한 Map을 DB에 저장 
+            // User 마다 가진 장바구니 아이템을 DB에 하나씩 저장
             for (Map.Entry<Long, List<FirebaseCartItemDTO>> entry : itemsByUser.entrySet()) {
                 Long userId = entry.getKey();
                 List<FirebaseCartItemDTO> userCartItems = entry.getValue();
 
-                // 유저 검증
-                User user = userRepository.findById(userId)
-                        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다. ID: " + userId));
-
-                // Order를 먼저 저장 
-                Order order = Order.createOrder(groupOrder, user);
-                orderRepository.save(order);
-
-                long totalPrice = 0L;
-                List<OrderItems> orderItemsList = new ArrayList<>();
-
-                // 유저가 담은 개별 메뉴들 처리
-                for (FirebaseCartItemDTO dto : userCartItems) {
-                    Menu product = menuRepository.findById(dto.getProductId())
-                            .orElseThrow(() -> new IllegalArgumentException("메뉴를 찾을 수 없습니다. ID: " + dto.getProductId()));
-
-                    OrderItems orderItem = OrderItems.createOrderItem(order, product, dto.getQuantity());
-                    orderItemsList.add(orderItem);
-
-                    // 총액 누적 (단가 * 수량)
-                    totalPrice += (product.getPrice() * dto.getQuantity());
-                }
-
-                // OrderItems 일괄 저장
-                orderItemsRepository.saveAll(orderItemsList);
-
-                // 계산된 총액을 Order에 업데이트 (JPA 더티체킹으로 자동 UPDATE 쿼리 발생)
-                order.setTotalPrice(totalPrice);
+                List<CartItemRequest> cartItems = userCartItems.stream()
+                		.map(item -> new CartItemRequest(item.getProductId(), item.getQuantity()))
+                		.collect(Collectors.toList());
+                
+                orderService.createOrder(userId, cartItems, groupId);
             }
 
             // 5) Firebase 실시간 상태 업데이트 (클라이언트 화면 전환용)
@@ -129,7 +149,7 @@ public class GroupOrderService {
                     .getReference("group_orders/" + groupId);
 
             Map<String, Object> updates = new HashMap<>();
-            updates.put("status", "LOCKED");
+            updates.put("status", GroupOrderStatus.LOCKED.name());
             updates.put("payType", payType);
 
             groupRef.updateChildrenAsync(updates);
@@ -143,7 +163,7 @@ public class GroupOrderService {
     
     // 영수증 조회 
     @Transactional(readOnly = true)
-    public ReceiptResponseDTO getReceipt(Long groupId) {
+    public GroupOrderReceiptResponseDTO getReceipt(Long groupId) {
     	
     	GroupOrder groupOrder = groupOrderRepository.findById(groupId)
     			.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 그룹입니다"));
@@ -158,13 +178,12 @@ public class GroupOrderService {
     	for(Order order : orders) {
     		totalGroupPrice += order.getTotalPrice();
     		List<OrderItems> rawOrderItems = orderItemsRepository.findByOrder_OrderId(order.getOrderId());
-    		List<OrderItemDTO> itemDTOList = rawOrderItems.stream()
-    				.map(item -> OrderItemDTO.builder()
-    						.menuName(item.getProduct().getName())
-    						.quantity(item.getQuantity())
-    						.price(item.getProduct().getPrice())
-    						.build()
-    						)
+    		List<OrderReceiptItemDTO> itemDTOList = rawOrderItems.stream()
+    				.map(item -> new OrderReceiptItemDTO( // record 기본 생성자 
+    						item.getProduct().getName(), // Product = Menu
+    						item.getQuantity(),
+    						item.getProduct().getPrice()
+    						))
     				.collect(Collectors.toList());
     		
     		UserReceiptDTO userReceiptDTO = UserReceiptDTO.builder()
@@ -177,7 +196,7 @@ public class GroupOrderService {
     		userReceiptList.add(userReceiptDTO);
     	}
     	
-    	return ReceiptResponseDTO.builder()
+    	return GroupOrderReceiptResponseDTO.builder()
     			.groupId(groupOrder.getGroupId())
     			.payType(groupOrder.getPayType())
     			.totalGroupPrice(totalGroupPrice)

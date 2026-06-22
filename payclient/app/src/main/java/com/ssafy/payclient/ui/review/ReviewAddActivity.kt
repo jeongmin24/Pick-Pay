@@ -22,7 +22,6 @@ import com.ssafy.payclient.MainViewModel
 import com.ssafy.payclient.R
 import com.ssafy.payclient.data.api.ReviewApiService
 import com.ssafy.payclient.data.local.TokenManager
-import com.ssafy.payclient.data.model.ReviewRequestDTO
 import com.ssafy.payclient.data.network.RetrofitClient
 import com.ssafy.payclient.databinding.ActivityReviewAddBinding
 import kotlinx.coroutines.Dispatchers

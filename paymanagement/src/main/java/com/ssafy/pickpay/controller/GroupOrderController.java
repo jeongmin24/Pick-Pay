@@ -13,8 +13,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ssafy.pickpay.domain.CustomUserDetails;
 import com.ssafy.pickpay.domain.GroupOrder;
-import com.ssafy.pickpay.dto.GroupOrderRequestDTO;
-import com.ssafy.pickpay.dto.ReceiptResponseDTO;
+import com.ssafy.pickpay.dto.GroupJoinRequestDTO;
+import com.ssafy.pickpay.dto.GroupJoinResponseDTO;
+import com.ssafy.pickpay.dto.GroupOrderCreateResponse;
+import com.ssafy.pickpay.dto.GroupOrderReceiptResponseDTO;
 import com.ssafy.pickpay.service.GroupOrderService;
 
 import lombok.RequiredArgsConstructor;
@@ -28,14 +30,35 @@ public class GroupOrderController {
 	
 	// 그룹 주문 방 생성
 	@PostMapping
-	public ResponseEntity<GroupOrder> createGroup(Authentication authentication) {
+	public ResponseEntity<GroupOrderCreateResponse> createGroup(Authentication authentication) {
         
-		String loginId = authentication.getName(); 
+		// String loginId = authentication.getName(); // authentication에서 userId 받아올수 있음  
+		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+		Long userId = userDetails.getUserId();
 		
-        GroupOrder createdOrder = groupOrderService.createSession(loginId);
+		// groupOrderService -> Entity 
+        GroupOrder createdOrder = groupOrderService.createSession(userId);
         
-        return ResponseEntity.ok(createdOrder);
+        String shareLink = "pickpay://group.join?token="+createdOrder.getShareToken();
+        
+        // DTO로 변환
+        GroupOrderCreateResponse response = new GroupOrderCreateResponse(
+        		createdOrder.getGroupId(),
+        		shareLink,
+        		createdOrder.getStatus().name(),
+        		true // 방을 생성하면 방장 true 
+        		);
+        return ResponseEntity.ok(response);
     }
+	
+	// 링크를 통해 방 입장
+	@PostMapping("/join")
+	public GroupJoinResponseDTO joinGroup(Authentication authentication, @RequestBody GroupJoinRequestDTO request) {
+		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+		Long userId = userDetails.getUserId();
+		
+		return groupOrderService.joinGroup(userId, request.getShareToken());
+	}
 	
 	// 방장 주문 마감
 	@PatchMapping("/{groupId}/close")
@@ -49,9 +72,9 @@ public class GroupOrderController {
 	
 	// 영수증 조회 api 
 	@GetMapping("/{groupId}/receipt")
-	public ResponseEntity<ReceiptResponseDTO> getReceipt(@PathVariable Long groupId) {
+	public ResponseEntity<GroupOrderReceiptResponseDTO> getReceipt(@PathVariable Long groupId) {
 		
-		ReceiptResponseDTO receipt = groupOrderService.getReceipt(groupId);
+		GroupOrderReceiptResponseDTO receipt = groupOrderService.getReceipt(groupId);
 		
 		return ResponseEntity.ok(receipt);
 	}

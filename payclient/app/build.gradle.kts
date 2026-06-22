@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.secrets.gradle.plugin)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -16,8 +18,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // gradle.properties에 정의된 BASE_URL을 사용 (String 타입이므로 따옴표 처리가 필요합니다)
-        buildConfigField("String", "BASE_URL", "\"${project.findProperty("BASE_URL") ?: ""}\"")
     }
 
     buildTypes {
@@ -70,7 +70,16 @@ dependencies {
     // Glide 라이브러리 추가
     implementation("com.github.bumptech.glide:glide:4.16.0")
 
+    // realtime database SDK
+    implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
+    implementation("com.google.firebase:firebase-database")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+secrets {
+    propertiesFileName = "../.env"
+    defaultPropertiesFileName = "../.env.example"
 }

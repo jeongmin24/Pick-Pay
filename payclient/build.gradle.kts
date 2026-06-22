@@ -5,5 +5,7 @@ import org.gradle.internal.impldep.org.junit.experimental.categories.Categories.
 plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.secrets.gradle.plugin) apply false
+    id("com.google.gms.google-services") version "4.4.1" apply false
 }
 
