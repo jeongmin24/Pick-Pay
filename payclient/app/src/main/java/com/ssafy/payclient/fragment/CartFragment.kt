@@ -110,6 +110,7 @@ class CartFragment : Fragment() {
                         return@launch
                     }
 
+                    // navigate -> 결제 화면으로 이동
                     findNavController().navigate(
                         R.id.action_fragment_cart_to_fragment_payment,
                         Bundle().apply {

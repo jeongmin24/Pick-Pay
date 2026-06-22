@@ -68,6 +68,7 @@ class PaymentFragment : Fragment() {
         }
     }
 
+    // 결제창 호출 ( Toss Payments SDK )
     private fun requestPayment() {
         val paymentInfo = TossPaymentInfo(
             orderId = orderId,
@@ -76,19 +77,28 @@ class PaymentFragment : Fragment() {
         )
         val paymentMethod = TossPaymentMethod.Card
 
+        // 실제 결제 팝업 띄우기
         tossPayments.requestPayment(
             requireActivity(),
             paymentMethod,
             paymentInfo,
-            paymentResultLauncher
+            paymentResultLauncher // 결제 결과 콜백 함수
         )
     }
 
+    // 결제를 마치거나 취소해서 팝업이 닫힐때 콜백
     private fun handlePaymentResult(resultCode: Int, data: Intent?) {
         when (resultCode) {
+            // success -> paymentKey, orderId, amount를 서버로 보내기 ( 결제 승인 요청 )
             TossPayments.RESULT_PAYMENT_SUCCESS -> {
                 val success = data?.getParcelableExtra(TossPayments.EXTRA_PAYMENT_RESULT_SUCCESS)
                     as? TossPaymentResult.Success
+
+                // success 가 null 이 아니면
+                // 1. 로딩 인디케이터 표시 및 버튼 비활성화
+                // 2. 서버로 최종 결제승인 요청 /api/payments
+                // 2-1. 서버 승인까지 완벽히 성공했을때 장바구니 빙귀
+                // 2-2. 서버에서 승인 거절 된 경우 or 네트워크 오류 등 예외시 btnPayment.isEnable = true
                 PersonalCartStore.clear()
                 Toast.makeText(
                     requireContext(),
