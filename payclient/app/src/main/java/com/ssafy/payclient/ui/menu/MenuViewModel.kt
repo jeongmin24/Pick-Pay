@@ -2,15 +2,16 @@ package com.ssafy.payclient.ui.menu
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.repository.MenuRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class MenuViewModel: ViewModel() {
+class MenuViewModel(private val tokenManager: TokenManager): ViewModel() {
 
-    private val menuRepository = MenuRepository()
+    private val menuRepository = MenuRepository(tokenManager)
     // 내부에서만 수정 가능한 상태 (초기값은 Loading)
     private val _menuState = MutableStateFlow<MenuUiState>(MenuUiState.Loading)
 
