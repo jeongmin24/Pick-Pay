@@ -19,15 +19,15 @@ public class MenuService {
 	
 	private final MenuRepository menuRepository;
 	
-	public List<MenuResponseDTO> findAllMenus() {
+	public List<MenuResponseDTO> findAllMenus(String baseUrl) {
 		return menuRepository.findAll().stream()
-				.map(MenuResponseDTO::new)
+				.map(menu -> new MenuResponseDTO(menu, baseUrl))
 				.collect(Collectors.toList());
 	}
 	
-	public MenuResponseDTO findMenu(Long menuId) {
+	public MenuResponseDTO findMenu(Long menuId, String baseUrl) {
 		return menuRepository.findById(menuId)
-				.map(menu -> new MenuResponseDTO(menu))
+				.map(menu -> new MenuResponseDTO(menu, baseUrl))
 				.orElseThrow(() -> new IllegalArgumentException("해당 메뉴가 존재하지 않습니다."));
 	}
 
