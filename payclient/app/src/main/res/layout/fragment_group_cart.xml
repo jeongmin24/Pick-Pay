@@ -58,7 +58,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
                 android:backgroundTint="#FF5A5F"
-                android:text="주문 마감하기ㅕ"
+                android:text="주문 마감하기"
                 android:textColor="#FFFFFF"
                 android:textSize="17sp" />
         </LinearLayout>
