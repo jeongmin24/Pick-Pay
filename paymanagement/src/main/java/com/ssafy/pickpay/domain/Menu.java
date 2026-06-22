@@ -31,6 +31,24 @@ public class Menu {
     private String imageUrl;
     private Boolean isActive;
 
-    @OneToOne(mappedBy = "menu", cascade = CascadeType.ALL)
-    private Inventory inventory;
+    private Integer stockQuantity;
+    
+    public void decreaseStock(int quantity) {
+    	
+    	if (quantity <= 0) {
+            throw new IllegalArgumentException("차감 수량은 1 이상이어야 합니다.");
+        }
+
+        if (this.stockQuantity == null) {
+            throw new IllegalStateException("재고 수량이 설정되어 있지 않습니다.");
+        }
+    	
+    	int restStock = this.stockQuantity - quantity;
+    	
+    	if(restStock < 0) {
+    		throw new IllegalStateException("물량 부족으로 재고를 줄일 수 없습니다. 현재 재고: "  + this.stockQuantity);
+    	}
+    	
+    	this.stockQuantity = restStock;
+    }
 }

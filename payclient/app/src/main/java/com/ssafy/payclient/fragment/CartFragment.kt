@@ -6,11 +6,19 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.ssafy.payclient.R
+import com.ssafy.payclient.data.local.PersonalCartItem
 import com.ssafy.payclient.data.local.PersonalCartStore
+import com.ssafy.payclient.data.local.TokenManager
+import com.ssafy.payclient.data.model.CartItemRequest
+import com.ssafy.payclient.data.model.IndividualOrderRequestDTO
+import com.ssafy.payclient.data.network.RetrofitClient
 import com.ssafy.payclient.databinding.ActivityCartBinding
 import com.ssafy.payclient.ui.cart.CartAdapter
+import kotlinx.coroutines.launch
 
 class CartFragment : Fragment() {
 
@@ -68,12 +76,63 @@ class CartFragment : Fragment() {
 
     private fun setupClickListeners() {
         binding.btnOrder.setOnClickListener {
-            if (PersonalCartStore.getItems().isEmpty()) {
-                Toast.makeText(requireContext(), "장바구니가 비었습니다.", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(requireContext(), "Order API will be connected next.", Toast.LENGTH_SHORT).show()
+            createOrder()
+        }
+    }
+
+    private fun createOrder() {
+        val cartItems = PersonalCartStore.getItems()
+        if (cartItems.isEmpty()) {
+            Toast.makeText(requireContext(), "장바구니가 비었습니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        binding.btnOrder.isEnabled = false
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val tokenManager = TokenManager(requireContext().applicationContext)
+                val apiService = RetrofitClient.getIndividualOrderApiService(tokenManager)
+                val request = IndividualOrderRequestDTO(
+                    items = cartItems.map { item ->
+                        CartItemRequest(
+                            menuId = item.menuId,
+                            quantity = item.quantity
+                        )
+                    }
+                )
+                val response = apiService.createOrder(request)
+
+                if (response.isSuccessful) {
+                    val order = response.body()
+                    if (order == null) {
+                        Toast.makeText(requireContext(), "주문 응답이 비어 있습니다.", Toast.LENGTH_SHORT).show()
+                        return@launch
+                    }
+
+                    // navigate -> 결제 화면으로 이동
+                    findNavController().navigate(
+                        R.id.action_fragment_cart_to_fragment_payment,
+                        Bundle().apply {
+                            putString(PaymentFragment.ARG_ORDER_ID, order.orderId)
+                            putLong(PaymentFragment.ARG_TOTAL_PRICE, order.totalPrice)
+                            putString(PaymentFragment.ARG_ORDER_NAME, buildOrderName(cartItems))
+                        }
+                    )
+                } else {
+                    Toast.makeText(requireContext(), "주문 생성에 실패했습니다. (${response.code()})", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(requireContext(), "주문 생성 중 오류가 발생했습니다: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                _binding?.btnOrder?.isEnabled = PersonalCartStore.getItems().isNotEmpty()
             }
         }
+    }
+
+    private fun buildOrderName(items: List<PersonalCartItem>): String {
+        val firstItemName = items.firstOrNull()?.menuName ?: "주문"
+        return if (items.size == 1) firstItemName else "$firstItemName 외 ${items.size - 1}건"
     }
 
     private fun renderCart() {
@@ -85,6 +144,16 @@ class CartFragment : Fragment() {
         binding.rvCartItems.visibility = if (isEmpty) View.GONE else View.VISIBLE
         binding.btnOrder.isEnabled = !isEmpty
         binding.tvTotalPrice.text = "${PersonalCartStore.getTotalPrice()} 원"
+    }
+
+    override fun onResume() {
+        super.onResume()
+        activity?.findViewById<View>(R.id.bottom_navigation)?.visibility = View.GONE
+    }
+
+    override fun onStop() {
+        super.onStop()
+        activity?.findViewById<View>(R.id.bottom_navigation)?.visibility = View.VISIBLE
     }
 
     override fun onDestroyView() {

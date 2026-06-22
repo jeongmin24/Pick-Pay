@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ssafy.pickpay.config.OrderNoGenerator;
 import com.ssafy.pickpay.domain.GroupOrder;
 import com.ssafy.pickpay.domain.Menu;
 import com.ssafy.pickpay.domain.Order;
@@ -35,6 +36,7 @@ public class OrderService {
     private final UserRepository userRepository;
     private final MenuRepository menuRepository;
     private final GroupOrderRepository groupOrderRepository;
+    private final OrderNoGenerator orderNoGenerator;
     
     @Transactional
     public IndividualOrderCreateResponseDTO createIndividualOrder(
@@ -46,9 +48,9 @@ public class OrderService {
     	
     	// DTO로 반환
     	return new IndividualOrderCreateResponseDTO(
-    			order.getOrderId(),
+    			order.getOrderNo(),
     			order.getTotalPrice(),
-    			order.getStatus()
+    			order.getStatus().name() // enum -> String
     			);
     	
     }
@@ -77,7 +79,10 @@ public class OrderService {
     	}
     	
     	Order order = Order.createOrder(groupOrder, user);
-    	Order savedOrder = orderRepository.save(order);
+    	Order savedOrder = orderRepository.saveAndFlush(order); // INSERT
+    	
+    	String orderNo = orderNoGenerator.generate(savedOrder.getOrderId());
+    	savedOrder.assignOrderNo(orderNo); // UPDATE
     	
     	Map<Long, Integer> mergedItems = mergeItems(items);
     	
@@ -95,7 +100,7 @@ public class OrderService {
     		totalPrice += menu.getPrice() * quantity;
     	}
     	
-    	savedOrder.setTotalPrice(totalPrice);
+    	savedOrder.updateTotalPrice(totalPrice);
     	return savedOrder;
     	
     	
@@ -145,7 +150,7 @@ public class OrderService {
     	return new IndividualOrderReceiptResponseDTO(
     			order.getOrderId(),
     			order.getTotalPrice(),
-    			order.getStatus(),
+    			order.getStatus().name(),
     			order.getCreatedAt(),
     			items
     			);

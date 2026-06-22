@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.secrets.gradle.plugin)
     id("com.google.gms.google-services")
 }
 
@@ -15,10 +16,12 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        ndk {
+            abiFilters.addAll(listOf("arm64-v8a", "x86_64"))
+        }
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // gradle.properties에 정의된 BASE_URL을 사용 (String 타입이므로 따옴표 처리가 필요합니다)
-        buildConfigField("String", "BASE_URL", "\"${project.findProperty("BASE_URL") ?: ""}\"")
     }
 
     buildTypes {
@@ -40,6 +43,14 @@ android {
     buildFeatures {
         viewBinding = true
         buildConfig = true
+    }
+    androidResources {
+        noCompress.addAll(listOf("bin", "litertlm", "task"))
+    }
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 }
 
@@ -71,11 +82,22 @@ dependencies {
     // Glide 라이브러리 추가
     implementation("com.github.bumptech.glide:glide:4.16.0")
 
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.12.0")
+
     // realtime database SDK
     implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
     implementation("com.google.firebase:firebase-database")
+//    implementation(libs.litertlm)
+
+    // Toss Payments Android SDK 추가 (버전 0.1.15 적용)
+    implementation("com.github.tosspayments:payment-sdk-android:0.1.15")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+secrets {
+    propertiesFileName = "../.env"
+    defaultPropertiesFileName = "../.env.example"
 }
