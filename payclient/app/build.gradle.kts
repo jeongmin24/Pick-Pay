@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.secrets.gradle.plugin)
     id("com.google.gms.google-services")
 }
 
@@ -21,8 +22,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // gradle.properties에 정의된 BASE_URL을 사용 (String 타입이므로 따옴표 처리가 필요합니다)
-        buildConfigField("String", "BASE_URL", "\"${project.findProperty("BASE_URL") ?: ""}\"")
     }
 
     buildTypes {
@@ -92,4 +91,9 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+secrets {
+    propertiesFileName = "../.env"
+    defaultPropertiesFileName = "../.env.example"
 }

@@ -11,12 +11,12 @@
         android:layout_height="wrap_content">
 
         <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar_group_cart"
+            android:id="@+id/toolbar_cart"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="#FFFFFF"
             app:navigationIcon="@android:drawable/ic_media_previous"
-            app:title="함께 주문하기"
+            app:title="장바구니"
             app:titleTextColor="#333333" />
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -27,17 +27,17 @@
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <TextView
-            android:id="@+id/tv_empty_group_cart"
+            android:id="@+id/tv_empty_cart"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="Group cart is empty."
+            android:text="Cart is empty."
             android:textColor="#777777"
             android:textSize="16sp" />
 
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_group_cart_items"
+            android:id="@+id/rv_cart_items"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
@@ -53,12 +53,38 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Total"
+                    android:textColor="#333333"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_total_price"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0 KRW"
+                    android:textColor="#FF5A5F"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
             <Button
-                android:id="@+id/btn_close_order"
+                android:id="@+id/btn_order"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
+                android:layout_marginTop="12dp"
                 android:backgroundTint="#FF5A5F"
-                android:text="주문 마감하기ㅕ"
+                android:text="주문하기"
                 android:textColor="#FFFFFF"
                 android:textSize="17sp" />
         </LinearLayout>

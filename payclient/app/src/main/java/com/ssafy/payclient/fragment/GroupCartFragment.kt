@@ -7,26 +7,35 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
-import com.google.firebase.database.*
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.MutableData
+import com.google.firebase.database.Transaction
+import com.google.firebase.database.ValueEventListener
 import com.ssafy.payclient.data.model.FirebaseCartItem
 import com.ssafy.payclient.databinding.FragmentGroupCartBinding
+import com.ssafy.payclient.ui.cart.GroupCartAdapter
+import com.ssafy.payclient.ui.cart.GroupCartItemUi
 
 class GroupCartFragment : Fragment() {
 
-    // binding
     private var _binding: FragmentGroupCartBinding? = null
     private val binding get() = _binding!!
 
-    // firebase DB
     private lateinit var database: DatabaseReference
+    private lateinit var groupCartAdapter: GroupCartAdapter
 
-    // 필요한 상태변수 및 리스너
     private var groupId: Long = -1L
     private var isHost: Boolean = false
+    private var currentUserId: Long = -1L
     private var cartItemsListener: ValueEventListener? = null
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentGroupCartBinding.inflate(inflater, container, false)
@@ -38,65 +47,133 @@ class GroupCartFragment : Fragment() {
 
         groupId = arguments?.getLong("GROUP_ID") ?: -1L
         isHost = arguments?.getBoolean("IS_HOST") ?: false
+        currentUserId = arguments?.getLong("USER_ID") ?: -1L
 
         database = FirebaseDatabase.getInstance("https://pickpay-be337-default-rtdb.firebaseio.com/").reference
 
-        setupToolbar() // 🔥 상단바 설정 추가
-
-        // 방장이 아니면 주문 마감 버튼 숨기기
-        if (!isHost) {
-            binding.btnCloseOrder.visibility = View.GONE
-        }
-
+        setupToolbar()
+        setupRecyclerView()
+        setupCloseButton()
         loadCartData()
-
-        binding.btnCloseOrder.setOnClickListener {
-            closeOrderAndProceedToPayment()
-        }
     }
 
     private fun setupToolbar() {
-        // 상단바의 뒤로가기 아이콘 클릭 시 이전 화면으로 이동
         binding.toolbarGroupCart.setNavigationOnClickListener {
             findNavController().popBackStack()
         }
     }
 
+    private fun setupRecyclerView() {
+        groupCartAdapter = GroupCartAdapter(
+            cartItems = emptyList(),
+            currentUserId = currentUserId,
+            onIncreaseClick = { cartItem ->
+                updateMyCartItemQuantity(cartItem, 1)
+            },
+            onDecreaseClick = { cartItem ->
+                updateMyCartItemQuantity(cartItem, -1)
+            },
+            onRemoveClick = { cartItem ->
+                removeMyCartItem(cartItem)
+            }
+        )
+
+        binding.rvGroupCartItems.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = groupCartAdapter
+        }
+    }
+
+    private fun setupCloseButton() {
+        binding.btnCloseOrder.visibility = if (isHost) View.VISIBLE else View.GONE
+        binding.btnCloseOrder.setOnClickListener {
+            closeOrderAndProceedToPayment()
+        }
+    }
+
     private fun loadCartData() {
-        val itemsRef = database.child("group_orders").child(groupId.toString()).child("items")
+        val itemsRef = getItemsRef()
 
         cartItemsListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val sb = StringBuilder()
+                val items = snapshot.children.mapNotNull { itemSnapshot ->
+                    val itemKey = itemSnapshot.key ?: return@mapNotNull null
+                    val item = itemSnapshot.getValue(FirebaseCartItem::class.java) ?: return@mapNotNull null
+                    if (item.quantity <= 0) return@mapNotNull null
+                    GroupCartItemUi(itemKey, item)
+                }.sortedWith(compareBy<GroupCartItemUi> { it.item.userId }.thenBy { it.item.menuName })
 
-                for (itemSnapshot in snapshot.children) {
-                    val item = itemSnapshot.getValue(FirebaseCartItem::class.java)
-                    if (item != null) {
-                        sb.append("👤 유저 ${item.userId}\n")
-                        sb.append("   └ ${item.menuName} (x${item.quantity})\n\n")
-                    }
-                }
-
-                if (sb.isEmpty()) {
-                    binding.tvCartDetails.text = "장바구니가 비어 있습니다."
-                } else {
-                    binding.tvCartDetails.text = sb.toString()
-                }
+                renderCart(items)
             }
-            override fun onCancelled(error: DatabaseError) {}
+
+            override fun onCancelled(error: DatabaseError) {
+                Toast.makeText(requireContext(), "Failed to load cart: ${error.message}", Toast.LENGTH_SHORT).show()
+            }
         }
+
         itemsRef.addValueEventListener(cartItemsListener!!)
     }
 
+    private fun renderCart(items: List<GroupCartItemUi>) {
+        groupCartAdapter.updateItems(items)
+
+        val isEmpty = items.isEmpty()
+        binding.tvEmptyGroupCart.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        binding.rvGroupCartItems.visibility = if (isEmpty) View.GONE else View.VISIBLE
+    }
+
+    private fun updateMyCartItemQuantity(cartItem: GroupCartItemUi, delta: Int) {
+        if (cartItem.item.userId != currentUserId) return
+
+        getItemsRef().child(cartItem.itemKey).runTransaction(object : Transaction.Handler {
+            override fun doTransaction(currentData: MutableData): Transaction.Result {
+                val currentItem = currentData.getValue(FirebaseCartItem::class.java)
+                    ?: return Transaction.success(currentData)
+                val nextQuantity = currentItem.quantity + delta
+
+                if (nextQuantity <= 0) {
+                    currentData.value = null
+                } else {
+                    currentData.value = currentItem.copy(quantity = nextQuantity)
+                }
+
+                return Transaction.success(currentData)
+            }
+
+            override fun onComplete(
+                error: DatabaseError?,
+                committed: Boolean,
+                currentData: DataSnapshot?
+            ) {
+                if (error != null) {
+                    Toast.makeText(requireContext(), "Failed to update item: ${error.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        })
+    }
+
+    private fun removeMyCartItem(cartItem: GroupCartItemUi) {
+        if (cartItem.item.userId != currentUserId) return
+
+        getItemsRef().child(cartItem.itemKey).removeValue()
+            .addOnFailureListener { error ->
+                Toast.makeText(requireContext(), "Failed to remove item: ${error.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun getItemsRef(): DatabaseReference {
+        return database.child("group_orders").child(groupId.toString()).child("items")
+    }
+
     private fun closeOrderAndProceedToPayment() {
-        Toast.makeText(context, "주문 마감 API 호출 완료!\n결제 화면으로 이동합니다.", Toast.LENGTH_LONG).show()
+        Toast.makeText(context, "Close order API will be connected next.", Toast.LENGTH_LONG).show()
         // /api/groups/{groupId}/close 호출 후 결제화면으로 이동
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         cartItemsListener?.let {
-            database.child("group_orders").child(groupId.toString()).child("items").removeEventListener(it)
+            getItemsRef().removeEventListener(it)
         }
         _binding = null
     }

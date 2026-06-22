@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.ssafy.pickpay.common.GroupOrderStatus;
 import com.ssafy.pickpay.domain.GroupOrder;
 import com.ssafy.pickpay.domain.Menu;
 import com.ssafy.pickpay.domain.Order;
@@ -51,7 +52,7 @@ public class GroupOrderService {
     	
     	// 이미 유저가 만든 OPEN 방이 있는지 확인
     	Optional<GroupOrder> existingGroupOrder =
-    			groupOrderRepository.findByHost_UserIdAndStatus(userId, "OPEN");
+    			groupOrderRepository.findByHost_UserIdAndStatus(userId, GroupOrderStatus.OPEN);
     	if(existingGroupOrder.isPresent()) {
     		return existingGroupOrder.get(); // 이미 방이 있으면 기존 방 반환
     	}
@@ -69,7 +70,7 @@ public class GroupOrderService {
                 .getReference("group_orders/" + savedOrder.getGroupId());
 
         Map<String, Object> initialData = new HashMap<>();
-        initialData.put("status", "OPEN");
+        initialData.put("status", GroupOrderStatus.OPEN.name());
         initialData.put("hostId", userId); // 유저의 PK 숫자를 Firebase에 기입 
         
         // 비동기로 안전하게 쓰기
@@ -85,13 +86,13 @@ public class GroupOrderService {
     	GroupOrder groupOrder = groupOrderRepository.findByShareToken(shareToken)
     			.orElseThrow(() -> new IllegalArgumentException("유효하지 않은 초대링크 입니다."));
     	
-    	String status = groupOrder.getStatus();
+    	GroupOrderStatus status = groupOrder.getStatus();
     	
-    	if("PAID".equals(status)) {
+    	if(status == GroupOrderStatus.PAID) {
     		throw new IllegalStateException("이미 결제가 완료된 그룹방입니다.");
     	}
     	
-    	if ("LOCKED".equals(status)) {
+    	if (status == GroupOrderStatus.LOCKED) {
             throw new IllegalStateException("이미 주문이 마감된 그룹방입니다.");
         }
     	
@@ -99,7 +100,7 @@ public class GroupOrderService {
     	
     	return new GroupJoinResponseDTO(
     			groupOrder.getGroupId(),
-    			groupOrder.getStatus(),
+    			groupOrder.getStatus().name(),
     			isHost);
     }
 	
@@ -110,11 +111,11 @@ public class GroupOrderService {
     	GroupOrder groupOrder = groupOrderRepository.findById(groupId)
     			.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 그룹입니다."));
     	
-    	if("PAID".equals(groupOrder.getStatus())) {
+    	if(groupOrder.getStatus() == GroupOrderStatus.PAID) {
     		throw new IllegalStateException("이미 결제가 완료된 그룹방입니다.");
     	}
     	
-    	if ("LOCKED".equals(groupOrder.getStatus())) {
+    	if (groupOrder.getStatus() == GroupOrderStatus.LOCKED) {
             throw new IllegalStateException("이미 주문이 마감된 그룹방입니다.");
         }
     	
@@ -148,7 +149,7 @@ public class GroupOrderService {
                     .getReference("group_orders/" + groupId);
 
             Map<String, Object> updates = new HashMap<>();
-            updates.put("status", "LOCKED");
+            updates.put("status", GroupOrderStatus.LOCKED.name());
             updates.put("payType", payType);
 
             groupRef.updateChildrenAsync(updates);
