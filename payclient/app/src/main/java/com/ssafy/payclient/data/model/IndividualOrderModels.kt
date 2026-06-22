@@ -12,7 +12,7 @@ data class CartItemRequest(
 
 // 주문 생성 응답 DTO
 data class IndividualOrderCreateResponseDTO(
-    val orderId: Long,
+    val orderId: String,
     val totalPrice: Long,
     val status: String
 )
