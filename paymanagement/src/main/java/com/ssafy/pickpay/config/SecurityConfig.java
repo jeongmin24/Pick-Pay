@@ -81,6 +81,7 @@ public class SecurityConfig {
 	            		.requestMatchers("/jwt/exchange", "/jwt/refresh").permitAll()
 	            		.requestMatchers(HttpMethod.POST, "/user/exist", "/user").permitAll()
 	            		.requestMatchers("/error").permitAll()
+	            		.requestMatchers(HttpMethod.GET, "/images/**").permitAll()
 	            		.requestMatchers(
 	                            "/swagger-ui.html",
 	                            "/swagger-ui/**",
