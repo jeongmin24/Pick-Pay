@@ -55,6 +55,16 @@
         android:id="@+id/fragment_cart"
         android:name="com.ssafy.payclient.fragment.CartFragment"
         android:label="CartFragment"
-        tools:layout="@layout/activity_cart" />
+        tools:layout="@layout/activity_cart">
+        <action
+            android:id="@+id/action_fragment_cart_to_fragment_payment"
+            app:destination="@id/fragment_payment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/fragment_payment"
+        android:name="com.ssafy.payclient.fragment.PaymentFragment"
+        android:label="PaymentFragment"
+        tools:layout="@layout/fragment_payment" />
 
 </navigation>

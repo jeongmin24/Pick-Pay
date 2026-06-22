@@ -3,6 +3,7 @@ package com.ssafy.payclient.data.network
 import com.ssafy.payclient.BuildConfig
 import com.ssafy.payclient.data.api.AuthApiService
 import com.ssafy.payclient.data.api.GroupOrderApiService
+import com.ssafy.payclient.data.api.IndividualOrderApiService
 import com.ssafy.payclient.data.api.ReviewApiService
 import com.ssafy.payclient.data.local.TokenManager
 import okhttp3.OkHttpClient
@@ -15,6 +16,7 @@ object RetrofitClient {
     private const val BASE_URL = BuildConfig.BASE_URL
     private var authApiService: AuthApiService? = null
     private var reviewApiService: ReviewApiService? = null
+    private var individualOrderApiService: IndividualOrderApiService? = null
     private var sharedTokenManager: TokenManager? = null
 
     private var groupOrderApiService: GroupOrderApiService? = null
@@ -39,6 +41,17 @@ object RetrofitClient {
         return reviewApiService ?: synchronized(this) {
             reviewApiService ?: buildHttpClient().let { client ->
                 buildRetrofit(client).create(ReviewApiService::class.java).also { reviewApiService = it }
+            }
+        }
+    }
+
+    fun getIndividualOrderApiService(tokenManager: TokenManager): IndividualOrderApiService {
+        init(tokenManager)
+        return individualOrderApiService ?: synchronized(this) {
+            individualOrderApiService ?: buildHttpClient().let { client ->
+                buildRetrofit(client)
+                    .create(IndividualOrderApiService::class.java)
+                    .also { individualOrderApiService = it }
             }
         }
     }
