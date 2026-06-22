@@ -12,11 +12,11 @@ public class MenuResponseDTO {
     private final String imageUrl;
     private final Integer stockQuantity;
 
-    public MenuResponseDTO(Menu menu) {
+    public MenuResponseDTO(Menu menu, String baseUrl) {
         this.menuId = menu.getMenuId();
         this.name = menu.getName();
         this.price = menu.getPrice();
-        this.imageUrl = menu.getImageUrl();
+        this.imageUrl = baseUrl + "/images/" + menu.getImageUrl();
         this.stockQuantity = menu.getStockQuantity();
     }
 }

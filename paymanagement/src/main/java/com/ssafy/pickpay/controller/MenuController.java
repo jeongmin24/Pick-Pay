@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ssafy.pickpay.dto.MenuResponseDTO;
 import com.ssafy.pickpay.service.MenuService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -22,14 +23,18 @@ public class MenuController {
 	private final MenuService menuService;
 	
 	@GetMapping
-	public ResponseEntity<List<MenuResponseDTO>> getAllMenus() {
-		List<MenuResponseDTO> menus = menuService.findAllMenus();
+	public ResponseEntity<List<MenuResponseDTO>> getAllMenus(HttpServletRequest request) {
+		String baseUrl = getBaseUrl(request); 
+		
+		List<MenuResponseDTO> menus = menuService.findAllMenus(baseUrl);
 		return ResponseEntity.ok(menus);
 	}
 	
 	@GetMapping("/{menuId}")
-	public ResponseEntity<MenuResponseDTO> getMenu(@PathVariable Long menuId) {
-		MenuResponseDTO menu = menuService.findMenu(menuId);
+	public ResponseEntity<MenuResponseDTO> getMenu(@PathVariable Long menuId, HttpServletRequest request) {
+		String baseUrl = getBaseUrl(request); 
+		
+		MenuResponseDTO menu = menuService.findMenu(menuId, baseUrl);
 		return ResponseEntity.ok(menu);
 	}
 	
@@ -37,5 +42,9 @@ public class MenuController {
 	public ResponseEntity<Void> decreaseStock(@PathVariable Long menuId, @RequestParam int quantity) {
 		menuService.decreaseStock(menuId, quantity);
 		return ResponseEntity.ok().build();
+	}
+	
+	private String getBaseUrl(HttpServletRequest request) {
+		return request.getRequestURL().toString().replace(request.getRequestURI(), "");
 	}
 }

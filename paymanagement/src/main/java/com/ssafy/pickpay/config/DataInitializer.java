@@ -66,11 +66,12 @@ public class DataInitializer implements CommandLineRunner {
 				
 			// 3. 메뉴 테스트 데이터 생성
 				if (menuRepository.count() == 0) {
-					Menu menu1 = Menu.builder().name("아이스아메리카노").price(6000L).stockQuantity(10).build();
-					Menu menu2 = Menu.builder().name("아이스카페라떼").price(7000L).stockQuantity(10).build();
-					Menu menu3 = Menu.builder().name("민트초코프라푸치노").price(15000L).stockQuantity(10).build();
-					Menu menu4 = Menu.builder().name("아이스바닐라라떼").price(5000L).stockQuantity(10).build();
-					Menu menu5 = Menu.builder().name("에스프레소").price(7500L).stockQuantity(10).build();
+					Menu menu1 = Menu.builder().name("블루베리스무디").price(6000L).stockQuantity(10).imageUrl("blueberry.png").build();
+					Menu menu2 = Menu.builder().name("에스프레소").price(7000L).stockQuantity(10).imageUrl("coffee.png").build();
+					Menu menu3 = Menu.builder().name("초코프라푸치노").price(15000L).stockQuantity(10).imageUrl("cookiecream.png").build();
+					Menu menu4 = Menu.builder().name("아이스아메리카노").price(5000L).stockQuantity(10).imageUrl("icecoffee.png").build();
+					Menu menu5 = Menu.builder().name("망고스무디").price(7500L).stockQuantity(10).imageUrl("icefine.png").build();
+					Menu menu6 = Menu.builder().name("레몬에이드").price(7500L).stockQuantity(10).imageUrl("lemonade.png").build();
 					
 					// Repository에 일괄 저장
 					menuRepository.save(menu1);
@@ -78,6 +79,7 @@ public class DataInitializer implements CommandLineRunner {
 					menuRepository.save(menu3);
 					menuRepository.save(menu4);
 					menuRepository.save(menu5);
+					menuRepository.save(menu6);
 					
 					System.out.println("테스트용 메뉴 데이터 5개 생성 완료");
 				}
