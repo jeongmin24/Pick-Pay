@@ -95,7 +95,7 @@ public class OrderService {
     		totalPrice += menu.getPrice() * quantity;
     	}
     	
-    	savedOrder.setTotalPrice(totalPrice);
+    	savedOrder.updateTotalPrice(totalPrice);
     	return savedOrder;
     	
     	
