@@ -1,5 +1,7 @@
 package com.ssafy.payclient.ui.review
 
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -23,8 +25,6 @@ import java.io.File
 
 class ReviewDetailActivity : AppCompatActivity() {
     private lateinit var binding: ActivityReviewDetailBinding
-    private var engine: Engine? = null
-    private var conversation: Conversation? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,8 +38,7 @@ class ReviewDetailActivity : AppCompatActivity() {
             insets
         }
 
-        val review = intent.getSerializableExtra("review_data") as ReviewResponseDTO
-
+        val review = intent.getSerializableExtra("review_data") as? ReviewResponseDTO
         review?.let {
             binding.tvNickname.text = it.nickname
             binding.detailCreatedAt.text = it.createdAt
@@ -50,11 +49,15 @@ class ReviewDetailActivity : AppCompatActivity() {
             Glide.with(this).load(it.imageUrl).into(binding.ivImageView)
         }
 
-        initOnDeviceLLM()
+        Helper.initialize(this) { status ->
+            runOnUiThread {
+                Toast.makeText(this@ReviewDetailActivity, status, Toast.LENGTH_SHORT).show()
+            }
+        }
 
         binding.btnAnalyzeMenu.setOnClickListener {
             val userPrompt = binding.etPrompt.text.toString().trim()
-            if(userPrompt.isEmpty()) {
+            if (userPrompt.isEmpty()) {
                 Toast.makeText(this, "프롬프트를 입력해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
@@ -63,64 +66,47 @@ class ReviewDetailActivity : AppCompatActivity() {
 
     }
 
-    private fun initOnDeviceLLM() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val modelFile = File(filesDir, "gemma-4-E2B-it.litertlm")
-
-                if (!modelFile.exists()) {
-                    throw IllegalStateException(
-                        "모델 파일이 없습니다: ${modelFile.absolutePath}"
-                    )
-                }
-
-                val engineConfig = EngineConfig(
-                    modelPath = modelFile.canonicalPath,
-                    backend = Backend.CPU(),
-                    cacheDir = cacheDir.absolutePath
-                )
-
-                engine = Engine(engineConfig)
-                engine?.initialize()
-
-                conversation = engine?.createConversation()
-
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        this@ReviewDetailActivity,
-                        "온디바이스 AI 준비 완료",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        this@ReviewDetailActivity,
-                        "AI 로드 실패: ${e.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    Log.e("싸피", "AI 로드 실패", e)
-                }
-            }
+    private fun getBitmapFromImageView(): Bitmap? {
+        val drawable = binding.ivImageView.drawable
+        return if (drawable is BitmapDrawable) {
+            drawable.bitmap
+        } else {
+            null
         }
     }
 
     private fun generateAiResponse(prompt: String) {
         binding.pbLoading.visibility = View.VISIBLE
-        binding.tvAiResult.text = "AI가 연산 중입니다..."
+        binding.tvAiResult.text = "AI가 이미지를 분석하는 중입니다..."
         binding.btnAnalyzeMenu.isEnabled = false
+
+        val imageBitmap = getBitmapFromImageView()
+
+        val systemInstruction = """
+            
+            [제약 조건]
+            1. 답변은 반드시 3줄 이내로 핵심만 명확하게 작성하세요.
+            2. 문장 스타일링을 위한 기호는 절대 사용하지 마세요. (예: '**' 금지, 대신 일반 텍스트 사용)
+            3. 이미지와 관련된 내용 위주로 자연스럽게 설명하세요.
+        """.trimIndent()
+
+        val finalPrompt = "$prompt\n$systemInstruction"
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val conv = conversation ?: throw IllegalStateException("엔진 준비 중입니다.")
+                val responseBuilder = StringBuilder()
 
-                val response = conv.sendMessage(prompt)
+                // Helper의 Flow를 수집(collect)하여 결과 스트리밍 받아오기
+                Helper.inferenceAsFlow(input = finalPrompt, photo = imageBitmap).collect { message ->
+                    withContext(Dispatchers.Main) {
+                        responseBuilder.append(message.toString())
+                        binding.tvAiResult.text = responseBuilder.toString()
+                    }
+                }
 
                 withContext(Dispatchers.Main) {
                     binding.pbLoading.visibility = View.GONE
                     binding.btnAnalyzeMenu.isEnabled = true
-                    binding.tvAiResult.text = response.toString()
                 }
 
             } catch (e: Exception) {
@@ -128,7 +114,7 @@ class ReviewDetailActivity : AppCompatActivity() {
                     binding.pbLoading.visibility = View.GONE
                     binding.btnAnalyzeMenu.isEnabled = true
                     binding.tvAiResult.text = "오류 발생: ${e.message}"
-                    Log.e("싸피", "AI 응답 생성 실패", e)
+                    Log.e("싸피", "AI 연산 도중 에러 발생", e)
                 }
             }
         }
@@ -136,7 +122,9 @@ class ReviewDetailActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        conversation?.close()
-        engine?.close()
+        // 메모리 누수 방지를 위한 자원 해제 (만약 다른 화면에서도 앱 실행 중 계속 유지하고 싶다면 Application 레벨에서 해제해도 됨)
+        Helper.cleanUp {
+            Log.d("싸피", "ReviewDetailActivity Destroy - AI 자원 반환")
+        }
     }
 }
