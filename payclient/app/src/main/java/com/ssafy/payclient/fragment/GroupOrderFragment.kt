@@ -9,12 +9,15 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import com.google.firebase.database.*
 import com.ssafy.payclient.R
+import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.model.FirebaseCartItem
 import com.ssafy.payclient.databinding.FragmentGroupOrderBinding
 import com.ssafy.payclient.ui.menu.MenuAdapter
@@ -27,7 +30,7 @@ class GroupOrderFragment : Fragment() {
     private var _binding: FragmentGroupOrderBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: MenuViewModel by viewModels()
+    private lateinit var viewModel: MenuViewModel
     private lateinit var menuAdapter: MenuAdapter
 
     private lateinit var database: DatabaseReference
@@ -38,6 +41,18 @@ class GroupOrderFragment : Fragment() {
     private var shareLink: String? = null
 
     private var groupStatus: String = "OPEN"
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val tokenManager = TokenManager(requireContext())
+        val factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return MenuViewModel(tokenManager) as T
+            }
+        }
+        viewModel = ViewModelProvider(this, factory)[MenuViewModel::class.java]
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
