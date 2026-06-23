@@ -22,3 +22,13 @@ data class IndividualReceiptResponseDTO(
     val createdAt: String,
     val items: List<OrderItemDTO>
 )
+
+data class RecentOrderResponseDTO(
+    val orderNo: String,
+    val totalPrice: Long,
+    val status: String,
+    val createdAt: String,
+    val firstMenuName: String?,
+    val totalQuantity: Int,
+    val itemCount: Int
+)

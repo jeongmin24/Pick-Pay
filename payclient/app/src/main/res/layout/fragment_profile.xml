@@ -127,11 +127,25 @@
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvOrderHistory"
                 android:layout_width="match_parent"
-                android:layout_height="401dp"
+                android:layout_height="wrap_content"
                 android:layout_marginHorizontal="16dp"
                 android:nestedScrollingEnabled="false"
                 tools:itemCount="3"
-                tools:listitem="@android:layout/simple_list_item_2" />
+                tools:listitem="@layout/item_recent_order" />
+
+            <TextView
+                android:id="@+id/tvOrderHistoryEmpty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:padding="24dp"
+                android:text="No recent orders."
+                android:textColor="#777777"
+                android:textSize="14sp"
+                android:visibility="gone"
+                tools:visibility="visible" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
