@@ -1,5 +1,6 @@
 package com.ssafy.pickpay.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -29,6 +30,9 @@ public class DataInitializer implements CommandLineRunner {
 		this.passwordEncoder = passwordEncoder;
 	}
 	
+	@Value("${server.port:8080}")
+    private String port;
+	
 	@Override
 	@Transactional
 	public void run(String... args) throws Exception {
@@ -46,23 +50,37 @@ public class DataInitializer implements CommandLineRunner {
 		}
 		
 		// 2. 리뷰 테스트 데이터 생성 (유저 ID 1~5번을 그대로 활용 ⭕)
-				if (reviewRepository.count() == 0) {
-					for (long i = 1; i <= 5; i++) {
-						// 💡 핵심: DB에 저장된 1번부터 5번 유저를 ID로 직접 찾아서 가져옵니다.
-						User writer = userRepository.findById(i)
-								.orElseThrow(() -> new IllegalStateException("테스트 유저를 찾을 수 없습니다."));
+		if (reviewRepository.count() == 0) {
+		    // 1. 현재 이 서버가 구동 중인 PC의 로컬 IP 주소와 포트를 동적으로 가져옵니다.
+		    String localIp = java.net.InetAddress.getLocalHost().getHostAddress();
+		    
+		    String baseUrl = "http://" + localIp + ":" + port;
 
-						Review review = Review.builder()
-								.user(writer) // 찾아온 유저 객체를 리뷰에 매핑
-								.content("테스터" + i + "님이 작성한 가짜 리뷰입니다. 아주 만족스러워요!")
-								.rating(5 - (int)(i % 2)) // 별점 5점, 4점 번갈아가며 부여
-								.imageUrl("https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png")
-								.build();
-						
-						reviewRepository.save(review);
-					}
-					System.out.println("테스트용 리뷰 데이터 5개 생성 완료 (유저 ID 1~5 사용)");
-				}
+		    // 메뉴 이름이 들어가지 않은 자연스러운 더미 리뷰 텍스트 배열
+		    String[] contents = {
+		        "음료 양도 많고 상큼해서 여름에 마시기 딱 좋아요! 토핑도 신선하고 만족스럽습니다. 매일 주문하고 싶을 정도예요.",
+		        "여기 베이커리 맛집이네요. 겉은 바삭하고 속은 쫄깃하면서 버터 향이 진하게 나서 아주 맛있습니다. 시원한 커피랑 조합이 정말 좋아요.",
+		        "디저트가 정말 꾸덕하고 찐해요! 단것 당길 때 최고입니다. 달달한 맛 덕분에 스트레스가 확 풀리네요. 강력 추천합니다!",
+		        "커피 주문했는데 원두 향이 깊고 에스프레소 비율이 딱 적당해서 너무 맛있게 마셨습니다. 얼음이 녹아도 밍밍하지 않고 진하네요.",
+		        "빵이 정말 부드럽고 입에서 살살 녹아요. 안에 들어있는 크림도 전혀 느끼하지 않고 고소해서 누구나 좋아할 맛입니다. 디저트 퀄리티가 전반적으로 훌륭해요."
+		    };
+
+		    for (long i = 1; i <= 5; i++) {
+		        User writer = userRepository.findById(i)
+		                .orElseThrow(() -> new IllegalStateException("테스트 유저를 찾을 수 없습니다."));
+
+		        Review review = Review.builder()
+		                .user(writer) 
+		                .content(contents[(int)(i - 1)]) // 0번부터 4번까지 내용 매핑
+		                .rating(5 - (int)(i % 2)) 
+		                // 💡 핵심: review1.png ~ review5.png 이름을 그대로 규칙에 맞게 생성
+		                .imageUrl(baseUrl + "/images/review" + i + ".png") 
+		                .build();
+		        
+		        reviewRepository.save(review);
+		    }
+		    System.out.println("테스트용 리뷰 데이터 5개 생성 완료 (유저 ID 1~5 사용, review1~5.png 적용)");
+		}
 				
 			// 3. 메뉴 테스트 데이터 생성
 				if (menuRepository.count() == 0) {
