@@ -3,6 +3,7 @@ package com.ssafy.pickpay.repository;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +17,7 @@ import jakarta.persistence.LockModeType;
 
 public interface OrderRepository extends JpaRepository<Order, Long>{
 	List<Order> findByGroupOrder_GroupId(String groupId);
+	List<Order> findByUser_UserIdAndGroupOrderIsNullOrderByCreatedAtDesc(Long userId, Pageable pageable);
 	Optional<Order> findByOrderIdAndUser_UserIdAndGroupOrderIsNull(Long orderId, Long userId); //groupOrderIsNull조건 -> 개별 주문 영수증 
 	/**
 	 	findBy : SELECT * FROM Order WHERE order_id = ? AND user_id = ? AND group_order_id IS NULL
