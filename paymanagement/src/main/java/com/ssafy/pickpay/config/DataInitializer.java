@@ -37,23 +37,24 @@ public class DataInitializer implements CommandLineRunner {
 	@Transactional
 	public void run(String... args) throws Exception {
 		if(userRepository.count() == 0) {
-				for (int i = 1; i <= 10; i++) {
-	                User user = User.builder()
-	                        .loginId("user" + i)
-	                        .password(passwordEncoder.encode("1234")) 
-	                        .nickname("테스터" + i)
-	                        .imageUrl("https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png")
-	                        .build();
-	                userRepository.save(user);
-	            }
-				System.out.println("테스트용 유저 데이터 10개 생성 완료");
+			String localIp = java.net.InetAddress.getLocalHost().getHostAddress();
+		    String baseUrl = "http://" + localIp + ":" + port;
+			for (int i = 1; i <= 10; i++) {
+                User user = User.builder()
+                        .loginId("user" + i)
+                        .password(passwordEncoder.encode("1234")) 
+                        .nickname("테스터" + i)
+                        .imageUrl(baseUrl + "/images/profileImg.png")
+                        .build();
+                userRepository.save(user);
+            }
+			System.out.println("테스트용 유저 데이터 10개 생성 완료");
 		}
 		
 		// 2. 리뷰 테스트 데이터 생성 (유저 ID 1~5번을 그대로 활용 ⭕)
 		if (reviewRepository.count() == 0) {
 		    // 1. 현재 이 서버가 구동 중인 PC의 로컬 IP 주소와 포트를 동적으로 가져옵니다.
 		    String localIp = java.net.InetAddress.getLocalHost().getHostAddress();
-		    
 		    String baseUrl = "http://" + localIp + ":" + port;
 
 		    // 메뉴 이름이 들어가지 않은 자연스러운 더미 리뷰 텍스트 배열
