@@ -24,7 +24,8 @@ data class IdCheckRequest(
 
 data class UserResponse(
     val loginId: String,
-    val nickname: String
+    val nickname: String,
+    val imageUrl: String
 )
 
 data class UserUpdateRequest(

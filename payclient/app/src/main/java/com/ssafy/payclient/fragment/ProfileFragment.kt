@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import com.google.ai.edge.litertlm.Message.Companion.user
 import com.ssafy.payclient.MainViewModel
 import com.ssafy.payclient.R
 import com.ssafy.payclient.data.local.TokenManager
@@ -45,11 +46,33 @@ class ProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        loadUserInfo()
+
         binding.btnLogout.setOnClickListener {
             viewModel.logout()
         }
 
         observeLogoutState()
+    }
+
+    private fun loadUserInfo() {
+        val tokenManager = TokenManager(requireContext().applicationContext)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val apiService = RetrofitClient.getUserApiService(tokenManager)
+                val userResponse = apiService.getUserInfo()
+
+                binding.tvNickname.text = userResponse.nickname
+                binding.tvEmail.text = userResponse.loginId
+                com.bumptech.glide.Glide.with(binding.root.context)
+                    .load(userResponse.imageUrl)
+                    .into(binding.ivProfile)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(requireContext(), "유저 정보 오류: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun observeLogoutState() {
