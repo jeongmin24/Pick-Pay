@@ -9,7 +9,6 @@ import kotlinx.coroutines.withContext
 class MenuRepository(private val tokenManager: TokenManager) {
 
     suspend fun getMenus(): List<MenuDTO> {
-
         return withContext(Dispatchers.IO) {
             try {
                 val menuService = RetrofitClient.getMenuApiService(tokenManager)
@@ -19,5 +18,9 @@ class MenuRepository(private val tokenManager: TokenManager) {
                 emptyList()
             }
         }
+    }
+
+    suspend fun getMenuById(menuId: Long): MenuDTO {
+        return RetrofitClient.getMenuApiService(tokenManager).getMenuById(menuId)
     }
 }
