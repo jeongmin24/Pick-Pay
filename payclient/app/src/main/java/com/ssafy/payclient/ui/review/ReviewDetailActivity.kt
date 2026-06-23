@@ -29,13 +29,15 @@ class ReviewDetailActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityReviewDetailBinding.inflate(layoutInflater)
-        setContentView(binding.root)
         enableEdgeToEdge()
+        setContentView(binding.root)
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            val bottomPadding = if (ime.bottom > 0) ime.bottom else systemBars.bottom
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, bottomPadding)
+            WindowInsetsCompat.CONSUMED
         }
 
         val review = intent.getSerializableExtra("review_data") as? ReviewResponseDTO
