@@ -3,13 +3,18 @@ package com.ssafy.pickpay.config;
 import java.nio.file.AccessDeniedException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 //예외처리 클래스 
 @RestControllerAdvice
@@ -24,7 +29,33 @@ public class CustomControllerAdvice {
                 .status(HttpStatus.FORBIDDEN) // 403
                 .body(errorResponse);
     }
+    
+    // 지원하지 않는 HTTP 메서드 
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> handleMethodNotSupportedException(
+            HttpRequestMethodNotSupportedException ex,
+            HttpServletRequest request
+    ) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("message", "지원하지 않는 HTTP 메서드입니다.");
+        errorResponse.put("requestedMethod", ex.getMethod());
+        errorResponse.put("supportedMethods", ex.getSupportedMethods());
+        errorResponse.put("path", request.getRequestURI());
 
+        Set<HttpMethod> supportedHttpMethods = ex.getSupportedHttpMethods();
+
+        if (supportedHttpMethods != null && !supportedHttpMethods.isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.METHOD_NOT_ALLOWED) // 405
+                    .allow(supportedHttpMethods.toArray(new HttpMethod[0]))
+                    .body(errorResponse);
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.METHOD_NOT_ALLOWED) // 405
+                .body(errorResponse);
+    }
+    
     // 런타임 에러 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
