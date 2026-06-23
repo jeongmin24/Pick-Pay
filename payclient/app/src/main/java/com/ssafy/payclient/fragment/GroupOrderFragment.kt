@@ -179,9 +179,13 @@ class GroupOrderFragment : Fragment() {
         }
 
         binding.fabChat.setOnClickListener {
-            Toast.makeText(context, "단체 채팅 & 룰렛 화면으로 이동 (추후 구현)", Toast.LENGTH_SHORT).show()
+            val bundle = Bundle().apply {
+                putString("GROUP_ID", groupId)
+                putBoolean("IS_HOST", isHost)
+                putLong("USER_ID", currentUserId)
+            }
+            findNavController().navigate(R.id.action_fragment_group_order_to_fragment_group_chat, bundle)
         }
-
         binding.fabGroupCart.setOnClickListener {
             val bundle = Bundle().apply {
                 putString("GROUP_ID", groupId)
