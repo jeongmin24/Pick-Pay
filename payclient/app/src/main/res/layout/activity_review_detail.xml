@@ -4,151 +4,223 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
     android:background="#FFFFFF"
+    android:fillViewport="true"
     android:fitsSystemWindows="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="20dp">
 
-        <LinearLayout
+        <!-- [상단 헤더: 작성자 정보] -->
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:layout_marginBottom="24dp">
 
-            <ImageView
+            <com.google.android.material.imageview.ShapeableImageView
                 android:id="@+id/ivProfile"
                 android:layout_width="52dp"
                 android:layout_height="52dp"
-                android:scaleType="centerCrop" />
+                android:background="#F1F3F5"
+                android:scaleType="centerCrop"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.MaterialComponents.SmallComponent"
+                app:strokeColor="#F1F3F5"
+                app:strokeWidth="1dp" />
 
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginStart="16dp">
+                android:layout_centerVertical="true"
+                android:layout_marginStart="16dp"
+                android:layout_toEndOf="@id/ivProfile"
+                android:orientation="vertical">
 
                 <TextView
                     android:id="@+id/tvNickname"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="유저 닉네임"
-                    android:textColor="#212121"
-                    android:textSize="18sp"
+                    android:text="맛있는 탐험가"
+                    android:textColor="#1A1A1A"
+                    android:textSize="17sp"
                     android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/detailCreatedAt"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="2026-05-28"
-                    android:textColor="#888888"
+                    android:layout_marginTop="2dp"
+                    android:text="2026.05.28"
+                    android:textColor="#ADB5BD"
                     android:textSize="13sp" />
             </LinearLayout>
-        </LinearLayout>
 
-        <View
+            <RatingBar
+                android:id="@+id/rbRating"
+                style="?android:attr/ratingBarStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:isIndicator="true"
+                android:numStars="5"
+                android:progressTint="#FFC107"
+                android:stepSize="1" />
+        </RelativeLayout>
+
+        <!-- [리뷰 이미지 카드] -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="#EAEAEA"
-            android:layout_marginTop="20dp"
-            android:layout_marginBottom="20dp" />
+            android:layout_height="300dp"
+            android:layout_marginBottom="24dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="4dp"
+            app:strokeWidth="0dp">
 
-        <RatingBar
-            android:id="@+id/rbRating"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            android:numStars="5"
-            android:stepSize="1"
-            android:isIndicator="true"
-            style="?android:attr/ratingBarStyle" />
+            <ImageView
+                android:id="@+id/ivImageView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#F8F9FA"
+                android:scaleType="centerCrop" />
+        </com.google.android.material.card.MaterialCardView>
 
-        <ImageView
-            android:id="@+id/ivImageView"
-            android:layout_width="match_parent"
-            android:layout_height="280dp"
-            android:scaleType="centerCrop"
-            android:layout_marginBottom="20dp"
-            android:background="#F5F5F5" />
-
+        <!-- [리뷰 본문] -->
         <TextView
             android:id="@+id/detailContent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:lineSpacingMultiplier="1.3"
-            android:text="리뷰 본문입니다."
-            android:textColor="#333333"
-            android:textSize="16sp"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="32dp"
+            android:lineSpacingExtra="6dp"
+            android:text="여기에 사용자가 작성한 정성스러운 리뷰 텍스트가 들어갑니다. 가독성을 위해 줄 간격을 충분히 주었습니다."
+            android:textColor="#343A40"
+            android:textSize="16sp" />
 
+        <!-- [구분선] -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#EAEAEA"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="32dp"
+            android:background="#F1F3F5" />
 
-        <EditText
-            android:id="@+id/etPrompt"
-            android:layout_width="match_parent"
+        <!-- [AI 분석 섹션 타이틀] -->
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:hint="여기에 온디바이스 AI 프롬프트를 입력하세요"
-            android:textColor="#212121"
-            android:textSize="14sp"
-            android:background="@android:drawable/edit_text"
-            android:padding="12dp"
-            android:layout_marginBottom="12dp" />
+            android:layout_marginBottom="16dp"
+            android:text="AI 스마트 분석"
+            android:textColor="#1A1A1A"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
-        <Button
+        <!-- [메뉴 분석 실행 버튼] -->
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnAnalyzeMenu"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:text="온디바이스 AI 분석 실행"
+            android:layout_height="56dp"
+            android:layout_marginBottom="16dp"
+            android:backgroundTint="#F0FDF4"
+            android:text="사진 속 메뉴 자동으로 찾기"
+            android:textColor="#16A34A"
             android:textSize="15sp"
             android:textStyle="bold"
-            android:backgroundTint="#4AAF50"
-            android:textColor="#FFFFFF"
-            android:layout_marginBottom="16dp"/>
+            app:cornerRadius="16dp"
+            app:iconGravity="textStart"
+            app:iconTint="#16A34A" />
 
         <ProgressBar
             android:id="@+id/pbLoading"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:layout_gravity="center"
-            android:visibility="gone"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="16dp"
+            android:visibility="gone" />
 
+        <!-- [AI 결과 및 질문 영역] -->
         <LinearLayout
+            android:id="@+id/llAiSection"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="#F9F9F9"
-            android:padding="16dp"
-            android:layout_marginBottom="30dp">
+            android:visibility="visible">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="✨ 온디바이스 AI 결과"
-                android:textColor="#4AAF50"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="8dp"/>
-
-            <TextView
-                android:id="@+id/tvAiResult"
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="아직 연산이 수행되지 않았습니다."
-                android:textColor="#555555"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="#F8F9FA"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeColor="#E9ECEF"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="✨ 인식된 메뉴"
+                        android:textColor="#16A34A"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvAiResult"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="아이스 아메리카노, 소금빵"
+                        android:textColor="#212529"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:boxCornerRadiusBottomEnd="16dp"
+                app:boxCornerRadiusBottomStart="16dp"
+                app:boxCornerRadiusTopEnd="16dp"
+                app:boxCornerRadiusTopStart="16dp"
+                app:boxStrokeColor="#16A34A"
+                app:hintTextColor="#16A34A">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etPrompt"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="궁금한 점을 물어보세요 (예: 칼로리 알려줘)"
+                    android:inputType="text"
+                    android:padding="16dp"
+                    android:textSize="15sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAskAi"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:backgroundTint="#16A34A"
+                android:text="AI에게 질문하기"
+                android:textColor="#FFFFFF"
                 android:textSize="15sp"
-                android:lineSpacingMultiplier="1.2"/>
+                android:textStyle="bold"
+                app:cornerRadius="16dp" />
         </LinearLayout>
+
+        <!-- 하단 여백 -->
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="40dp" />
 
     </LinearLayout>
 </ScrollView>
