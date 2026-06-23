@@ -17,6 +17,7 @@ import com.ssafy.payclient.MainActivity
 import com.ssafy.payclient.R
 import com.ssafy.payclient.data.local.PersonalCartStore
 import com.ssafy.payclient.data.local.TokenManager
+import com.ssafy.payclient.data.model.IndividualReceiptResponseDTO
 import com.ssafy.payclient.data.model.PaymentCompleteRequest
 import com.ssafy.payclient.data.network.RetrofitClient
 import com.ssafy.payclient.databinding.FragmentPaymentBinding
@@ -24,6 +25,8 @@ import com.tosspayments.paymentsdk.TossPayments
 import com.tosspayments.paymentsdk.model.TossPaymentResult
 import com.tosspayments.paymentsdk.model.paymentinfo.TossPaymentInfo
 import com.tosspayments.paymentsdk.model.paymentinfo.TossPaymentMethod
+import java.text.NumberFormat
+import java.util.Locale
 import kotlinx.coroutines.launch
 
 class PaymentFragment : Fragment() {
@@ -70,11 +73,16 @@ class PaymentFragment : Fragment() {
     private fun setupPaymentInfo() {
         binding.tvPaymentAmount.text = "$totalPrice 원"
         binding.btnPayment.isEnabled = true
+        binding.btnHome.visibility = View.GONE
+        binding.tvReceiptDetails.visibility = View.GONE
     }
 
     private fun setupClickListeners() {
         binding.btnPayment.setOnClickListener {
             requestPayment()
+        }
+        binding.btnHome.setOnClickListener {
+            navigateHome()
         }
     }
 
@@ -175,7 +183,7 @@ class PaymentFragment : Fragment() {
                         body?.message ?: "결제가 완료되었습니다.",
                         Toast.LENGTH_SHORT
                     ).show()
-                    findNavController().popBackStack(R.id.fragment_order, false)
+                    fetchReceipt(approvedOrderId)
                 } else {
                     Log.e(
                         TAG,
@@ -199,6 +207,87 @@ class PaymentFragment : Fragment() {
                 isPaymentCompleting = false
                 _binding?.btnPayment?.isEnabled = true
             }
+        }
+    }
+
+    private suspend fun fetchReceipt(orderNo: String) {
+        try {
+            val tokenManager = TokenManager(requireContext().applicationContext)
+            val apiService = RetrofitClient.getIndividualOrderApiService(tokenManager)
+            val response = apiService.getReceipt(orderNo)
+
+            if (response.isSuccessful) {
+                val receipt = response.body()
+                if (receipt == null) {
+                    showReceiptLoadFailure("영수증 응답이 비어 있습니다.")
+                    return
+                }
+                renderReceipt(receipt, orderNo)
+            } else {
+                Log.e(
+                    TAG,
+                    "Receipt fetch failed orderNo=$orderNo, status=${response.code()}, " +
+                        "body=${response.errorBody()?.string()}"
+                )
+                showReceiptLoadFailure("영수증 조회에 실패했습니다. (${response.code()})")
+            }
+        } catch (e: Exception) {
+            Log.e(
+                TAG,
+                "Receipt fetch error orderNo=$orderNo",
+                e
+            )
+            showReceiptLoadFailure("영수증 조회 중 오류가 발생했습니다: ${e.message}")
+        }
+    }
+
+    private fun renderReceipt(receipt: IndividualReceiptResponseDTO, orderNo: String) {
+        binding.toolbarPayment.title = "Receipt"
+        binding.tvPaymentAmount.text = "${formatPrice(receipt.totalPrice)} 원"
+        binding.tvPaymentDescription.text = "Payment completed"
+        binding.tvReceiptDetails.text = buildReceiptText(receipt, orderNo)
+        binding.tvReceiptDetails.visibility = View.VISIBLE
+        binding.btnPayment.visibility = View.GONE
+        binding.btnHome.visibility = View.VISIBLE
+        binding.toolbarPayment.setNavigationOnClickListener {
+            navigateHome()
+        }
+        isPaymentCompleting = false
+    }
+
+    private fun showReceiptLoadFailure(message: String) {
+        binding.tvPaymentDescription.text = message
+        binding.btnPayment.visibility = View.GONE
+        binding.btnHome.visibility = View.VISIBLE
+        binding.toolbarPayment.setNavigationOnClickListener {
+            navigateHome()
+        }
+        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+        isPaymentCompleting = false
+    }
+
+    private fun buildReceiptText(receipt: IndividualReceiptResponseDTO, orderNo: String): String {
+        val itemLines = receipt.items.joinToString(separator = "\n") { item ->
+            val subtotal = item.price * item.quantity
+            "${item.menuName.orEmpty()} x ${item.quantity}  ${formatPrice(subtotal)} 원"
+        }
+
+        return buildString {
+            appendLine("Order No. $orderNo")
+            appendLine("Status: ${receipt.status}")
+            appendLine("Ordered at: ${receipt.createdAt}")
+            appendLine()
+            appendLine("Items")
+            appendLine(if (itemLines.isBlank()) "No items" else itemLines)
+            appendLine()
+            append("Total: ${formatPrice(receipt.totalPrice)} 원")
+        }
+    }
+
+    private fun navigateHome() {
+        val popped = findNavController().popBackStack(R.id.fragment_home, false)
+        if (!popped) {
+            findNavController().navigate(R.id.fragment_home)
         }
     }
 
@@ -255,6 +344,10 @@ class PaymentFragment : Fragment() {
         const val ARG_ORDER_NAME = "ORDER_NAME"
         private const val TAG = "PaymentFragment"
     }
+}
+
+private fun formatPrice(value: Long): String {
+    return NumberFormat.getNumberInstance(Locale.KOREA).format(value)
 }
 
 private fun String.maskPaymentKey(): String {

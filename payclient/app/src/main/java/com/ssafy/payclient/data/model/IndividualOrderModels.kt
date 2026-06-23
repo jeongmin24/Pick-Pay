@@ -19,6 +19,6 @@ data class IndividualReceiptResponseDTO(
     val orderId: Long,
     val totalPrice: Long,
     val status: String,
-    val orderedAt: String,
+    val createdAt: String,
     val items: List<OrderItemDTO>
 )
