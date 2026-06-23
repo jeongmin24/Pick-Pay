@@ -38,6 +38,7 @@ class ReviewDetailActivity : AppCompatActivity() {
 
         // 초기 상태 설정: 질문 영역 숨기기
         binding.llAiSection.visibility = View.GONE
+        binding.ivBack.setOnClickListener { finish() }
 
         val review = intent.getSerializableExtra("review_data") as? ReviewResponseDTO
         review?.let {
