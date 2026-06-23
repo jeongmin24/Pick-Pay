@@ -22,7 +22,9 @@ import com.ssafy.pickpay.repository.OrderRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service @RequiredArgsConstructor
 public class PaymentService {
 	
@@ -41,6 +43,14 @@ public class PaymentService {
 
         validateOrderOwner(order, userId);
 
+        log.info(
+                "Payment order matched orderNo={}, dbAmount={}, status={}, requestAmount={}",
+                order.getOrderNo(),
+                order.getTotalPrice(),
+                order.getStatus(),
+                request.amount()
+        );
+
         if (order.isPaid()) {
             return new PaymentCompleteResponseDTO(
                     order.getOrderNo(),
@@ -56,6 +66,13 @@ public class PaymentService {
                 request.paymentKey(),
                 request.orderId(),
                 request.amount()
+        );
+
+        log.info(
+                "Payment Toss confirm response orderId={}, totalAmount={}, status={}",
+                pgResponse.orderId(),
+                pgResponse.totalAmount(),
+                pgResponse.status()
         );
 
         validatePgResponse(order, pgResponse);

@@ -14,7 +14,9 @@ import com.ssafy.pickpay.service.PaymentService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/payments")
@@ -28,10 +30,25 @@ public class PaymentController {
 			) {
 		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 		Long userId = userDetails.getUserId();
+
+		log.info(
+				"Payment complete request userId={}, paymentKey={}, orderId={}, amount={}",
+				userId,
+				maskPaymentKey(request.paymentKey()),
+				request.orderId(),
+				request.amount()
+		);
 		
 		PaymentCompleteResponseDTO response = paymentService.completePayment(userId, request);
 		
 		return ResponseEntity.ok(response);
+	}
+
+	private String maskPaymentKey(String paymentKey) {
+		if (paymentKey == null || paymentKey.length() <= 12) {
+			return "***";
+		}
+		return paymentKey.substring(0, 6) + "..." + paymentKey.substring(paymentKey.length() - 4);
 	}
 
 }
