@@ -27,6 +27,7 @@ public interface OrderRepository extends JpaRepository<Order, Long>{
 	// orderNo 조회용 PG사에서 넘어온 orderId(orderNo) 기준으로 주문을 찾음 
 	Optional<Order> findByOrderNo(String orderNo);
 	Optional<Order> findByOrderNoAndUser_UserId(String orderNo, Long userId);
+	Optional<Order> findByOrderNoAndUser_UserIdAndGroupOrderIsNull(String orderNo, Long userId);
 	
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

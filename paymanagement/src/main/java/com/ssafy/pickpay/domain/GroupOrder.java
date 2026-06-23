@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.hibernate.annotations.CreationTimestamp;
 
 import com.ssafy.pickpay.common.GroupOrderStatus;
+import com.ssafy.pickpay.common.GroupPayType;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -47,7 +48,9 @@ public class GroupOrder {
     @JoinColumn(name = "pickup_user_id")
     private User pickupUser;
 
-    private String payType;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private GroupPayType payType;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -61,7 +64,7 @@ public class GroupOrder {
     }
 
     // 주문 마감 및 결제 방식 확정 
-    public void closeAndSetPayType(String payType) {
+    public void closeAndSetPayType(GroupPayType payType) {
         if (this.status != GroupOrderStatus.OPEN) {
             throw new IllegalStateException("이미 마감되었거나 종료된 주문 세션입니다..");
         }

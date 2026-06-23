@@ -23,9 +23,14 @@ data class GroupJoinResponse(
     val host: Boolean
 )
 
-// 방 마감 (호스트가 결제 방식을 결정) PUT /api/groups/{groupId}/close
+enum class GroupPayType {
+    DUTCH,
+    HOST
+}
+
+// 방 마감 (호스트가 결제 방식을 결정) POST /api/groups/{groupId}/close
 data class CloseGroupOrderRequest(
-    val payType: String
+    val payType: GroupPayType
 )
 
 /**
@@ -44,6 +49,7 @@ data class ReceiptResponseDTO(
 // 개별 유저 영수증
 data class UserReceiptDTO(
     val userId: Long,
+    val orderNo: String?,
     val nickname: String?,
     val userTotalPrice: Long,
     val items: List<OrderItemDTO>

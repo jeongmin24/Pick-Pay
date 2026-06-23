@@ -16,6 +16,7 @@ import com.ssafy.pickpay.domain.Order;
 import com.ssafy.pickpay.domain.OrderItems;
 import com.ssafy.pickpay.domain.User;
 import com.ssafy.pickpay.common.GroupOrderStatus;
+import com.ssafy.pickpay.common.GroupPayType;
 import com.ssafy.pickpay.dto.FirebaseCartItemDTO;
 import com.ssafy.pickpay.repository.GroupOrderRepository;
 import com.ssafy.pickpay.repository.MenuRepository;
@@ -48,7 +49,8 @@ public class GroupOrderServiceIntegrationTest {
     @Test
     @DisplayName("주문 마감 통합 테스트")
     void closeSessionTest() throws Exception {
-    	User host = User.builder().loginId("host").password("1234").nickname("방장").build();
+        //given
+        User host = User.builder().loginId("host").password("1234").nickname("방장").build();
         User member = User.builder().loginId("member1").password("1234").nickname("팀원").build();
         userRepository.save(host);
         userRepository.save(member);
@@ -64,9 +66,9 @@ public class GroupOrderServiceIntegrationTest {
         // Firebase에서 반환될 가짜 장바구니 데이터 정의
         // 방장이 아이스아메리카노 2개, 멤버가 아이스카페라떼 1개 담았다고 가정
         List<FirebaseCartItemDTO> mockFirebaseCart = List.of(
-                new FirebaseCartItemDTO(host.getUserId(), menu1.getMenuId(), 1),
-                new FirebaseCartItemDTO(member.getUserId(), menu1.getMenuId(), 1),
-                new FirebaseCartItemDTO(member.getUserId(), menu2.getMenuId(), 2)
+                new FirebaseCartItemDTO(host.getUserId(), menu1.getName(), menu1.getMenuId(), 1),
+                new FirebaseCartItemDTO(member.getUserId(), menu1.getName(), menu1.getMenuId(), 1),
+                new FirebaseCartItemDTO(member.getUserId(), menu2.getName(), menu2.getMenuId(), 2)
         );
         
         // firebaseSyncService.getCartItems() 호출 시 가짜 리스트를 반환
@@ -74,7 +76,11 @@ public class GroupOrderServiceIntegrationTest {
                 .willReturn(mockFirebaseCart);
 
         // 마감 로직 실행
-        groupOrderService.closeSession(groupOrder.getGroupId(), "더치페이");
+        groupOrderService.closeSession(
+                host.getUserId(),
+                groupOrder.getGroupId(),
+                GroupPayType.DUTCH
+        );
 
         em.flush();
         em.clear();
@@ -82,7 +88,7 @@ public class GroupOrderServiceIntegrationTest {
         
         GroupOrder updatedGroup = groupOrderRepository.findById(groupOrder.getGroupId()).orElseThrow();
         assertThat(updatedGroup.getStatus()).isEqualTo(GroupOrderStatus.LOCKED);
-        assertThat(updatedGroup.getPayType()).isEqualTo("더치페이");
+        assertThat(updatedGroup.getPayType()).isEqualTo(GroupPayType.DUTCH);
 
         List<Order> orders = orderRepository.findAll();
         assertThat(orders).hasSize(2);
