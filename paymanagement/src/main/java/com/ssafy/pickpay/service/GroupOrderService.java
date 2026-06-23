@@ -5,16 +5,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.ssafy.pickpay.common.GroupOrderStatus;
+import com.ssafy.pickpay.common.GroupPayType;
 import com.ssafy.pickpay.domain.GroupOrder;
 import com.ssafy.pickpay.domain.Menu;
 import com.ssafy.pickpay.domain.Order;
@@ -106,58 +109,91 @@ public class GroupOrderService {
 	
 	// 방장 주문 마감 처리 
     @Transactional
-    public void closeSession(Long groupId, String payType) {
-    	
-    	GroupOrder groupOrder = groupOrderRepository.findById(groupId)
-    			.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 그룹입니다."));
-    	
-    	if(groupOrder.getStatus() == GroupOrderStatus.PAID) {
-    		throw new IllegalStateException("이미 결제가 완료된 그룹방입니다.");
-    	}
-    	
-    	if (groupOrder.getStatus() == GroupOrderStatus.LOCKED) {
+    public void closeSession(Long requestUserId, Long groupId, GroupPayType payType) {
+
+        GroupOrder groupOrder = groupOrderRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 그룹입니다."));
+
+        validateCanCloseGroupOrder(groupOrder, requestUserId);
+
+        List<FirebaseCartItemDTO> firebaseItems;
+        try {
+            firebaseItems = firebaseSyncService.getCartItems(groupId.toString());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Firebase 장바구니 조회 중 요청이 중단되었습니다.", e);
+        } catch (ExecutionException | TimeoutException e) {
+            throw new RuntimeException("Firebase 장바구니 조회 중 오류가 발생했습니다.", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Firebase 장바구니 조회 중 알 수 없는 오류가 발생했습니다.", e);
+        }
+
+        if (firebaseItems.isEmpty()) {
+            throw new IllegalStateException("장바구니가 비어 있어 마감할 수 없습니다.");
+        }
+
+        Map<Long, List<FirebaseCartItemDTO>> itemsByUser = firebaseItems.stream()
+                .collect(Collectors.groupingBy(FirebaseCartItemDTO::getUserId));
+
+        switch (payType) {
+            case DUTCH -> createGroupOrdersByUser(groupId, itemsByUser);
+            case HOST -> createGroupOrderForHost(requestUserId, groupId, firebaseItems);
+        }
+
+        groupOrder.closeAndSetPayType(payType);
+        firebaseSyncService.updateFirebaseGroupStatus(groupId, payType);
+    }
+
+    private void createGroupOrdersByUser(
+            Long groupId,
+            Map<Long, List<FirebaseCartItemDTO>> itemsByUser
+    ) {
+        for (Map.Entry<Long, List<FirebaseCartItemDTO>> entry : itemsByUser.entrySet()) {
+            Long userId = entry.getKey();
+            List<FirebaseCartItemDTO> userCartItems = entry.getValue();
+
+            List<CartItemRequest> cartItems = userCartItems.stream()
+                    .map(item -> new CartItemRequest(
+                            item.getProductId(),
+                            item.getQuantity()
+                    ))
+                    .collect(Collectors.toList());
+
+            orderService.createOrder(userId, cartItems, groupId);
+        }
+    }
+
+    private void createGroupOrderForHost(
+            Long hostUserId,
+            Long groupId,
+            List<FirebaseCartItemDTO> firebaseItems
+    ) {
+        List<CartItemRequest> cartItems = firebaseItems.stream()
+                .map(item -> new CartItemRequest(
+                        item.getProductId(),
+                        item.getQuantity()
+                ))
+                .collect(Collectors.toList());
+
+        orderService.createOrder(hostUserId, cartItems, groupId);
+    }
+
+    private void validateCanCloseGroupOrder(GroupOrder groupOrder, Long requestUserId) {
+
+        if (!groupOrder.getHost().getUserId().equals(requestUserId)) {
+            throw new AccessDeniedException("방장만 주문을 마감할 수 있습니다.");
+        }
+
+        if (groupOrder.getStatus() == GroupOrderStatus.PAID) {
+            throw new IllegalStateException("이미 결제가 완료된 그룹방입니다.");
+        }
+
+        if (groupOrder.getStatus() == GroupOrderStatus.LOCKED) {
             throw new IllegalStateException("이미 주문이 마감된 그룹방입니다.");
         }
-    	
-    	groupOrder.closeAndSetPayType(payType);
-    	
-    	try {
-            List<FirebaseCartItemDTO> firebaseItems = firebaseSyncService.getCartItems(groupId.toString()); // items 긁어오기
-            
-            if (firebaseItems.isEmpty()) {
-                throw new IllegalStateException("장바구니가 비어 있어 마감할 수 없습니다.");
-            }
 
-            // 1: [ ] / 2: [ ] 형식으로 분류 
-            Map<Long, List<FirebaseCartItemDTO>> itemsByUser = firebaseItems.stream()
-                    .collect(Collectors.groupingBy(FirebaseCartItemDTO::getUserId)); // 리스트에 있는 아이템을 userId 기준으로 그룹화 
-
-            // User 마다 가진 장바구니 아이템을 DB에 하나씩 저장
-            for (Map.Entry<Long, List<FirebaseCartItemDTO>> entry : itemsByUser.entrySet()) {
-                Long userId = entry.getKey();
-                List<FirebaseCartItemDTO> userCartItems = entry.getValue();
-
-                List<CartItemRequest> cartItems = userCartItems.stream()
-                		.map(item -> new CartItemRequest(item.getProductId(), item.getQuantity()))
-                		.collect(Collectors.toList());
-                
-                orderService.createOrder(userId, cartItems, groupId);
-            }
-
-            // 5) Firebase 실시간 상태 업데이트 (클라이언트 화면 전환용)
-            DatabaseReference groupRef = FirebaseDatabase.getInstance()
-                    .getReference("group_orders/" + groupId);
-
-            Map<String, Object> updates = new HashMap<>();
-            updates.put("status", GroupOrderStatus.LOCKED.name());
-            updates.put("payType", payType);
-
-            groupRef.updateChildrenAsync(updates);
-
-        } catch (Exception e) {
-        	System.err.println("마감 에러 원인: " + e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException("주문 마감 및 결제 방식 설정 중 오류가 발생했습니다.", e);
+        if (groupOrder.getStatus() != GroupOrderStatus.OPEN) {
+            throw new IllegalStateException("마감할 수 없는 그룹방 상태입니다.");
         }
     }
     
@@ -188,6 +224,7 @@ public class GroupOrderService {
     		
     		UserReceiptDTO userReceiptDTO = UserReceiptDTO.builder()
     				.userId(order.getUser().getUserId())
+                    .orderNo(order.getOrderNo())
     				.nickname(order.getUser().getNickname())
     				.userTotalPrice(order.getTotalPrice())
     				.items(itemDTOList)
@@ -198,7 +235,7 @@ public class GroupOrderService {
     	
     	return GroupOrderReceiptResponseDTO.builder()
     			.groupId(groupOrder.getGroupId())
-    			.payType(groupOrder.getPayType())
+                .payType(groupOrder.getPayType() == null ? null : groupOrder.getPayType().name())
     			.totalGroupPrice(totalGroupPrice)
     			.userReceipts(userReceiptList)
     			.build();

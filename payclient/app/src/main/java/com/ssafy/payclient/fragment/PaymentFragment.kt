@@ -19,6 +19,8 @@ import com.ssafy.payclient.data.local.PersonalCartStore
 import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.model.IndividualReceiptResponseDTO
 import com.ssafy.payclient.data.model.PaymentCompleteRequest
+import com.ssafy.payclient.data.model.ReceiptResponseDTO
+import com.ssafy.payclient.data.model.UserReceiptDTO
 import com.ssafy.payclient.data.network.RetrofitClient
 import com.ssafy.payclient.databinding.FragmentPaymentBinding
 import com.tosspayments.paymentsdk.TossPayments
@@ -44,6 +46,7 @@ class PaymentFragment : Fragment() {
     private val orderId: String by lazy { requireArguments().getString(ARG_ORDER_ID).orEmpty() }
     private val orderName: String by lazy { requireArguments().getString(ARG_ORDER_NAME).orEmpty() }
     private val totalPrice: Long by lazy { requireArguments().getLong(ARG_TOTAL_PRICE) }
+    private val groupId: Long by lazy { requireArguments().getLong(ARG_GROUP_ID, -1L) }
     private var isPaymentCompleting = false
 
     override fun onCreateView(
@@ -183,7 +186,11 @@ class PaymentFragment : Fragment() {
                         body?.message ?: "결제가 완료되었습니다.",
                         Toast.LENGTH_SHORT
                     ).show()
-                    fetchReceipt(approvedOrderId)
+                    if (groupId > 0L) {
+                        fetchGroupReceipt(groupId, approvedOrderId)
+                    } else {
+                        fetchReceipt(approvedOrderId)
+                    }
                 } else {
                     Log.e(
                         TAG,
@@ -207,6 +214,40 @@ class PaymentFragment : Fragment() {
                 isPaymentCompleting = false
                 _binding?.btnPayment?.isEnabled = true
             }
+        }
+    }
+
+    private suspend fun fetchGroupReceipt(groupId: Long, orderNo: String) {
+        try {
+            val tokenManager = TokenManager(requireContext().applicationContext)
+            val apiService = RetrofitClient.getGroupOrderApiService(tokenManager)
+            val response = apiService.getGroupReceipt(groupId)
+
+            if (response.isSuccessful) {
+                val receipt = response.body()
+                val userReceipt = receipt?.userReceipts?.firstOrNull { it.orderNo == orderNo }
+
+                if (receipt == null || userReceipt == null) {
+                    showReceiptLoadFailure("그룹 영수증 응답을 확인할 수 없습니다.")
+                    return
+                }
+
+                renderGroupReceipt(receipt, userReceipt, orderNo)
+            } else {
+                Log.e(
+                    TAG,
+                    "Group receipt fetch failed groupId=$groupId, status=${response.code()}, " +
+                        "body=${response.errorBody()?.string()}"
+                )
+                showReceiptLoadFailure("그룹 영수증 조회에 실패했습니다. (${response.code()})")
+            }
+        } catch (e: Exception) {
+            Log.e(
+                TAG,
+                "Group receipt fetch error groupId=$groupId",
+                e
+            )
+            showReceiptLoadFailure("그룹 영수증 조회 중 오류가 발생했습니다: ${e.message}")
         }
     }
 
@@ -255,6 +296,24 @@ class PaymentFragment : Fragment() {
         isPaymentCompleting = false
     }
 
+    private fun renderGroupReceipt(
+        receipt: ReceiptResponseDTO,
+        userReceipt: UserReceiptDTO,
+        orderNo: String
+    ) {
+        binding.toolbarPayment.title = "Receipt"
+        binding.tvPaymentAmount.text = "${formatPrice(userReceipt.userTotalPrice)} 원"
+        binding.tvPaymentDescription.text = "Payment completed"
+        binding.tvReceiptDetails.text = buildGroupReceiptText(receipt, userReceipt, orderNo)
+        binding.tvReceiptDetails.visibility = View.VISIBLE
+        binding.btnPayment.visibility = View.GONE
+        binding.btnHome.visibility = View.VISIBLE
+        binding.toolbarPayment.setNavigationOnClickListener {
+            navigateHome()
+        }
+        isPaymentCompleting = false
+    }
+
     private fun showReceiptLoadFailure(message: String) {
         binding.tvPaymentDescription.text = message
         binding.btnPayment.visibility = View.GONE
@@ -281,6 +340,28 @@ class PaymentFragment : Fragment() {
             appendLine(if (itemLines.isBlank()) "No items" else itemLines)
             appendLine()
             append("Total: ${formatPrice(receipt.totalPrice)} 원")
+        }
+    }
+
+    private fun buildGroupReceiptText(
+        receipt: ReceiptResponseDTO,
+        userReceipt: UserReceiptDTO,
+        orderNo: String
+    ): String {
+        val itemLines = userReceipt.items.joinToString(separator = "\n") { item ->
+            val subtotal = item.price * item.quantity
+            "${item.menuName.orEmpty()} x ${item.quantity}  ${formatPrice(subtotal)} 원"
+        }
+
+        return buildString {
+            appendLine("Order No. $orderNo")
+            appendLine("Group No. ${receipt.groupId}")
+            appendLine("Pay Type: ${receipt.payType.orEmpty()}")
+            appendLine()
+            appendLine("Items")
+            appendLine(if (itemLines.isBlank()) "No items" else itemLines)
+            appendLine()
+            append("Total: ${formatPrice(userReceipt.userTotalPrice)} 원")
         }
     }
 
@@ -342,6 +423,7 @@ class PaymentFragment : Fragment() {
         const val ARG_ORDER_ID = "ORDER_ID"
         const val ARG_TOTAL_PRICE = "TOTAL_PRICE"
         const val ARG_ORDER_NAME = "ORDER_NAME"
+        const val ARG_GROUP_ID = "GROUP_ID"
         private const val TAG = "PaymentFragment"
     }
 }

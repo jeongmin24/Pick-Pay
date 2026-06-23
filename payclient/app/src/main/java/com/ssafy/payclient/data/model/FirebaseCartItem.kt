@@ -6,7 +6,7 @@ import com.google.firebase.database.IgnoreExtraProperties
 @IgnoreExtraProperties
 data class FirebaseCartItem(
     val menuName: String = "",
-    val menuId: Long = 0,
+    val productId: Long = 0,
     val quantity: Int = 0,
     val userId: Long = 0
 )

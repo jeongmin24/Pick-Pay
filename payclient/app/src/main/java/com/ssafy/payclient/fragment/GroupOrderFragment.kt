@@ -41,6 +41,7 @@ class GroupOrderFragment : Fragment() {
     private var shareLink: String? = null
 
     private var groupStatus: String = "OPEN"
+    private var groupStatusListener: ValueEventListener? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -83,27 +84,35 @@ class GroupOrderFragment : Fragment() {
     }
 
     private fun observeGroupStatus() {
-        database
+        groupStatusListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val binding = _binding ?: return
+                val status = snapshot.getValue(String::class.java) ?: "OPEN"
+                groupStatus = status
+
+                binding.tvGroupStatus.text =
+                    "현재 방 번호: $groupId | 방장 여부: $isHost | 상태: $groupStatus\n메뉴를 담으면 실시간으로 공유됩니다."
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                if (_binding == null) return
+                Toast.makeText(
+                    requireContext(),
+                    "방 상태 확인 실패: ${error.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
+        getGroupStatusRef()
+            .addValueEventListener(groupStatusListener!!)
+    }
+
+    private fun getGroupStatusRef(): DatabaseReference {
+        return database
             .child("group_orders")
             .child(groupId.toString())
             .child("status")
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val status = snapshot.getValue(String::class.java) ?: "OPEN"
-                    groupStatus = status
-
-                    binding.tvGroupStatus.text =
-                        "현재 방 번호: $groupId | 방장 여부: $isHost | 상태: $groupStatus\n메뉴를 담으면 실시간으로 공유됩니다."
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    Toast.makeText(
-                        requireContext(),
-                        "방 상태 확인 실패: ${error.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            })
     }
 
     private fun setupToolbar() {
@@ -183,7 +192,7 @@ class GroupOrderFragment : Fragment() {
         }
     }
 
-    private fun addItemToFirebaseCart(menuName: String, menuId: Long, quantity: Int) {
+    private fun addItemToFirebaseCart(menuName: String, productId: Long, quantity: Int) {
 
         // LOCKED or PAID 상태면 장바구니 담기 X
         if (groupStatus != "OPEN") {
@@ -195,7 +204,7 @@ class GroupOrderFragment : Fragment() {
             return
         }
 
-        val itemKey = "user${currentUserId}_item_${menuId}"
+        val itemKey = "user${currentUserId}_item_${productId}"
 
         val itemRef = database
             .child("group_orders")
@@ -211,12 +220,13 @@ class GroupOrderFragment : Fragment() {
                 if (currentItem == null) {
                     currentData.value = FirebaseCartItem(
                         menuName = menuName,
-                        menuId = menuId,
+                        productId = productId,
                         quantity = quantity,
                         userId = currentUserId
                     )
                 } else {
                     currentData.value = currentItem.copy(
+                        productId = currentItem.productId.takeIf { it > 0L } ?: productId,
                         quantity = currentItem.quantity + quantity
                     )
                 }
@@ -240,6 +250,10 @@ class GroupOrderFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        groupStatusListener?.let {
+            getGroupStatusRef().removeEventListener(it)
+        }
+        groupStatusListener = null
         _binding = null
     }
 }

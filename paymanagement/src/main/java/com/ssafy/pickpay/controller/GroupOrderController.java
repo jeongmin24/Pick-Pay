@@ -3,22 +3,23 @@ package com.ssafy.pickpay.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ssafy.pickpay.domain.CustomUserDetails;
 import com.ssafy.pickpay.domain.GroupOrder;
 import com.ssafy.pickpay.dto.GroupJoinRequestDTO;
 import com.ssafy.pickpay.dto.GroupJoinResponseDTO;
+import com.ssafy.pickpay.dto.GroupOrderCloseRequestDTO;
 import com.ssafy.pickpay.dto.GroupOrderCreateResponse;
 import com.ssafy.pickpay.dto.GroupOrderReceiptResponseDTO;
 import com.ssafy.pickpay.service.GroupOrderService;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -61,12 +62,16 @@ public class GroupOrderController {
 	}
 	
 	// 방장 주문 마감
-	@PatchMapping("/{groupId}/close")
+	@RequestMapping(value = "/{groupId}/close", method = {RequestMethod.POST, RequestMethod.PATCH})
 	public ResponseEntity<String> closeGroupOrder(
+			Authentication authentication,
 			@PathVariable Long groupId,
-			@RequestParam String payType
+			@Valid @RequestBody GroupOrderCloseRequestDTO request
 			){
-		groupOrderService.closeSession(groupId, payType);
+		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+		Long userId = userDetails.getUserId();
+
+		groupOrderService.closeSession(userId, groupId, request.payType());
 		return ResponseEntity.ok("주문이 성공적으로 마감되었습니다.");
 	}
 	

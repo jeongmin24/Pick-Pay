@@ -6,9 +6,9 @@ import com.ssafy.payclient.data.model.GroupJoinResponse
 import com.ssafy.payclient.data.model.GroupOrderCreateResponse
 import com.ssafy.payclient.data.model.ReceiptResponseDTO
 import retrofit2.Response
+import okhttp3.ResponseBody
 import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Path
 
@@ -22,11 +22,11 @@ interface GroupOrderApiService {
         @Body request: GroupJoinRequest
     ): Response<GroupJoinResponse>
 
-    @PATCH("/api/groups/{groupId}/close")
+    @POST("/api/groups/{groupId}/close")
     suspend fun closeGroupOrder(
         @Path("groupId") groupId: Long,
         @Body request: CloseGroupOrderRequest
-    ): Response<String>
+    ): Response<ResponseBody>
 
     @GET("/api/groups/{groupId}/receipt")
     suspend fun getGroupReceipt(
