@@ -9,7 +9,6 @@ import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -35,15 +34,13 @@ class OrderFragment : Fragment() {
 
     private lateinit var viewModel: MenuViewModel
     private lateinit var menuAdapter: MenuAdapter
-
-    // FAB 메뉴 확장 여부를 확인하는 플래그
     private var isFabExpanded = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val tokenManager = TokenManager(requireContext())
-        val factory = object  : ViewModelProvider.Factory {
+        val factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 return MenuViewModel(tokenManager) as T
@@ -54,7 +51,8 @@ class OrderFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
+        inflater: LayoutInflater,
+        container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentOrderBinding.inflate(inflater, container, false)
@@ -67,12 +65,21 @@ class OrderFragment : Fragment() {
         setupRecyclerView()
         setupClickListeners()
         observeViewModel()
+        updateCartBadge()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (_binding != null) {
+            updateCartBadge()
+        }
     }
 
     private fun setupRecyclerView() {
         menuAdapter = MenuAdapter(emptyList()) { selectedMenu ->
             PersonalCartStore.add(selectedMenu)
-            Toast.makeText(context, "${selectedMenu.name} (개인 장바구니에 담김)", Toast.LENGTH_SHORT).show()
+            updateCartBadge()
+            Toast.makeText(context, "${selectedMenu.name} 장바구니에 담았어요", Toast.LENGTH_SHORT).show()
         }
         binding.rvMenuList.apply {
             layoutManager = GridLayoutManager(context, 2)
@@ -85,10 +92,8 @@ class OrderFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.menuState.collect { state ->
                     when (state) {
-                        is MenuUiState.Loading -> {}
-                        is MenuUiState.Success -> {
-                            menuAdapter.updateList(state.menuList)
-                        }
+                        is MenuUiState.Loading -> Unit
+                        is MenuUiState.Success -> menuAdapter.updateList(state.menuList)
                         is MenuUiState.Error -> {
                             Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
                         }
@@ -99,47 +104,48 @@ class OrderFragment : Fragment() {
     }
 
     private fun setupClickListeners() {
-        // 1. 개인 카트 버튼
         binding.fabPersonalCart.setOnClickListener {
             findNavController().navigate(R.id.action_fragment_order_to_fragment_cart)
         }
 
-        // 2. 메인 FAB (더보기) 클릭 시 확장/축소 토글
         binding.fabGroupMenu.setOnClickListener {
             toggleFab()
         }
 
-        // 4. 방 생성 버튼
         binding.fabCreateGroup.setOnClickListener {
-            toggleFab() // 메뉴 먼저 닫기
+            toggleFab()
             createGroupOrder()
         }
 
-        // 5. 방 입장 버튼
         binding.fabJoinGroup.setOnClickListener {
-            toggleFab() // 메뉴 먼저 닫기
-            val input = EditText(requireContext())
-            input.hint = "초대 링크 또는 초대 토큰을 입력하세요"
-
-            AlertDialog.Builder(requireContext())
-                .setTitle("방 입장하기")
-                .setView(input)
-                .setPositiveButton("입장") { _, _ ->
-                    val inputText = input.text.toString()
-
-                    if (inputText.isNotBlank()) {
-                        joinGroupOrder(inputText)
-                    } else {
-                        Toast.makeText(
-                            requireContext(),
-                            "초대 링크 또는 토큰을 입력해주세요.",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                }
-                .setNegativeButton("취소", null)
-                .show()
+            toggleFab()
+            showJoinGroupDialog()
         }
+    }
+
+    private fun showJoinGroupDialog() {
+        val input = EditText(requireContext()).apply {
+            hint = "초대 링크 또는 초대 토큰을 입력하세요"
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("같이 주문 방 입장")
+            .setView(input)
+            .setPositiveButton("입장") { _, _ ->
+                val inputText = input.text.toString()
+
+                if (inputText.isNotBlank()) {
+                    joinGroupOrder(inputText)
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        "초대 링크 또는 토큰을 입력해주세요.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .setNegativeButton("취소", null)
+            .show()
     }
 
     private fun createGroupOrder() {
@@ -159,7 +165,7 @@ class OrderFragment : Fragment() {
                         if (myUserId <= 0L) {
                             Toast.makeText(
                                 requireContext(),
-                                "방 생성은 성공했지만 userId가 없습니다.",
+                                "방은 생성됐지만 로그인 사용자 정보를 찾을 수 없어요.",
                                 Toast.LENGTH_SHORT
                             ).show()
                             return@launch
@@ -167,7 +173,7 @@ class OrderFragment : Fragment() {
 
                         Toast.makeText(
                             requireContext(),
-                            "방 생성 성공: ${body.groupId}",
+                            "같이 주문 방을 만들었어요.",
                             Toast.LENGTH_SHORT
                         ).show()
 
@@ -180,7 +186,7 @@ class OrderFragment : Fragment() {
                     } else {
                         Toast.makeText(
                             requireContext(),
-                            "방 생성 응답이 비어 있습니다.",
+                            "방 생성 응답이 비어 있어요.",
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -191,7 +197,6 @@ class OrderFragment : Fragment() {
                         Toast.LENGTH_SHORT
                     ).show()
                 }
-
             } catch (e: Exception) {
                 Toast.makeText(
                     requireContext(),
@@ -202,28 +207,27 @@ class OrderFragment : Fragment() {
         }
     }
 
-    // 플로팅 버튼(FAB) 애니메이션 및 표시 상태 변경 로직
     private fun toggleFab() {
         if (isFabExpanded) {
-            // 축소하기 (닫기)
             binding.fabCreateGroup.visibility = View.GONE
             binding.fabJoinGroup.visibility = View.GONE
-            binding.fabGroupMenu.animate().rotation(0f).setDuration(200).start()
+            binding.fabGroupMenu.animate().rotation(0f).setDuration(180).start()
         } else {
-            // 확장하기 (열기)
             binding.fabCreateGroup.visibility = View.VISIBLE
             binding.fabJoinGroup.visibility = View.VISIBLE
-            // 아이콘을 90도 회전시켜 활성화된 느낌을 줍니다.
-            binding.fabGroupMenu.animate().rotation(90f).setDuration(200).start()
+            binding.fabGroupMenu.animate().rotation(45f).setDuration(180).start()
         }
         isFabExpanded = !isFabExpanded
     }
 
-    private fun navigateToGroupOrder(groupId: Long, isHost: Boolean, userId: Long, shareLink: String?=null) {
-        val tokenManager = TokenManager(requireContext())
-
+    private fun navigateToGroupOrder(
+        groupId: Long,
+        isHost: Boolean,
+        userId: Long,
+        shareLink: String? = null
+    ) {
         if (userId <= 0L) {
-            Toast.makeText(requireContext(), "로그인 정보가 없습니다. 다시 로그인해주세요.: $userId", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "로그인 정보가 없어요. 다시 로그인해주세요.", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -254,9 +258,7 @@ class OrderFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                val response = groupOrderApiService.joinGroup(
-                    GroupJoinRequest(shareToken)
-                )
+                val response = groupOrderApiService.joinGroup(GroupJoinRequest(shareToken))
 
                 if (response.isSuccessful) {
                     val body = response.body()
@@ -267,7 +269,7 @@ class OrderFragment : Fragment() {
                         if (myUserId <= 0L) {
                             Toast.makeText(
                                 requireContext(),
-                                "userId가 없습니다. 다시 로그인해주세요.",
+                                "로그인 정보가 없어요. 다시 로그인해주세요.",
                                 Toast.LENGTH_SHORT
                             ).show()
                             return@launch
@@ -275,7 +277,7 @@ class OrderFragment : Fragment() {
 
                         Toast.makeText(
                             requireContext(),
-                            "방 입장 성공: ${body.groupId}",
+                            "같이 주문 방에 입장했어요.",
                             Toast.LENGTH_SHORT
                         ).show()
 
@@ -290,7 +292,7 @@ class OrderFragment : Fragment() {
                     } else {
                         Toast.makeText(
                             requireContext(),
-                            "방 입장 응답이 비어 있습니다.",
+                            "방 입장 응답이 비어 있어요.",
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -301,7 +303,6 @@ class OrderFragment : Fragment() {
                         Toast.LENGTH_SHORT
                     ).show()
                 }
-
             } catch (e: Exception) {
                 Toast.makeText(
                     requireContext(),
@@ -320,6 +321,13 @@ class OrderFragment : Fragment() {
         } else {
             trimmed
         }
+    }
+
+    private fun updateCartBadge() {
+        val itemCount = PersonalCartStore.getItems().sumOf { it.quantity }
+
+        binding.tvCartBadge.visibility = if (itemCount > 0) View.VISIBLE else View.GONE
+        binding.tvCartBadge.text = if (itemCount > 99) "99+" else itemCount.toString()
     }
 
     override fun onDestroyView() {
