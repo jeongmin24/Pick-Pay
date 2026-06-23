@@ -100,7 +100,7 @@ class GroupOrderFragment : Fragment() {
 
     private fun setupRecyclerView() {
         menuAdapter = MenuAdapter(emptyList()) { selectedMenu ->
-            addItemToFirebaseCart(selectedMenu.menuName, selectedMenu.menuId, 1)
+            addItemToFirebaseCart(selectedMenu.name, selectedMenu.menuId, 1)
         }
         binding.rvGroupMenuList.apply {
             layoutManager = GridLayoutManager(context, 2)
@@ -116,7 +116,7 @@ class GroupOrderFragment : Fragment() {
                         is MenuUiState.Loading -> {}
                         is MenuUiState.Success -> {
                             menuAdapter = MenuAdapter(state.menuList) { selectedMenu ->
-                                addItemToFirebaseCart(selectedMenu.menuName, selectedMenu.menuId, 1)
+                                addItemToFirebaseCart(selectedMenu.name, selectedMenu.menuId, 1)
                             }
                             binding.rvGroupMenuList.adapter = menuAdapter
                         }

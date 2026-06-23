@@ -5,6 +5,7 @@ import com.ssafy.payclient.data.api.AuthApiService
 import com.ssafy.payclient.data.api.GroupOrderApiService
 import com.ssafy.payclient.data.api.IndividualOrderApiService
 import com.ssafy.payclient.data.api.PaymentApiService
+import com.ssafy.payclient.data.api.MenuApiService
 import com.ssafy.payclient.data.api.ReviewApiService
 import com.ssafy.payclient.data.local.TokenManager
 import okhttp3.OkHttpClient
@@ -20,6 +21,7 @@ object RetrofitClient {
     private var individualOrderApiService: IndividualOrderApiService? = null
     private var paymentApiService: PaymentApiService? = null
     private var sharedTokenManager: TokenManager? = null
+    var menuApiService: MenuApiService? = null
 
     private var groupOrderApiService: GroupOrderApiService? = null
 
@@ -78,6 +80,15 @@ object RetrofitClient {
                 buildRetrofit(client)
                     .create(PaymentApiService::class.java)
                     .also { paymentApiService = it }
+            }
+        }
+    }
+
+    fun getMenuApiService(tokenManager: TokenManager): MenuApiService {
+        init(tokenManager)
+        return menuApiService ?: synchronized(this) {
+            menuApiService ?: buildHttpClient().let { client ->
+                buildRetrofit(client).create(MenuApiService::class.java).also { menuApiService = it }
             }
         }
     }
