@@ -87,6 +87,7 @@ dependencies {
     // realtime database SDK
     implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
     implementation("com.google.firebase:firebase-database")
+    implementation("com.google.firebase:firebase-messaging")
 //    implementation(libs.litertlm)
 
     // Toss Payments Android SDK 추가 (버전 0.1.15 적용)

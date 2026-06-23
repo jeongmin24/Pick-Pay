@@ -20,6 +20,9 @@ interface AuthApiService {
     @PUT("user")
     suspend fun updateMyInfo(@Body request: UserUpdateRequest): Response<UserResponse>
 
+    @PATCH("me/fcm-token")
+    suspend fun updateFcmToken(@Body request: FcmTokenRequest): Response<Unit>
+
     @DELETE("user")
     suspend fun deleteUser(): Response<Unit>
 

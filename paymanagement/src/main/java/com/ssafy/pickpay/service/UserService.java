@@ -121,5 +121,10 @@ public class UserService{
 		
 	}
 	
+	@Transactional
+	public void updateFcmToken(Long userId, String fcmToken) {
+	    User user = userRepository.findById(userId).orElseThrow();
+	    user.setFcmToken(fcmToken);
+	}
 
 }

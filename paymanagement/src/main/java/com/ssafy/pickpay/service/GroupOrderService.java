@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ import com.ssafy.pickpay.domain.OrderItems;
 import com.ssafy.pickpay.domain.User;
 import com.ssafy.pickpay.dto.CartItemRequest;
 import com.ssafy.pickpay.dto.FirebaseCartItemDTO;
+import com.ssafy.pickpay.dto.GroupDutchPaymentRequestedEvent;
 import com.ssafy.pickpay.dto.GroupJoinResponseDTO;
 import com.ssafy.pickpay.dto.GroupOrderReceiptResponseDTO;
 import com.ssafy.pickpay.dto.GroupOrderReceiptResponseDTO.UserReceiptDTO;
@@ -48,6 +50,7 @@ public class GroupOrderService {
     private final OrderItemsRepository orderItemsRepository;
     private final MenuRepository menuRepository;
     private final FirebaseSyncService firebaseSyncService;
+    private final ApplicationEventPublisher eventPublisher;
 	
 	// 그룹 주문 세선 생성
     @Transactional
@@ -135,19 +138,28 @@ public class GroupOrderService {
         Map<Long, List<FirebaseCartItemDTO>> itemsByUser = firebaseItems.stream()
                 .collect(Collectors.groupingBy(FirebaseCartItemDTO::getUserId));
 
-        switch (payType) {
+        List<Order> createdOrders = switch (payType) {
             case DUTCH -> createGroupOrdersByUser(groupId, itemsByUser);
-            case HOST -> createGroupOrderForHost(requestUserId, groupId, firebaseItems);
-        }
+            case HOST -> List.of(createGroupOrderForHost(requestUserId, groupId, firebaseItems));
+        };
 
         groupOrder.closeAndSetPayType(payType);
         firebaseSyncService.updateFirebaseGroupStatus(groupId, payType);
+        
+        if(payType == GroupPayType.DUTCH) {
+        	eventPublisher.publishEvent(
+        			// 이벤트 DTO 
+        			GroupDutchPaymentRequestedEvent.from(groupId, createdOrders)
+        	);
+        }
     }
 
-    private void createGroupOrdersByUser(
+    private List<Order> createGroupOrdersByUser(
             Long groupId,
             Map<Long, List<FirebaseCartItemDTO>> itemsByUser
     ) {
+    	List<Order> createdOrders = new ArrayList<>();
+    	
         for (Map.Entry<Long, List<FirebaseCartItemDTO>> entry : itemsByUser.entrySet()) {
             Long userId = entry.getKey();
             List<FirebaseCartItemDTO> userCartItems = entry.getValue();
@@ -157,13 +169,16 @@ public class GroupOrderService {
                             item.getProductId(),
                             item.getQuantity()
                     ))
-                    .collect(Collectors.toList());
+                    .toList();
 
-            orderService.createOrder(userId, cartItems, groupId);
+            Order order = orderService.createOrder(userId, cartItems, groupId);
+            createdOrders.add(order);
         }
+        
+        return createdOrders;
     }
 
-    private void createGroupOrderForHost(
+    private Order createGroupOrderForHost(
             Long hostUserId,
             Long groupId,
             List<FirebaseCartItemDTO> firebaseItems
@@ -173,9 +188,9 @@ public class GroupOrderService {
                         item.getProductId(),
                         item.getQuantity()
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
-        orderService.createOrder(hostUserId, cartItems, groupId);
+        return orderService.createOrder(hostUserId, cartItems, groupId);
     }
 
     private void validateCanCloseGroupOrder(GroupOrder groupOrder, Long requestUserId) {

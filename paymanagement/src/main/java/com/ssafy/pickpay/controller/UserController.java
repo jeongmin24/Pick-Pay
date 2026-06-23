@@ -6,14 +6,18 @@ import java.util.Map;
 
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ssafy.pickpay.domain.CustomUserDetails;
+import com.ssafy.pickpay.dto.FcmTokenRequestDTO;
 import com.ssafy.pickpay.dto.UserRequestDTO;
 import com.ssafy.pickpay.dto.UserResponseDTO;
 import com.ssafy.pickpay.service.UserService;
@@ -68,5 +72,18 @@ public class UserController {
 			) throws AccessDeniedException {
 		userService.deleteUser(dto);
 		return ResponseEntity.status(200).body(true);
+	}
+	
+	// 로그인한 사용자의 FCM 토큰을 서버에 저장 
+	@PatchMapping("/me/fcm-token")
+	public ResponseEntity<Void> updateFcmToken(
+	        Authentication authentication,
+	        @RequestBody FcmTokenRequestDTO request
+	) {
+		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+		Long userId = userDetails.getUserId();
+		
+	    userService.updateFcmToken(userId, request.fcmToken());
+	    return ResponseEntity.ok().build();
 	}
 }
