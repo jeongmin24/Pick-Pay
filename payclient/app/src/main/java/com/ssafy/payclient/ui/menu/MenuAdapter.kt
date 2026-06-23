@@ -16,8 +16,12 @@ class MenuAdapter(
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(menu: MenuDTO) {
-            binding.tvMenuName.text = menu.menuName
+            binding.tvMenuName.text = menu.name
             binding.tvMenuPrice.text = "${menu.price}원"
+
+            com.bumptech.glide.Glide.with(binding.root.context)
+                .load(menu.imageUrl)
+                .into(binding.ivMenuImage)
 
             // 카드를 클릭했을 때 메뉴 담기
             binding.root.setOnClickListener {

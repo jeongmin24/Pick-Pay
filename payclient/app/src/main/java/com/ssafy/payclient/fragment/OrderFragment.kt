@@ -11,6 +11,8 @@ import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
@@ -31,11 +33,25 @@ class OrderFragment : Fragment() {
     private var _binding: FragmentOrderBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: MenuViewModel by viewModels()
+    private lateinit var viewModel: MenuViewModel
     private lateinit var menuAdapter: MenuAdapter
 
     // FAB 메뉴 확장 여부를 확인하는 플래그
     private var isFabExpanded = false
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        val tokenManager = TokenManager(requireContext())
+        val factory = object  : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return MenuViewModel(tokenManager) as T
+            }
+        }
+
+        viewModel = ViewModelProvider(this, factory)[MenuViewModel::class.java]
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -56,7 +72,7 @@ class OrderFragment : Fragment() {
     private fun setupRecyclerView() {
         menuAdapter = MenuAdapter(emptyList()) { selectedMenu ->
             PersonalCartStore.add(selectedMenu)
-            Toast.makeText(context, "${selectedMenu.menuName} (개인 장바구니에 담김)", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "${selectedMenu.name} (개인 장바구니에 담김)", Toast.LENGTH_SHORT).show()
         }
         binding.rvMenuList.apply {
             layoutManager = GridLayoutManager(context, 2)

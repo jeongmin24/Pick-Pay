@@ -131,29 +131,30 @@ public class OrderService {
      * 주문 결제 내역 Order, OrderItem을 조회해서 상세 정보(DTO)를 제공 
      * */
     public IndividualOrderReceiptResponseDTO getIndividualReceipt(
-    		Long userId,
-    		Long orderId
-    		) {
-    	Order order = orderRepository.findByOrderIdAndUser_UserIdAndGroupOrderIsNull(orderId, userId)
-    			.orElseThrow(() -> new IllegalArgumentException("개별 주문 영수증을 찾을 수 없습니다."));
-    	
-    	List<OrderItems> orderItems = orderItemsRepository.findByOrder_OrderId(orderId);
-    	
-    	List<OrderReceiptItemDTO> items = orderItems.stream()
-    			.map(item -> new OrderReceiptItemDTO(
-    					item.getProduct().getName(),
-    					item.getQuantity(),
-    					item.getProduct().getPrice()
-    					))
-    			.toList();
-    	
-    	return new IndividualOrderReceiptResponseDTO(
-    			order.getOrderId(),
-    			order.getTotalPrice(),
-    			order.getStatus().name(),
-    			order.getCreatedAt(),
-    			items
-    			);
+            Long userId,
+            String orderNo
+            ) {
+        Order order = orderRepository
+                .findByOrderNoAndUser_UserIdAndGroupOrderIsNull(orderNo, userId)
+                .orElseThrow(() -> new IllegalArgumentException("개별 주문 영수증을 찾을 수 없습니다."));
+
+        List<OrderItems> orderItems = orderItemsRepository.findByOrder_OrderId(order.getOrderId());
+
+        List<OrderReceiptItemDTO> items = orderItems.stream()
+                .map(item -> new OrderReceiptItemDTO(
+                        item.getProduct().getName(),
+                        item.getQuantity(),
+                        item.getProduct().getPrice()
+                        ))
+                .toList();
+
+        return new IndividualOrderReceiptResponseDTO(
+                order.getOrderId(),
+                order.getTotalPrice(),
+                order.getStatus().name(),
+                order.getCreatedAt(),
+                items
+                );
     }
     
     

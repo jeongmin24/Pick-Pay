@@ -1,8 +1,11 @@
 package com.ssafy.pickpay.service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.springframework.stereotype.Service;
 
@@ -11,6 +14,8 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.ssafy.pickpay.common.GroupOrderStatus;
+import com.ssafy.pickpay.common.GroupPayType;
 import com.ssafy.pickpay.dto.FirebaseCartItemDTO;
 
 @Service
@@ -54,5 +59,29 @@ public class FirebaseSyncService {
 
         // Firebase 서버로부터 데이터를 다 받아올 때까지 스레드 대기 (동기화)
         return future.get();
+    }
+
+    /**
+     * 주문 마감 후 Firebase 상태를 LOCKED로 업데이트
+     * */
+    public void updateFirebaseGroupStatus(Long groupId, GroupPayType payType) {
+
+        DatabaseReference groupRef = FirebaseDatabase.getInstance()
+                .getReference("group_orders/" + groupId);
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("status", GroupOrderStatus.LOCKED.name());
+        updates.put("payType", payType.name());
+
+        try {
+            groupRef.updateChildrenAsync(updates).get();
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Firebase 그룹 상태 업데이트 중 요청이 중단되었습니다.", e);
+
+        } catch (ExecutionException e) {
+            throw new RuntimeException("Firebase 그룹 상태 업데이트 중 오류가 발생했습니다.", e);
+        }
     }
 }

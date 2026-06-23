@@ -49,7 +49,21 @@
         android:id="@+id/fragment_group_cart"
         android:name="com.ssafy.payclient.fragment.GroupCartFragment"
         android:label="GroupCartFragment"
-        tools:layout="@layout/fragment_group_cart" />
+        tools:layout="@layout/fragment_group_cart">
+        <action
+            android:id="@+id/action_fragment_group_cart_to_fragment_group_pay_type"
+            app:destination="@id/fragment_group_pay_type" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/fragment_group_pay_type"
+        android:name="com.ssafy.payclient.fragment.GroupPayTypeFragment"
+        android:label="GroupPayTypeFragment"
+        tools:layout="@layout/fragment_group_pay_type">
+        <action
+            android:id="@+id/action_fragment_group_pay_type_to_fragment_payment"
+            app:destination="@id/fragment_payment" />
+    </fragment>
 
     <fragment
         android:id="@+id/fragment_cart"

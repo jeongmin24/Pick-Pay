@@ -5,7 +5,9 @@ import com.ssafy.payclient.data.api.AuthApiService
 import com.ssafy.payclient.data.api.GroupOrderApiService
 import com.ssafy.payclient.data.api.IndividualOrderApiService
 import com.ssafy.payclient.data.api.PaymentApiService
+import com.ssafy.payclient.data.api.MenuApiService
 import com.ssafy.payclient.data.api.ReviewApiService
+import com.ssafy.payclient.data.api.UserApiService
 import com.ssafy.payclient.data.local.TokenManager
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -20,8 +22,9 @@ object RetrofitClient {
     private var individualOrderApiService: IndividualOrderApiService? = null
     private var paymentApiService: PaymentApiService? = null
     private var sharedTokenManager: TokenManager? = null
-
+    var menuApiService: MenuApiService? = null
     private var groupOrderApiService: GroupOrderApiService? = null
+    private var userApiService: UserApiService? = null
 
     fun init(tokenManager: TokenManager) {
         if (this.sharedTokenManager == null) {
@@ -34,6 +37,17 @@ object RetrofitClient {
         return authApiService ?: synchronized(this) {
             authApiService ?: buildAuthHttpClient().let { client ->
                 buildRetrofit(client).create(AuthApiService::class.java).also { authApiService = it }
+            }
+        }
+    }
+
+    fun getUserApiService(tokenManager: TokenManager): UserApiService {
+        init(tokenManager)
+        return userApiService ?: synchronized(this) {
+            userApiService ?: buildHttpClient().let { client ->
+                buildRetrofit(client)
+                    .create(UserApiService::class.java)
+                    .also { userApiService = it }
             }
         }
     }
@@ -78,6 +92,15 @@ object RetrofitClient {
                 buildRetrofit(client)
                     .create(PaymentApiService::class.java)
                     .also { paymentApiService = it }
+            }
+        }
+    }
+
+    fun getMenuApiService(tokenManager: TokenManager): MenuApiService {
+        init(tokenManager)
+        return menuApiService ?: synchronized(this) {
+            menuApiService ?: buildHttpClient().let { client ->
+                buildRetrofit(client).create(MenuApiService::class.java).also { menuApiService = it }
             }
         }
     }

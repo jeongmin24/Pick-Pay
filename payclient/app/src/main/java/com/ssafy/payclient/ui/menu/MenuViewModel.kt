@@ -1,21 +1,34 @@
 package com.ssafy.payclient.ui.menu
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ssafy.payclient.data.local.PersonalCartItem
+import com.ssafy.payclient.data.local.PersonalCartStore
+import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.repository.MenuRepository
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.security.MessageDigest
 
-class MenuViewModel: ViewModel() {
+private const val TAG = "싸피 MenuViewModel"
 
-    private val menuRepository = MenuRepository()
+class MenuViewModel(private val tokenManager: TokenManager): ViewModel() {
+
+    private val menuRepository = MenuRepository(tokenManager)
     // 내부에서만 수정 가능한 상태 (초기값은 Loading)
     private val _menuState = MutableStateFlow<MenuUiState>(MenuUiState.Loading)
 
     // 외부(Fragment)에서 관찰만 가능한 상태
     val menuState: StateFlow<MenuUiState> = _menuState.asStateFlow()
+
+    private val _nfcEvent = MutableSharedFlow<NfcResult>()
+    val nfcEvent: SharedFlow<NfcResult> = _nfcEvent.asSharedFlow()
 
     init {
         // ViewModel이 생성될 때 자동으로 메뉴 목록을 불러옵니다.
@@ -37,4 +50,26 @@ class MenuViewModel: ViewModel() {
             }
         }
     }
+
+    fun onMenuNfcScanned(menuId: Long, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val menu = menuRepository.getMenuById(menuId)
+
+                PersonalCartStore.add(menu, 1)
+
+                Log.d(TAG, "NFC 장바구니 추가 성공: ${menu.name}")
+
+                onResult(true)
+            } catch (e: Exception) {
+                Log.e(TAG, "NFC 장바구니 추가 실패: ${e.message}")
+                onResult(false)
+            }
+        }
+    }
+}
+
+sealed interface NfcResult {
+    data class Success(val message: String) : NfcResult
+    data class Error(val message: String) : NfcResult
 }

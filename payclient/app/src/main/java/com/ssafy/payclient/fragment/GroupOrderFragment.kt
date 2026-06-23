@@ -9,12 +9,15 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import com.google.firebase.database.*
 import com.ssafy.payclient.R
+import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.model.FirebaseCartItem
 import com.ssafy.payclient.databinding.FragmentGroupOrderBinding
 import com.ssafy.payclient.ui.menu.MenuAdapter
@@ -27,7 +30,7 @@ class GroupOrderFragment : Fragment() {
     private var _binding: FragmentGroupOrderBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: MenuViewModel by viewModels()
+    private lateinit var viewModel: MenuViewModel
     private lateinit var menuAdapter: MenuAdapter
 
     private lateinit var database: DatabaseReference
@@ -38,6 +41,19 @@ class GroupOrderFragment : Fragment() {
     private var shareLink: String? = null
 
     private var groupStatus: String = "OPEN"
+    private var groupStatusListener: ValueEventListener? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val tokenManager = TokenManager(requireContext())
+        val factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return MenuViewModel(tokenManager) as T
+            }
+        }
+        viewModel = ViewModelProvider(this, factory)[MenuViewModel::class.java]
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -68,27 +84,35 @@ class GroupOrderFragment : Fragment() {
     }
 
     private fun observeGroupStatus() {
-        database
+        groupStatusListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val binding = _binding ?: return
+                val status = snapshot.getValue(String::class.java) ?: "OPEN"
+                groupStatus = status
+
+                binding.tvGroupStatus.text =
+                    "현재 방 번호: $groupId | 방장 여부: $isHost | 상태: $groupStatus\n메뉴를 담으면 실시간으로 공유됩니다."
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                if (_binding == null) return
+                Toast.makeText(
+                    requireContext(),
+                    "방 상태 확인 실패: ${error.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
+        getGroupStatusRef()
+            .addValueEventListener(groupStatusListener!!)
+    }
+
+    private fun getGroupStatusRef(): DatabaseReference {
+        return database
             .child("group_orders")
             .child(groupId.toString())
             .child("status")
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val status = snapshot.getValue(String::class.java) ?: "OPEN"
-                    groupStatus = status
-
-                    binding.tvGroupStatus.text =
-                        "현재 방 번호: $groupId | 방장 여부: $isHost | 상태: $groupStatus\n메뉴를 담으면 실시간으로 공유됩니다."
-                }
-
-                override fun onCancelled(error: DatabaseError) {
-                    Toast.makeText(
-                        requireContext(),
-                        "방 상태 확인 실패: ${error.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            })
     }
 
     private fun setupToolbar() {
@@ -100,7 +124,7 @@ class GroupOrderFragment : Fragment() {
 
     private fun setupRecyclerView() {
         menuAdapter = MenuAdapter(emptyList()) { selectedMenu ->
-            addItemToFirebaseCart(selectedMenu.menuName, selectedMenu.menuId, 1)
+            addItemToFirebaseCart(selectedMenu.name, selectedMenu.menuId, 1)
         }
         binding.rvGroupMenuList.apply {
             layoutManager = GridLayoutManager(context, 2)
@@ -116,7 +140,7 @@ class GroupOrderFragment : Fragment() {
                         is MenuUiState.Loading -> {}
                         is MenuUiState.Success -> {
                             menuAdapter = MenuAdapter(state.menuList) { selectedMenu ->
-                                addItemToFirebaseCart(selectedMenu.menuName, selectedMenu.menuId, 1)
+                                addItemToFirebaseCart(selectedMenu.name, selectedMenu.menuId, 1)
                             }
                             binding.rvGroupMenuList.adapter = menuAdapter
                         }
@@ -168,7 +192,7 @@ class GroupOrderFragment : Fragment() {
         }
     }
 
-    private fun addItemToFirebaseCart(menuName: String, menuId: Long, quantity: Int) {
+    private fun addItemToFirebaseCart(menuName: String, productId: Long, quantity: Int) {
 
         // LOCKED or PAID 상태면 장바구니 담기 X
         if (groupStatus != "OPEN") {
@@ -180,7 +204,7 @@ class GroupOrderFragment : Fragment() {
             return
         }
 
-        val itemKey = "user${currentUserId}_item_${menuId}"
+        val itemKey = "user${currentUserId}_item_${productId}"
 
         val itemRef = database
             .child("group_orders")
@@ -196,12 +220,13 @@ class GroupOrderFragment : Fragment() {
                 if (currentItem == null) {
                     currentData.value = FirebaseCartItem(
                         menuName = menuName,
-                        menuId = menuId,
+                        productId = productId,
                         quantity = quantity,
                         userId = currentUserId
                     )
                 } else {
                     currentData.value = currentItem.copy(
+                        productId = currentItem.productId.takeIf { it > 0L } ?: productId,
                         quantity = currentItem.quantity + quantity
                     )
                 }
@@ -225,6 +250,10 @@ class GroupOrderFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        groupStatusListener?.let {
+            getGroupStatusRef().removeEventListener(it)
+        }
+        groupStatusListener = null
         _binding = null
     }
 }

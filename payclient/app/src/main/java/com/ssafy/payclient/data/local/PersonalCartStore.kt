@@ -17,7 +17,7 @@ object PersonalCartStore {
         cartItems[menu.menuId] = if (currentItem == null) {
             PersonalCartItem(
                 menuId = menu.menuId,
-                menuName = menu.menuName,
+                menuName = menu.name,
                 price = menu.price,
                 quantity = quantity
             )

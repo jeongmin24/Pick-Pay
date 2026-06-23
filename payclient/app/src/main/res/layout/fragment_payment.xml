@@ -16,7 +16,7 @@
             android:layout_height="?attr/actionBarSize"
             android:background="#FFFFFF"
             app:navigationIcon="@android:drawable/ic_media_previous"
-            app:title="Payment"
+            app:title="결제하기"
             app:titleTextColor="#333333" />
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -36,26 +36,67 @@
             android:textSize="20sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/tv_payment_description"
+        <ScrollView
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:gravity="center"
-            android:padding="24dp"
-            android:text="Press Pay to open the card payment window."
-            android:textColor="#777777"
-            android:textSize="16sp" />
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="320dp"
+                android:orientation="vertical"
+                android:padding="24dp">
+
+                <TextView
+                    android:id="@+id/tv_payment_description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="Press Pay to open the card payment window."
+                    android:textColor="#777777"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/tv_receipt_details"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:background="#FFFFFF"
+                    android:lineSpacingExtra="4dp"
+                    android:padding="16dp"
+                    android:textColor="#333333"
+                    android:textSize="15sp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </ScrollView>
 
         <Button
             android:id="@+id/btn_payment"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:layout_margin="16dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="48dp"
             android:backgroundTint="#FF5A5F"
             android:enabled="true"
             android:text="Pay"
             android:textColor="#FFFFFF"
             android:textSize="17sp" />
+
+        <Button
+            android:id="@+id/btn_home"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="48dp"
+            android:backgroundTint="#333333"
+            android:text="홈으로 돌아가기"
+            android:textColor="#FFFFFF"
+            android:textSize="17sp"
+            android:visibility="gone" />
     </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -39,15 +39,15 @@ public class IndividualOrderController {
 		return ResponseEntity.status(HttpStatus.CREATED).body(response);
 	}
 	
-	@GetMapping("/{orderId}/receipt")
+	@GetMapping("/{orderNo}/receipt")
 	public ResponseEntity<IndividualOrderReceiptResponseDTO> getIndividualReceipt(
 			Authentication authentication,
-			@PathVariable Long orderId
+			@PathVariable String orderNo
 			) {
 		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 		Long userId = userDetails.getUserId();
 		
-		IndividualOrderReceiptResponseDTO response = orderService.getIndividualReceipt(userId, orderId);
+		IndividualOrderReceiptResponseDTO response = orderService.getIndividualReceipt(userId, orderNo);
 		
 		return ResponseEntity.ok(response);
 	}

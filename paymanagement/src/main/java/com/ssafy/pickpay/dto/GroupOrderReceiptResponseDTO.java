@@ -7,7 +7,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Getter @Builder
 @NoArgsConstructor @AllArgsConstructor
@@ -23,6 +22,7 @@ public class GroupOrderReceiptResponseDTO {
 	@NoArgsConstructor @AllArgsConstructor
 	public static class UserReceiptDTO {
 		private Long userId;
+		private String orderNo;
 		private String nickname;
 		private Long userTotalPrice;
 		private List<OrderReceiptItemDTO> items; // 사용자가 시킨 메뉴들

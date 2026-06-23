@@ -99,7 +99,7 @@ class GroupCartFragment : Fragment() {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val items = snapshot.children.mapNotNull { itemSnapshot ->
                     val itemKey = itemSnapshot.key ?: return@mapNotNull null
-                    val item = itemSnapshot.getValue(FirebaseCartItem::class.java) ?: return@mapNotNull null
+                    val item = itemSnapshot.toFirebaseCartItem() ?: return@mapNotNull null
                     if (item.quantity <= 0) return@mapNotNull null
                     GroupCartItemUi(itemKey, item)
                 }.sortedWith(compareBy<GroupCartItemUi> { it.item.userId }.thenBy { it.item.menuName })
@@ -135,7 +135,13 @@ class GroupCartFragment : Fragment() {
                 if (nextQuantity <= 0) {
                     currentData.value = null
                 } else {
-                    currentData.value = currentItem.copy(quantity = nextQuantity)
+                    val productId = currentItem.productId.takeIf { it > 0L }
+                        ?: currentData.child("menuId").getValue(Long::class.java)
+                        ?: cartItem.item.productId
+                    currentData.value = currentItem.copy(
+                        productId = productId,
+                        quantity = nextQuantity
+                    )
                 }
 
                 return Transaction.success(currentData)
@@ -166,9 +172,28 @@ class GroupCartFragment : Fragment() {
         return database.child("group_orders").child(groupId.toString()).child("items")
     }
 
+    private fun DataSnapshot.toFirebaseCartItem(): FirebaseCartItem? {
+        val item = getValue(FirebaseCartItem::class.java) ?: return null
+        val productId = item.productId.takeIf { it > 0L }
+            ?: child("menuId").getValue(Long::class.java)
+            ?: return item
+        return item.copy(productId = productId)
+    }
+
     private fun closeOrderAndProceedToPayment() {
-        Toast.makeText(context, "Close order API will be connected next.", Toast.LENGTH_LONG).show()
-        // /api/groups/{groupId}/close 호출 후 결제화면으로 이동
+        if (groupId <= 0L) {
+            Toast.makeText(requireContext(), "그룹방 정보를 확인할 수 없습니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        findNavController().navigate(
+            R.id.action_fragment_group_cart_to_fragment_group_pay_type,
+            Bundle().apply {
+                putLong("GROUP_ID", groupId)
+                putBoolean("IS_HOST", isHost)
+                putLong("USER_ID", currentUserId)
+            }
+        )
     }
 
     override fun onResume() {
