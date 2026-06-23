@@ -1,141 +1,216 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:id="@+id/main"
-    android:fillViewport="true"
+    android:background="@color/home_background"
     android:fitsSystemWindows="true">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layout_review_add_header"
+        android:layout_width="0dp"
+        android:layout_height="64dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <ImageView
+            android:id="@+id/btnBack"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:contentDescription="뒤로가기"
+            android:padding="8dp"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/coffee_brown_dark"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
+            android:id="@+id/tvReviewAddTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="리뷰 작성하기"
-            android:textColor="#212121"
-            android:textSize="22sp"
+            android:textColor="@color/coffee_brown"
+            android:textSize="19sp"
             android:textStyle="bold"
-            android:layout_marginBottom="24dp"/>
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="사진 등록"
-            android:textColor="#666666"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp"/>
-
-        <androidx.cardview.widget.CardView
-            android:id="@+id/cvSelectImage"
-            android:layout_width="match_parent"
-            android:layout_height="200dp"
-            android:layout_marginBottom="24dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="0dp"
-            android:clickable="true"
-            android:focusable="true">
-
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="#F5F5F5">
-
-                <ImageView
-                    android:id="@+id/ivReviewPhoto"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="centerCrop" />
-
-                <LinearLayout
-                    android:id="@+id/layoutPhotoGuide"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:gravity="center"
-                    android:layout_gravity="center">
-
-                    <ImageView
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:src="@android:drawable/ic_menu_camera"
-                        app:tint="#888888" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="클릭하여 사진 추가"
-                        android:textColor="#888888"
-                        android:textSize="13sp" />
-                </LinearLayout>
-            </FrameLayout>
-        </androidx.cardview.widget.CardView>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="만족도 별점"
-            android:textColor="#666666"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp"/>
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollReviewAdd"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="104dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layout_review_add_header">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_horizontal"
-            android:layout_marginBottom="24dp">
+            android:orientation="vertical">
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cvSelectImage"
+                android:layout_width="match_parent"
+                android:layout_height="176dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="30dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardBackgroundColor="#F7F3EF"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/coffee_brown_light"
+                app:strokeWidth="1dp">
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_photo_add_dashed">
+
+                    <ImageView
+                        android:id="@+id/ivReviewPhoto"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop" />
+
+                    <LinearLayout
+                        android:id="@+id/layoutPhotoGuide"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <ImageView
+                            android:layout_width="42dp"
+                            android:layout_height="42dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_camera_add"
+                            app:tint="#8A7A70" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:text="클릭하여 사진 추가"
+                            android:textColor="@color/coffee_brown_dark"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:text="(최대 3장)"
+                            android:textColor="@color/coffee_brown_dark"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+                </FrameLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:id="@+id/tvRatingTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="만족도 별점"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
 
             <RatingBar
                 android:id="@+id/rbInputRating"
+                style="?android:attr/ratingBarStyle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:numStars="5"
-                android:stepSize="1"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="14dp"
                 android:isIndicator="false"
-                style="?android:attr/ratingBarStyle" />
+                android:numStars="5"
+                android:progressTint="#F5A000"
+                android:secondaryProgressTint="#F5A000"
+                android:stepSize="1"
+                android:thumbTint="#F5A000"
+                android:progressBackgroundTint="#D8C9C1" />
+
+            <TextView
+                android:id="@+id/tvRatingGuide"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="26dp"
+                android:gravity="center"
+                android:text="평가해 주세요"
+                android:textColor="@color/coffee_brown"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvReviewContentLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:text="리뷰 내용"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/etReviewContent"
+                android:layout_width="match_parent"
+                android:layout_height="148dp"
+                android:background="@drawable/bg_review_input"
+                android:gravity="top|start"
+                android:hint="여기에 솔직한 리뷰 내용을 작성해 주세요..."
+                android:inputType="textMultiLine"
+                android:maxLength="500"
+                android:padding="14dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="#D0BDB4"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tvReviewCount"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="end"
+                android:text="0 / 500"
+                android:textColor="@color/text_secondary"
+                android:textSize="15sp" />
         </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="리뷰 내용"
-            android:textColor="#666666"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp"/>
-
-        <EditText
-            android:id="@+id/etReviewContent"
-            android:layout_width="match_parent"
-            android:layout_height="160dp"
-            android:background="@android:drawable/edit_text"
-            android:gravity="top|start"
-            android:hint="여기에 솔직한 리뷰 내용을 작성해 주세요. (최소 10자)"
-            android:inputType="textMultiLine"
-            android:padding="12dp"
-            android:textSize="15sp"
-            android:textColor="#212121"
-            android:layout_marginBottom="32dp"/>
-
-        <Button
-            android:id="@+id/btnSubmitReview"
-            android:layout_width="match_parent"
-            android:layout_height="54dp"
-            android:text="리뷰 등록 완료"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="@color/deep_brown"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            app:cornerRadius="8dp" />
-
-    </LinearLayout>
-</ScrollView>
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSubmitReview"
+        android:layout_width="0dp"
+        android:layout_height="54dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginBottom="16dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:text="리뷰 등록 완료"
+        android:textColor="@color/coffee_brown_dark"
+        android:textSize="14sp"
+        app:backgroundTint="#C79D82"
+        app:cornerRadius="27dp"
+        app:elevation="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -16,5 +16,4 @@
         android:id="@+id/fragment_profile"
         android:icon="@drawable/person_pin_24px"
         android:title="마이페이지" />
-
 </menu>

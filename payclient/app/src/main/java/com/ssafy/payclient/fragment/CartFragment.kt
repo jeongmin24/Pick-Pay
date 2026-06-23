@@ -19,6 +19,8 @@ import com.ssafy.payclient.data.network.RetrofitClient
 import com.ssafy.payclient.databinding.ActivityCartBinding
 import com.ssafy.payclient.ui.cart.CartAdapter
 import kotlinx.coroutines.launch
+import java.text.NumberFormat
+import java.util.Locale
 
 class CartFragment : Fragment() {
 
@@ -39,14 +41,14 @@ class CartFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        setupToolbar()
+        setupHeader()
         setupRecyclerView()
         setupClickListeners()
         renderCart()
     }
 
-    private fun setupToolbar() {
-        binding.toolbarCart.setNavigationOnClickListener {
+    private fun setupHeader() {
+        binding.btnCartBack.setOnClickListener {
             findNavController().popBackStack()
         }
     }
@@ -83,7 +85,7 @@ class CartFragment : Fragment() {
     private fun createOrder() {
         val cartItems = PersonalCartStore.getItems()
         if (cartItems.isEmpty()) {
-            Toast.makeText(requireContext(), "장바구니가 비었습니다.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "장바구니가 비어있어요.", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -106,11 +108,10 @@ class CartFragment : Fragment() {
                 if (response.isSuccessful) {
                     val order = response.body()
                     if (order == null) {
-                        Toast.makeText(requireContext(), "주문 응답이 비어 있습니다.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), "주문 응답이 비어 있어요.", Toast.LENGTH_SHORT).show()
                         return@launch
                     }
 
-                    // navigate -> 결제 화면으로 이동
                     findNavController().navigate(
                         R.id.action_fragment_cart_to_fragment_payment,
                         Bundle().apply {
@@ -120,10 +121,10 @@ class CartFragment : Fragment() {
                         }
                     )
                 } else {
-                    Toast.makeText(requireContext(), "주문 생성에 실패했습니다. (${response.code()})", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "주문 생성에 실패했어요. (${response.code()})", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), "주문 생성 중 오류가 발생했습니다: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "주문 생성 중 오류가 발생했어요: ${e.message}", Toast.LENGTH_SHORT).show()
             } finally {
                 _binding?.btnOrder?.isEnabled = PersonalCartStore.getItems().isNotEmpty()
             }
@@ -139,11 +140,13 @@ class CartFragment : Fragment() {
         val items = PersonalCartStore.getItems()
         cartAdapter.updateItems(items)
 
+        val itemCount = items.sumOf { it.quantity }
         val isEmpty = items.isEmpty()
+        binding.tvCartSummary.text = "총 ${itemCount}개의 메뉴가 담겨있습니다."
         binding.tvEmptyCart.visibility = if (isEmpty) View.VISIBLE else View.GONE
         binding.rvCartItems.visibility = if (isEmpty) View.GONE else View.VISIBLE
         binding.btnOrder.isEnabled = !isEmpty
-        binding.tvTotalPrice.text = "${PersonalCartStore.getTotalPrice()} 원"
+        binding.tvTotalPrice.text = formatWon(PersonalCartStore.getTotalPrice())
     }
 
     override fun onResume() {
@@ -159,5 +162,11 @@ class CartFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun formatWon(value: Long): String = "₩${PRICE_FORMAT.format(value)}"
+
+    private companion object {
+        val PRICE_FORMAT: NumberFormat = NumberFormat.getNumberInstance(Locale.KOREA)
     }
 }

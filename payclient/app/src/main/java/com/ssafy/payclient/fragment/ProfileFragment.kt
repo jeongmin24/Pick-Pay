@@ -2,14 +2,15 @@ package com.ssafy.payclient.fragment
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
-import com.google.ai.edge.litertlm.Message.Companion.user
 import com.ssafy.payclient.MainViewModel
 import com.ssafy.payclient.R
 import com.ssafy.payclient.data.local.TokenManager
@@ -21,7 +22,6 @@ import com.ssafy.payclient.util.UiState
 import com.ssafy.payclient.util.ViewModelFactory
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlin.getValue
 
 class ProfileFragment : Fragment() {
     private var _binding: FragmentProfileBinding? = null
@@ -38,7 +38,7 @@ class ProfileFragment : Fragment() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         _binding = FragmentProfileBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -46,6 +46,7 @@ class ProfileFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        setupDummySections()
         loadUserInfo()
 
         binding.btnLogout.setOnClickListener {
@@ -53,6 +54,54 @@ class ProfileFragment : Fragment() {
         }
 
         observeLogoutState()
+    }
+
+    private fun setupDummySections() {
+        setOrderCard(
+            containerId = R.id.profile_order_1,
+            date = "2023.10.24 14:30",
+            price = "9,500원",
+            name = "시그니처 바닐라 라떼 외 1건",
+            store = "디지털 취계 강남점"
+        )
+        setOrderCard(
+            containerId = R.id.profile_order_2,
+            date = "2023.10.22 09:15",
+            price = "4,500원",
+            name = "아이스 아메리카노",
+            store = "디지털 취계 판교점"
+        )
+        setOrderCard(
+            containerId = R.id.profile_order_3,
+            date = "2023.10.20 18:45",
+            price = "5,000원",
+            name = "따뜻한 카페라떼",
+            store = "디지털 취계 홍대점"
+        )
+
+        setMenuRow(R.id.profile_menu_favorite, R.drawable.ic_heart_outline, "자주 찾는 메뉴")
+        setMenuRow(R.id.profile_menu_payment, R.drawable.ic_payment_card, "결제수단 관리")
+        setMenuRow(R.id.profile_menu_alarm, R.drawable.ic_alarm_outline, "알림 설정")
+    }
+
+    private fun setOrderCard(
+        containerId: Int,
+        date: String,
+        price: String,
+        name: String,
+        store: String
+    ) {
+        val container = binding.root.findViewById<View>(containerId) ?: return
+        container.findViewById<TextView>(R.id.tv_order_date)?.text = date
+        container.findViewById<TextView>(R.id.tv_order_price)?.text = price
+        container.findViewById<TextView>(R.id.tv_order_name)?.text = name
+        container.findViewById<TextView>(R.id.tv_order_store)?.text = store
+    }
+
+    private fun setMenuRow(containerId: Int, iconRes: Int, title: String) {
+        val container = binding.root.findViewById<View>(containerId) ?: return
+        container.findViewById<ImageView>(R.id.iv_menu_icon)?.setImageResource(iconRes)
+        container.findViewById<TextView>(R.id.tv_menu_title)?.text = title
     }
 
     private fun loadUserInfo() {
@@ -67,10 +116,12 @@ class ProfileFragment : Fragment() {
                 binding.tvEmail.text = userResponse.loginId
                 com.bumptech.glide.Glide.with(binding.root.context)
                     .load(userResponse.imageUrl)
+                    .placeholder(R.drawable.ic_profile_placeholder)
+                    .error(R.drawable.ic_profile_placeholder)
                     .into(binding.ivProfile)
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(requireContext(), "유저 정보 오류: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "사용자 정보를 불러오지 못했어요: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -78,7 +129,7 @@ class ProfileFragment : Fragment() {
     private fun observeLogoutState() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.logoutState.collectLatest { state ->
-                when(state) {
+                when (state) {
                     is UiState.Loading -> binding.btnLogout.isEnabled = false
                     is UiState.Success -> {
                         binding.btnLogout.isEnabled = true
@@ -93,7 +144,7 @@ class ProfileFragment : Fragment() {
                         binding.btnLogout.isEnabled = true
                         Toast.makeText(requireContext(), "오류: ${state.message}", Toast.LENGTH_SHORT).show()
                     }
-                    else -> {}
+                    else -> Unit
                 }
             }
         }
@@ -103,5 +154,4 @@ class ProfileFragment : Fragment() {
         super.onDestroyView()
         _binding = null
     }
-
 }
