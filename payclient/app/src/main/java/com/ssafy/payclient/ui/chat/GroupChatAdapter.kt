@@ -21,10 +21,11 @@ class GroupChatAdapter(
         fun bind(message: FirebaseChatMessage) {
             val isMine = message.senderId == currentUserId
             val params = binding.layoutMessageContainer.layoutParams as FrameLayout.LayoutParams
+            val displayName = message.sendName.ifBlank { message.senderName }
 
             params.gravity = if (isMine) Gravity.END else Gravity.START
             binding.layoutMessageContainer.layoutParams = params
-            binding.tvSenderName.text = if (isMine) "Me" else message.senderName.ifBlank {
+            binding.tvSenderName.text = if (isMine) "Me" else displayName.ifBlank {
                 "User ${message.senderId}"
             }
             binding.tvMessage.text = message.message

@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.firebase.database.DataSnapshot
@@ -18,9 +19,12 @@ import com.google.firebase.database.Query
 import com.google.firebase.database.ServerValue
 import com.google.firebase.database.ValueEventListener
 import com.ssafy.payclient.R
+import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.model.FirebaseChatMessage
+import com.ssafy.payclient.data.network.RetrofitClient
 import com.ssafy.payclient.databinding.FragmentGroupChatBinding
 import com.ssafy.payclient.ui.chat.GroupChatAdapter
+import kotlinx.coroutines.launch
 
 class GroupChatFragment : Fragment() {
 
@@ -33,6 +37,7 @@ class GroupChatFragment : Fragment() {
     private var groupId: String = ""
     private var currentUserId: Long = -1L
     private var isHost: Boolean = false
+    private var currentUserNickname: String = ""
     private var messagesQuery: Query? = null
     private var messagesListener: ValueEventListener? = null
 
@@ -56,6 +61,7 @@ class GroupChatFragment : Fragment() {
         setupToolbar()
         setupRecyclerView()
         setupMessageInput()
+        loadCurrentUserNickname()
         observeMessages()
     }
 
@@ -147,34 +153,52 @@ class GroupChatFragment : Fragment() {
             return
         }
 
-        val message = mapOf(
-            "senderId" to currentUserId,
-            "senderName" to getSenderName(),
-            "message" to text,
-            "createdAt" to ServerValue.TIMESTAMP
-        )
+        viewLifecycleOwner.lifecycleScope.launch {
+            val message = mapOf(
+                "senderId" to currentUserId,
+                "sendName" to getOrLoadSendName(),
+                "message" to text,
+                "createdAt" to ServerValue.TIMESTAMP
+            )
 
-        getMessagesRef().push().setValue(message)
-            .addOnSuccessListener {
-                if (_binding == null) return@addOnSuccessListener
-                binding.etGroupChatMessage.text?.clear()
-            }
-            .addOnFailureListener { error ->
-                if (_binding == null) return@addOnFailureListener
-                Toast.makeText(
-                    requireContext(),
-                    "메시지 전송 실패: ${error.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+            getMessagesRef().push().setValue(message)
+                .addOnSuccessListener {
+                    if (_binding == null) return@addOnSuccessListener
+                    binding.etGroupChatMessage.text?.clear()
+                }
+                .addOnFailureListener { error ->
+                    if (_binding == null) return@addOnFailureListener
+                    Toast.makeText(
+                        requireContext(),
+                        "메시지 전송 실패: ${error.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+        }
     }
 
-    private fun getSenderName(): String {
-        return if (isHost) {
-            "방장 $currentUserId"
-        } else {
-            "User $currentUserId"
+    private fun loadCurrentUserNickname() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            runCatching {
+                val tokenManager = TokenManager(requireContext().applicationContext)
+                RetrofitClient.getUserApiService(tokenManager).getUserInfo()
+            }.onSuccess { userResponse ->
+                currentUserNickname = userResponse.nickname
+            }
         }
+    }
+
+    private suspend fun getOrLoadSendName(): String {
+        if (currentUserNickname.isBlank()) {
+            runCatching {
+                val tokenManager = TokenManager(requireContext().applicationContext)
+                RetrofitClient.getUserApiService(tokenManager).getUserInfo()
+            }.onSuccess { userResponse ->
+                currentUserNickname = userResponse.nickname
+            }
+        }
+
+        return currentUserNickname.ifBlank { "User $currentUserId" }
     }
 
     private fun getMessagesRef(): DatabaseReference {
