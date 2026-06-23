@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter @AllArgsConstructor
 public class GroupJoinResponseDTO {
-	private Long groupId;
+	private String groupId;
 	private String status;
 	private boolean host;
 }

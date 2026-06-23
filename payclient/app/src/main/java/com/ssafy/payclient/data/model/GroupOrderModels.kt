@@ -6,7 +6,7 @@ package com.ssafy.payclient.data.model
 
 // 방 생성 POST /api/groups
 data class GroupOrderCreateResponse(
-    val groupId: Long,
+    val groupId: String,
     val shareLink: String?,
     val status: String?,
     val host: Boolean
@@ -18,7 +18,7 @@ data class GroupJoinRequest(
 )
 
 data class GroupJoinResponse(
-    val groupId: Long,
+    val groupId: String,
     val status: String,
     val host: Boolean
 )
@@ -40,7 +40,7 @@ data class CloseGroupOrderRequest(
 
 // 방 전체 영수증 GET /api/groups/{groupId}/receipt
 data class ReceiptResponseDTO(
-    val groupId: Long,
+    val groupId: String,
     val payType: String?,
     val totalGroupPrice: Long,
     val userReceipts: List<UserReceiptDTO>

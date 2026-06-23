@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor @AllArgsConstructor
 public class GroupOrderReceiptResponseDTO {
 	
-	private Long groupId;
+	private String groupId;
 	private String payType;
 	private Long totalGroupPrice;
 	private List<UserReceiptDTO> userReceipts;

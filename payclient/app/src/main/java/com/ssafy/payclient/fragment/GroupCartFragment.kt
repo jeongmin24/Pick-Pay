@@ -29,7 +29,7 @@ class GroupCartFragment : Fragment() {
     private lateinit var database: DatabaseReference
     private lateinit var groupCartAdapter: GroupCartAdapter
 
-    private var groupId: Long = -1L
+    private var groupId: String = ""
     private var isHost: Boolean = false
     private var currentUserId: Long = -1L
     private var cartItemsListener: ValueEventListener? = null
@@ -46,7 +46,7 @@ class GroupCartFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        groupId = arguments?.getLong("GROUP_ID") ?: -1L
+        groupId = arguments?.getString("GROUP_ID").orEmpty()
         isHost = arguments?.getBoolean("IS_HOST") ?: false
         currentUserId = arguments?.getLong("USER_ID") ?: -1L
 
@@ -169,7 +169,7 @@ class GroupCartFragment : Fragment() {
     }
 
     private fun getItemsRef(): DatabaseReference {
-        return database.child("group_orders").child(groupId.toString()).child("items")
+        return database.child("group_orders").child(groupId).child("items")
     }
 
     private fun DataSnapshot.toFirebaseCartItem(): FirebaseCartItem? {
@@ -181,7 +181,7 @@ class GroupCartFragment : Fragment() {
     }
 
     private fun closeOrderAndProceedToPayment() {
-        if (groupId <= 0L) {
+        if (groupId.isBlank()) {
             Toast.makeText(requireContext(), "그룹방 정보를 확인할 수 없습니다.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -189,7 +189,7 @@ class GroupCartFragment : Fragment() {
         findNavController().navigate(
             R.id.action_fragment_group_cart_to_fragment_group_pay_type,
             Bundle().apply {
-                putLong("GROUP_ID", groupId)
+                putString("GROUP_ID", groupId)
                 putBoolean("IS_HOST", isHost)
                 putLong("USER_ID", currentUserId)
             }

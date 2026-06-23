@@ -178,13 +178,12 @@ class MainActivity : AppCompatActivity() {
             .takeIf { it > 0L }
             ?: intent.getStringExtra("amount")?.toLongOrNull()
             ?: 0L
-        val groupId = intent.getLongExtra(EXTRA_GROUP_ID, -1L)
-            .takeIf { it > 0L }
-            ?: intent.getStringExtra("groupId")?.toLongOrNull()
-            ?: -1L
+        val groupId = intent.getStringExtra(EXTRA_GROUP_ID)
+            ?: intent.getStringExtra("groupId")
+            ?: ""
         val orderName = intent.getStringExtra(EXTRA_ORDER_NAME) ?: "단체 주문 정산"
 
-        if (orderId.isBlank() || totalPrice <= 0L || groupId <= 0L) {
+        if (orderId.isBlank() || totalPrice <= 0L || groupId.isBlank()) {
             Toast.makeText(this, "정산 요청 정보를 확인할 수 없습니다.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -197,7 +196,7 @@ class MainActivity : AppCompatActivity() {
                 putString(PaymentFragment.ARG_ORDER_ID, orderId)
                 putLong(PaymentFragment.ARG_TOTAL_PRICE, totalPrice)
                 putString(PaymentFragment.ARG_ORDER_NAME, orderName)
-                putLong(PaymentFragment.ARG_GROUP_ID, groupId)
+                putString(PaymentFragment.ARG_GROUP_ID, groupId)
             }
         )
     }

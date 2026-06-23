@@ -22,7 +22,7 @@ class GroupPayTypeFragment : Fragment() {
     private var _binding: FragmentGroupPayTypeBinding? = null
     private val binding get() = _binding!!
 
-    private var groupId: Long = -1L
+    private var groupId: String = ""
     private var isHost: Boolean = false
     private var currentUserId: Long = -1L
     private var isClosing = false
@@ -39,7 +39,7 @@ class GroupPayTypeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        groupId = arguments?.getLong("GROUP_ID") ?: -1L
+        groupId = arguments?.getString("GROUP_ID").orEmpty()
         isHost = arguments?.getBoolean("IS_HOST") ?: false
         currentUserId = arguments?.getLong("USER_ID") ?: -1L
 
@@ -75,7 +75,7 @@ class GroupPayTypeFragment : Fragment() {
     private fun closeGroupOrder(payType: GroupPayType) {
         if (isClosing) return
 
-        if (groupId <= 0L) {
+        if (groupId.isBlank()) {
             Toast.makeText(requireContext(), "그룹방 정보를 확인할 수 없습니다.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -156,7 +156,7 @@ class GroupPayTypeFragment : Fragment() {
                 putString(PaymentFragment.ARG_ORDER_ID, orderNo)
                 putLong(PaymentFragment.ARG_TOTAL_PRICE, hostReceipt.userTotalPrice)
                 putString(PaymentFragment.ARG_ORDER_NAME, buildGroupOrderName(hostReceipt.items))
-                putLong(PaymentFragment.ARG_GROUP_ID, groupId)
+                putString(PaymentFragment.ARG_GROUP_ID, groupId)
             }
         )
     }

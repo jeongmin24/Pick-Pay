@@ -219,7 +219,7 @@ class OrderFragment : Fragment() {
         isFabExpanded = !isFabExpanded
     }
 
-    private fun navigateToGroupOrder(groupId: Long, isHost: Boolean, userId: Long, shareLink: String?=null) {
+    private fun navigateToGroupOrder(groupId: String, isHost: Boolean, userId: Long, shareLink: String?=null) {
         val tokenManager = TokenManager(requireContext())
 
         if (userId <= 0L) {
@@ -228,7 +228,7 @@ class OrderFragment : Fragment() {
         }
 
         val bundle = Bundle().apply {
-            putLong("GROUP_ID", groupId)
+            putString("GROUP_ID", groupId)
             putBoolean("IS_HOST", isHost)
             putLong("USER_ID", userId)
             putString("SHARE_LINK", shareLink)

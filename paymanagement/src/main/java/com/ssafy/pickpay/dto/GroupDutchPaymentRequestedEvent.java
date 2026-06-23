@@ -5,7 +5,7 @@ import java.util.List;
 import com.ssafy.pickpay.domain.Order;
 
 public record GroupDutchPaymentRequestedEvent(
-		Long groupId,
+		String groupId,
 		List<DutchPaymentRequest> requests
 		) {
 
@@ -15,7 +15,7 @@ public record GroupDutchPaymentRequestedEvent(
             Long amount
     ) {}
 	
-	public static GroupDutchPaymentRequestedEvent from(Long groupId, List<Order> orders) {
+	public static GroupDutchPaymentRequestedEvent from(String groupId, List<Order> orders) {
         return new GroupDutchPaymentRequestedEvent(
                 groupId,
                 orders.stream()

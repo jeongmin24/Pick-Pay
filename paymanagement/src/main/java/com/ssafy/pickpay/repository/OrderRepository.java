@@ -15,7 +15,7 @@ import jakarta.persistence.LockModeType;
 
 
 public interface OrderRepository extends JpaRepository<Order, Long>{
-	List<Order> findByGroupOrder_GroupId(Long groupId);
+	List<Order> findByGroupOrder_GroupId(String groupId);
 	Optional<Order> findByOrderIdAndUser_UserIdAndGroupOrderIsNull(Long orderId, Long userId); //groupOrderIsNull조건 -> 개별 주문 영수증 
 	/**
 	 	findBy : SELECT * FROM Order WHERE order_id = ? AND user_id = ? AND group_order_id IS NULL
@@ -40,7 +40,7 @@ public interface OrderRepository extends JpaRepository<Order, Long>{
     Optional<Order> findByOrderNoForUpdate(@Param("orderNo") String orderNo);
 	
 	boolean existsByGroupOrder_GroupIdAndStatusNot(
-            Long groupId,
+            String groupId,
             OrderStatus status
     );
 }

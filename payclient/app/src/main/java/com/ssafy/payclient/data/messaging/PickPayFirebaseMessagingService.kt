@@ -52,10 +52,10 @@ class PickPayFirebaseMessagingService : FirebaseMessagingService() {
         if (!canPostNotifications()) return
 
         val orderNo = data["orderNo"].orEmpty()
-        val groupId = data["groupId"]?.toLongOrNull() ?: -1L
+        val groupId = data["groupId"].orEmpty()
         val amount = data["amount"]?.toLongOrNull() ?: 0L
 
-        if (orderNo.isBlank() || groupId <= 0L || amount <= 0L) return
+        if (orderNo.isBlank() || groupId.isBlank() || amount <= 0L) return
 
         createNotificationChannel()
 

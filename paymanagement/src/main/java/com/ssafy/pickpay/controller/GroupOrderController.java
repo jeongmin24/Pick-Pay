@@ -65,7 +65,7 @@ public class GroupOrderController {
 	@RequestMapping(value = "/{groupId}/close", method = {RequestMethod.POST, RequestMethod.PATCH})
 	public ResponseEntity<String> closeGroupOrder(
 			Authentication authentication,
-			@PathVariable Long groupId,
+			@PathVariable String groupId,
 			@Valid @RequestBody GroupOrderCloseRequestDTO request
 			){
 		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
@@ -77,7 +77,7 @@ public class GroupOrderController {
 	
 	// 영수증 조회 api 
 	@GetMapping("/{groupId}/receipt")
-	public ResponseEntity<GroupOrderReceiptResponseDTO> getReceipt(@PathVariable Long groupId) {
+	public ResponseEntity<GroupOrderReceiptResponseDTO> getReceipt(@PathVariable String groupId) {
 		
 		GroupOrderReceiptResponseDTO receipt = groupOrderService.getReceipt(groupId);
 		

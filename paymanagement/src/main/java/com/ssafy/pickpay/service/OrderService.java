@@ -62,7 +62,7 @@ public class OrderService {
     public Order createOrder(
     		Long userId,
     		List<CartItemRequest> items,
-    		Long groupId) {
+            String groupId) {
     	
     	if(items == null || items.isEmpty()) {
     		throw new IllegalArgumentException("주문 항목이 비어 있습니다.");

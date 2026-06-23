@@ -18,7 +18,7 @@ public class NotificationService {
 	
     public void sendDutchPaymentRequest(
             Long userId,
-            Long groupId,
+            String groupId,
             String orderNo,
             Long amount
     ) {

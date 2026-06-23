@@ -24,13 +24,13 @@ interface GroupOrderApiService {
 
     @POST("/api/groups/{groupId}/close")
     suspend fun closeGroupOrder(
-        @Path("groupId") groupId: Long,
+        @Path("groupId") groupId: String,
         @Body request: CloseGroupOrderRequest
     ): Response<ResponseBody>
 
     @GET("/api/groups/{groupId}/receipt")
     suspend fun getGroupReceipt(
-        @Path("groupId") groupId: Long
+        @Path("groupId") groupId: String
     ): Response<ReceiptResponseDTO>
 
 }

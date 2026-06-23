@@ -34,7 +34,7 @@ class GroupOrderFragment : Fragment() {
     private lateinit var menuAdapter: MenuAdapter
 
     private lateinit var database: DatabaseReference
-    private var groupId: Long = -1L
+    private var groupId: String = ""
     private var isHost: Boolean = false
     private var currentUserId: Long = -1L
 
@@ -67,7 +67,7 @@ class GroupOrderFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         database = FirebaseDatabase.getInstance("https://pickpay-be337-default-rtdb.firebaseio.com/").reference
 
-        groupId = arguments?.getLong("GROUP_ID") ?: -1L
+        groupId = arguments?.getString("GROUP_ID").orEmpty()
         isHost = arguments?.getBoolean("IS_HOST") ?: false
         currentUserId = arguments?.getLong("USER_ID") ?: -1L
         shareLink = arguments?.getString("SHARE_LINK")
@@ -111,7 +111,7 @@ class GroupOrderFragment : Fragment() {
     private fun getGroupStatusRef(): DatabaseReference {
         return database
             .child("group_orders")
-            .child(groupId.toString())
+            .child(groupId)
             .child("status")
     }
 
@@ -184,7 +184,7 @@ class GroupOrderFragment : Fragment() {
 
         binding.fabGroupCart.setOnClickListener {
             val bundle = Bundle().apply {
-                putLong("GROUP_ID", groupId)
+                putString("GROUP_ID", groupId)
                 putBoolean("IS_HOST", isHost)
                 putLong("USER_ID", currentUserId)
             }
@@ -208,7 +208,7 @@ class GroupOrderFragment : Fragment() {
 
         val itemRef = database
             .child("group_orders")
-            .child(groupId.toString())
+            .child(groupId)
             .child("items")
             .child(itemKey)
 
