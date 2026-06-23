@@ -3,6 +3,7 @@ package com.ssafy.payclient.fragment
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -128,6 +129,11 @@ class PaymentFragment : Fragment() {
     }
 
     private fun completePayment(success: TossPaymentResult.Success) {
+        Log.d(
+            TAG,
+            "Toss success paymentKey=${success.paymentKey.maskPaymentKey()}, " +
+                "orderId=${success.orderId}, amount=${success.amount}, localTotalPrice=$totalPrice"
+        )
         completePayment(
             paymentKey = success.paymentKey,
             approvedOrderId = success.orderId,
@@ -149,10 +155,20 @@ class PaymentFragment : Fragment() {
                     orderId = approvedOrderId,
                     amount = amount
                 )
+                Log.d(
+                    TAG,
+                    "Payment complete request paymentKey=${paymentKey.maskPaymentKey()}, " +
+                        "orderId=$approvedOrderId, amount=$amount"
+                )
                 val response = apiService.completePayment(request)
 
                 if (response.isSuccessful) {
                     val body = response.body()
+                    Log.d(
+                        TAG,
+                        "Payment complete success orderId=${body?.orderId}, " +
+                            "amount=${body?.amount}, status=${body?.orderStatus}"
+                    )
                     PersonalCartStore.clear()
                     Toast.makeText(
                         requireContext(),
@@ -161,6 +177,11 @@ class PaymentFragment : Fragment() {
                     ).show()
                     findNavController().popBackStack(R.id.fragment_order, false)
                 } else {
+                    Log.e(
+                        TAG,
+                        "Payment complete failed status=${response.code()}, " +
+                            "body=${response.errorBody()?.string()}"
+                    )
                     Toast.makeText(
                         requireContext(),
                         "결제 승인에 실패했습니다. (${response.code()})",
@@ -232,5 +253,11 @@ class PaymentFragment : Fragment() {
         const val ARG_ORDER_ID = "ORDER_ID"
         const val ARG_TOTAL_PRICE = "TOTAL_PRICE"
         const val ARG_ORDER_NAME = "ORDER_NAME"
+        private const val TAG = "PaymentFragment"
     }
+}
+
+private fun String.maskPaymentKey(): String {
+    if (length <= 12) return "***"
+    return "${take(6)}...${takeLast(4)}"
 }
