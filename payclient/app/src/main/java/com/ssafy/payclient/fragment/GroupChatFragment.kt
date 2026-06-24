@@ -284,8 +284,8 @@ class GroupChatFragment : Fragment() {
 
         binding.tvPickupRouletteStatus.text = status
         binding.tvPickupRouletteResult.text = "$winnerName 님이 픽업 담당자입니다."
-        binding.btnRunPickupRoulette.isEnabled = false
-        binding.btnRunPickupRoulette.text = "선정 완료"
+        binding.btnRunPickupRoulette.isEnabled = isHost
+        binding.btnRunPickupRoulette.text = if (isHost) "\uB2E4\uC2DC \uB3CC\uB9AC\uAE30" else "\uC120\uC815 \uC644\uB8CC"
     }
 
     private fun sendCurrentMessage() {

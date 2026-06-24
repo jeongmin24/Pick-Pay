@@ -153,22 +153,8 @@ public class GroupOrderService {
         validateHost(groupOrder, requestUserId);
 
         List<PickupCandidateDTO> candidates = getPickupCandidates(groupId);
-        if (candidates.isEmpty() && groupOrder.getPickupUser() == null) {
+        if (candidates.isEmpty()) {
             throw new IllegalStateException("빈 장바구니에서 픽업 유저를 뽑을 수 없습니다.");
-        }
-
-        if (groupOrder.getPickupUser() != null) {
-            User existingWinner = groupOrder.getPickupUser();
-            List<PickupCandidateDTO> visibleCandidates = ensureWinnerIncluded(candidates, existingWinner);
-            int winnerIndex = findCandidateIndex(visibleCandidates, existingWinner.getUserId());
-            return new PickupRouletteResponseDTO(
-                    groupId,
-                    existingWinner.getUserId(),
-                    existingWinner.getNickname(),
-                    winnerIndex,
-                    true,
-                    visibleCandidates
-            );
         }
 
         if (groupOrder.getStatus() != GroupOrderStatus.OPEN) {
@@ -269,28 +255,6 @@ public class GroupOrderService {
                     return new PickupCandidateDTO(user.getUserId(), user.getNickname());
                 })
                 .toList();
-    }
-
-    private List<PickupCandidateDTO> ensureWinnerIncluded(List<PickupCandidateDTO> candidates, User winner) {
-        boolean winnerExists = candidates.stream()
-                .anyMatch(candidate -> candidate.userId().equals(winner.getUserId()));
-
-        if (winnerExists) {
-            return candidates;
-        }
-
-        List<PickupCandidateDTO> visibleCandidates = new ArrayList<>(candidates);
-        visibleCandidates.add(new PickupCandidateDTO(winner.getUserId(), winner.getNickname()));
-        return visibleCandidates;
-    }
-
-    private int findCandidateIndex(List<PickupCandidateDTO> candidates, Long winnerUserId) {
-        for (int i = 0; i < candidates.size(); i++) {
-            if (candidates.get(i).userId().equals(winnerUserId)) {
-                return i;
-            }
-        }
-        return 0;
     }
 
     private void updateFirebasePickupRoulette(
