@@ -148,13 +148,13 @@ public class GroupOrderService {
     @Transactional
     public PickupRouletteResponseDTO selectPickupWinner(Long requestUserId, String groupId) {
         GroupOrder groupOrder = groupOrderRepository.findById(groupId)
-                .orElseThrow(() -> new IllegalArgumentException("Group not found."));
+                .orElseThrow(() -> new IllegalArgumentException("그룹을 찾을수 없습니다."));
 
         validateHost(groupOrder, requestUserId);
 
         List<PickupCandidateDTO> candidates = getPickupCandidates(groupId);
         if (candidates.isEmpty() && groupOrder.getPickupUser() == null) {
-            throw new IllegalStateException("Cannot select pickup winner from an empty cart.");
+            throw new IllegalStateException("빈 장바구니에서 픽업 유저를 뽑을 수 없습니다.");
         }
 
         if (groupOrder.getPickupUser() != null) {
@@ -172,13 +172,13 @@ public class GroupOrderService {
         }
 
         if (groupOrder.getStatus() != GroupOrderStatus.OPEN) {
-            throw new IllegalStateException("Pickup winner can only be selected while the group order is open.");
+            throw new IllegalStateException("OPEN 상태 그룹에서만 픽업 유저 선정이 가능합니다.");
         }
 
         int winnerIndex = secureRandom.nextInt(candidates.size());
         PickupCandidateDTO selectedCandidate = candidates.get(winnerIndex);
         User winner = userRepository.findById(selectedCandidate.userId())
-                .orElseThrow(() -> new IllegalArgumentException("Winner user not found."));
+                .orElseThrow(() -> new IllegalArgumentException("픽업 유저를 찾을 수 없습니다."));
 
         groupOrder.setPickupUser(winner);
         updateFirebasePickupRoulette(groupId, winner, winnerIndex, candidates);
