@@ -18,8 +18,8 @@ interface ReviewApiService {
     @Multipart
     @POST("api/reviews")
     suspend fun createReview(
-        @Part("content") content: String,
-        @Part("rating") rating: String,
+        @Part("content") content: RequestBody,
+        @Part("rating") rating: RequestBody,
         @Part image: MultipartBody.Part?
     ): Long
 }

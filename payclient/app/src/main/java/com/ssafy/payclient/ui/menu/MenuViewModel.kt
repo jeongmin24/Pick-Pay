@@ -21,17 +21,14 @@ private const val TAG = "싸피 MenuViewModel"
 class MenuViewModel(private val tokenManager: TokenManager): ViewModel() {
 
     private val menuRepository = MenuRepository(tokenManager)
-    // 내부에서만 수정 가능한 상태 (초기값은 Loading)
     private val _menuState = MutableStateFlow<MenuUiState>(MenuUiState.Loading)
 
-    // 외부(Fragment)에서 관찰만 가능한 상태
     val menuState: StateFlow<MenuUiState> = _menuState.asStateFlow()
 
     private val _nfcEvent = MutableSharedFlow<NfcResult>()
     val nfcEvent: SharedFlow<NfcResult> = _nfcEvent.asSharedFlow()
 
     init {
-        // ViewModel이 생성될 때 자동으로 메뉴 목록을 불러옵니다.
         fetchMenus()
     }
 
@@ -39,13 +36,10 @@ class MenuViewModel(private val tokenManager: TokenManager): ViewModel() {
         viewModelScope.launch {
             _menuState.value = MenuUiState.Loading
             try {
-                // Repository를 통해 서버에서 데이터 가져오기
                 val response = menuRepository.getMenus()
 
-                // 성공 시 상태 업데이트
                 _menuState.value = MenuUiState.Success(response)
             } catch (e: Exception) {
-                // 실패 시 에러 메시지와 함께 상태 업데이트
                 _menuState.value = MenuUiState.Error(e.message ?: "메뉴를 불러오는 중 오류가 발생했습니다.")
             }
         }
@@ -65,6 +59,38 @@ class MenuViewModel(private val tokenManager: TokenManager): ViewModel() {
                 Log.e(TAG, "NFC 장바구니 추가 실패: ${e.message}")
                 onResult(false)
             }
+        }
+    }
+
+    fun addAnalyzedMenusToCart(detectedMenu: String, onResult: (successCount: Int, failMenus: List<String>) -> Unit) {
+        if (detectedMenu.isEmpty()) {
+            onResult(0, emptyList())
+            return
+        }
+
+        viewModelScope.launch {
+            val menuNames = detectedMenu.split(",")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+
+            var successCount = 0
+            val failMenus = mutableListOf<String>()
+
+            for (name in menuNames) {
+                try {
+                    val cleanName = name.trim().replace("\n", "").replace("\r", "")
+                    val finalizedName = java.text.Normalizer.normalize(cleanName, java.text.Normalizer.Form.NFC) // mac 한글 설정 오류
+                    val menu = menuRepository.getMenuByName(finalizedName)
+
+                    PersonalCartStore.add(menu, 1)
+                    successCount++
+                    Log.d(TAG, "AI 장바구니 추가 성공: ${menu.name}")
+                } catch (e: Exception) {
+                    Log.e(TAG, "AI 장바구니 추가 실패 ($name): ${e.message}")
+                    failMenus.add(name)
+                }
+            }
+            onResult(successCount, failMenus)
         }
     }
 }

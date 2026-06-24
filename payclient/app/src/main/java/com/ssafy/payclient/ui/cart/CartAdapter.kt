@@ -3,6 +3,7 @@ package com.ssafy.payclient.ui.cart
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.ssafy.payclient.R
 import com.ssafy.payclient.data.local.PersonalCartItem
 import com.ssafy.payclient.databinding.ItemCartBinding
@@ -21,11 +22,15 @@ class CartAdapter(
 
         fun bind(item: PersonalCartItem, position: Int) {
             binding.tvCartMenuName.text = item.menuName
-            binding.tvCartOption.text = optionText(position)
             binding.tvCartMenuPrice.text = formatWon(item.price)
             binding.tvCartQuantity.text = item.quantity.toString()
             binding.tvCartItemTotal.text = formatWon(item.price * item.quantity)
             binding.ivCartMenuImage.setImageResource(imageFor(position))
+
+            Glide.with(binding.root.context)
+                .load(item.imageUrl)
+                .into(binding.ivCartMenuImage)
+
 
             binding.btnIncrease.setOnClickListener {
                 onIncreaseClick(item)
@@ -55,14 +60,6 @@ class CartAdapter(
     fun updateItems(newItems: List<PersonalCartItem>) {
         cartItems = newItems
         notifyDataSetChanged()
-    }
-
-    private fun optionText(position: Int): String {
-        return when (position % 3) {
-            0 -> "ICE / Regular"
-            1 -> "HOT / Large"
-            else -> "Warm up"
-        }
     }
 
     private fun imageFor(position: Int): Int {

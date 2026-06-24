@@ -25,18 +25,13 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <FrameLayout
+            <ImageView
+                android:id="@+id/iv_cart_menu_image"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/bg_latte_menu">
-
-                <ImageView
-                    android:id="@+id/iv_cart_menu_image"
-                    android:layout_width="52dp"
-                    android:layout_height="52dp"
-                    android:layout_gravity="center"
-                    android:contentDescription="@null" />
-            </FrameLayout>
+                android:scaleType="centerCrop"
+                android:background="@drawable/bg_latte_menu"
+                android:contentDescription="@null" />
         </com.google.android.material.card.MaterialCardView>
 
         <TextView
@@ -62,7 +57,6 @@
             android:layout_marginEnd="34dp"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="ICE / Regular"
             android:textColor="@color/text_primary"
             android:textSize="16sp"
             app:layout_constraintEnd_toEndOf="parent"

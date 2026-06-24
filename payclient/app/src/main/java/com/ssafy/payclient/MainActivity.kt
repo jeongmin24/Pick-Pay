@@ -39,12 +39,6 @@ class MainActivity : AppCompatActivity() {
 
     private val sharedTokenManager by lazy { TokenManager(applicationContext) }
 
-    private val viewModel: MainViewModel by viewModels {
-        val apiService = RetrofitClient.getApiService(sharedTokenManager)
-        val repository = AuthRepository(apiService)
-        ViewModelFactory(repository, sharedTokenManager)
-    }
-
     private val menuViewModel: MenuViewModel by viewModels {
         MenuViewModelFactory(sharedTokenManager)
     }
@@ -78,17 +72,15 @@ class MainActivity : AppCompatActivity() {
         registerFcmToken()
         handlePaymentDeepLink(intent)
         handleDutchPaymentIntent(intent)
-//        observeViewModel()
         handlePaymentDeepLink(getIntent())
+        handleGoToCartIntent(intent)
     }
 
-    // 4. 앱이 화면에 켜져 있을 때 NFC 시스템 이벤트를 선점(독점)
     override fun onResume() {
         super.onResume()
         nfcAdapter?.enableForegroundDispatch(this, nfcPendingIntent, null, null)
     }
 
-    // 5. 앱이 화면에서 벗어나면 독점 해제
     override fun onPause() {
         super.onPause()
         nfcAdapter?.disableForegroundDispatch(this)
@@ -99,9 +91,8 @@ class MainActivity : AppCompatActivity() {
         setIntent(intent)
         handlePaymentDeepLink(intent)
         handleDutchPaymentIntent(intent)
-
-        // 6. NFC 태그가 인식되었는지 체크
         handleMenuNfcIntent(intent)
+        handleGoToCartIntent(intent)
     }
 
     private fun initViews() {
@@ -229,6 +220,18 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    private fun handleGoToCartIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra("GO_TO_CART", false) == true) {
+            val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
+            val navController = navHostFragment?.navController
+
+            navController?.navigate(R.id.fragment_cart)
+
+            intent.removeExtra("GO_TO_CART")
+        }
+
+    }
+
 //    private fun observeViewModel() {
 //        lifecycleScope.launch {
 //            viewModel.logoutState.collect { state ->
@@ -250,12 +253,12 @@ class MainActivity : AppCompatActivity() {
 //        }
 //    }
 
-    private fun navigateToLogin() {
-        val intent = Intent(this, LoginActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        startActivity(intent)
-        finish()
-    }
+//    private fun navigateToLogin() {
+//        val intent = Intent(this, LoginActivity::class.java)
+//        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+//        startActivity(intent)
+//        finish()
+//    }
 
     companion object {
         const val PAYMENT_DEEP_LINK_URI = "PAYMENT_DEEP_LINK_URI"
