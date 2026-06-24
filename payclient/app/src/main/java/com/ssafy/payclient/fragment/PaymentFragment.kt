@@ -46,7 +46,7 @@ class PaymentFragment : Fragment() {
     private val orderId: String by lazy { requireArguments().getString(ARG_ORDER_ID).orEmpty() }
     private val orderName: String by lazy { requireArguments().getString(ARG_ORDER_NAME).orEmpty() }
     private val totalPrice: Long by lazy { requireArguments().getLong(ARG_TOTAL_PRICE) }
-    private val groupId: Long by lazy { requireArguments().getLong(ARG_GROUP_ID, -1L) }
+    private val groupId: String by lazy { requireArguments().getString(ARG_GROUP_ID).orEmpty() }
     private var isPaymentCompleting = false
 
     override fun onCreateView(
@@ -186,7 +186,7 @@ class PaymentFragment : Fragment() {
                         body?.message ?: "결제가 완료되었습니다.",
                         Toast.LENGTH_SHORT
                     ).show()
-                    if (groupId > 0L) {
+                    if (groupId.isNotBlank()) {
                         fetchGroupReceipt(groupId, approvedOrderId)
                     } else {
                         fetchReceipt(approvedOrderId)
@@ -217,7 +217,7 @@ class PaymentFragment : Fragment() {
         }
     }
 
-    private suspend fun fetchGroupReceipt(groupId: Long, orderNo: String) {
+    private suspend fun fetchGroupReceipt(groupId: String, orderNo: String) {
         try {
             val tokenManager = TokenManager(requireContext().applicationContext)
             val apiService = RetrofitClient.getGroupOrderApiService(tokenManager)

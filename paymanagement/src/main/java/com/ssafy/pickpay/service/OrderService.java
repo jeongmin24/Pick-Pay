@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import com.ssafy.pickpay.dto.IndividualOrderCreateRequestDTO;
 import com.ssafy.pickpay.dto.IndividualOrderCreateResponseDTO;
 import com.ssafy.pickpay.dto.IndividualOrderReceiptResponseDTO;
 import com.ssafy.pickpay.dto.OrderReceiptItemDTO;
+import com.ssafy.pickpay.dto.RecentOrderResponseDTO;
 import com.ssafy.pickpay.repository.GroupOrderRepository;
 import com.ssafy.pickpay.repository.MenuRepository;
 import com.ssafy.pickpay.repository.OrderItemsRepository;
@@ -62,7 +64,7 @@ public class OrderService {
     public Order createOrder(
     		Long userId,
     		List<CartItemRequest> items,
-    		Long groupId) {
+            String groupId) {
     	
     	if(items == null || items.isEmpty()) {
     		throw new IllegalArgumentException("주문 항목이 비어 있습니다.");
@@ -155,6 +157,41 @@ public class OrderService {
                 order.getCreatedAt(),
                 items
                 );
+    }
+
+    public List<RecentOrderResponseDTO> getRecentOrders(Long userId, int limit) {
+        int safeLimit = Math.min(Math.max(limit, 1), 50);
+
+        List<Order> orders = orderRepository
+                .findByUser_UserIdAndGroupOrderIsNullOrderByCreatedAtDesc(
+                        userId,
+                        PageRequest.of(0, safeLimit)
+                );
+
+        return orders.stream()
+                .map(order -> {
+                    List<OrderItems> orderItems = orderItemsRepository
+                            .findAllByOrderIdWithProduct(order.getOrderId());
+
+                    int totalQuantity = orderItems.stream()
+                            .mapToInt(OrderItems::getQuantity)
+                            .sum();
+
+                    String firstMenuName = orderItems.isEmpty()
+                            ? null
+                            : orderItems.get(0).getProduct().getName();
+
+                    return new RecentOrderResponseDTO(
+                            order.getOrderNo(),
+                            order.getTotalPrice(),
+                            order.getStatus().name(),
+                            order.getCreatedAt(),
+                            firstMenuName,
+                            totalQuantity,
+                            orderItems.size()
+                    );
+                })
+                .toList();
     }
     
     

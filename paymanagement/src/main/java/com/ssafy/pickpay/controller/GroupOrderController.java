@@ -17,6 +17,7 @@ import com.ssafy.pickpay.dto.GroupJoinResponseDTO;
 import com.ssafy.pickpay.dto.GroupOrderCloseRequestDTO;
 import com.ssafy.pickpay.dto.GroupOrderCreateResponse;
 import com.ssafy.pickpay.dto.GroupOrderReceiptResponseDTO;
+import com.ssafy.pickpay.dto.PickupRouletteResponseDTO;
 import com.ssafy.pickpay.service.GroupOrderService;
 
 import jakarta.validation.Valid;
@@ -65,7 +66,7 @@ public class GroupOrderController {
 	@RequestMapping(value = "/{groupId}/close", method = {RequestMethod.POST, RequestMethod.PATCH})
 	public ResponseEntity<String> closeGroupOrder(
 			Authentication authentication,
-			@PathVariable Long groupId,
+			@PathVariable String groupId,
 			@Valid @RequestBody GroupOrderCloseRequestDTO request
 			){
 		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
@@ -77,11 +78,23 @@ public class GroupOrderController {
 	
 	// 영수증 조회 api 
 	@GetMapping("/{groupId}/receipt")
-	public ResponseEntity<GroupOrderReceiptResponseDTO> getReceipt(@PathVariable Long groupId) {
+	public ResponseEntity<GroupOrderReceiptResponseDTO> getReceipt(@PathVariable String groupId) {
 		
 		GroupOrderReceiptResponseDTO receipt = groupOrderService.getReceipt(groupId);
 		
 		return ResponseEntity.ok(receipt);
+	}
+
+	@PostMapping("/{groupId}/pickup-roulette")
+	public ResponseEntity<PickupRouletteResponseDTO> selectPickupWinner(
+			Authentication authentication,
+			@PathVariable String groupId
+	) {
+		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+		Long userId = userDetails.getUserId();
+
+		PickupRouletteResponseDTO response = groupOrderService.selectPickupWinner(userId, groupId);
+		return ResponseEntity.ok(response);
 	}
 
 }

@@ -8,5 +8,6 @@ data class FirebaseCartItem(
     val menuName: String = "",
     val productId: Long = 0,
     val quantity: Int = 0,
-    val userId: Long = 0
+    val userId: Long = 0,
+    val price: Long = 0
 )

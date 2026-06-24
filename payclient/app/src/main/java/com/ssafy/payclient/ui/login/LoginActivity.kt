@@ -35,7 +35,7 @@ class LoginActivity : AppCompatActivity() {
         // 자동 로그인 체크: 저장된 AccessToken + RefreshToken이 있으면 바로 메인으로 이동
         val tokenManager = TokenManager(applicationContext)
         if (tokenManager.accessToken != null && tokenManager.getRefreshToken() != null) {
-            startActivity(Intent(this, MainActivity::class.java))
+            startActivity(createMainIntent())
             finish()
             return
         }
@@ -69,7 +69,7 @@ class LoginActivity : AppCompatActivity() {
                     }
                     is UiState.Success -> {
                         binding.pbLoading.visibility = View.GONE
-                        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                        startActivity(createMainIntent())
                         finish()
                     }
                     is UiState.Error -> {
@@ -82,6 +82,13 @@ class LoginActivity : AppCompatActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private fun createMainIntent(): Intent {
+        return Intent(this, MainActivity::class.java).apply {
+            putExtras(intent)
+            action = intent.action
         }
     }
 }

@@ -1,15 +1,17 @@
 package com.ssafy.pickpay.service;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,18 +21,19 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.ssafy.pickpay.common.GroupOrderStatus;
 import com.ssafy.pickpay.common.GroupPayType;
 import com.ssafy.pickpay.domain.GroupOrder;
-import com.ssafy.pickpay.domain.Menu;
 import com.ssafy.pickpay.domain.Order;
 import com.ssafy.pickpay.domain.OrderItems;
 import com.ssafy.pickpay.domain.User;
 import com.ssafy.pickpay.dto.CartItemRequest;
 import com.ssafy.pickpay.dto.FirebaseCartItemDTO;
+import com.ssafy.pickpay.dto.GroupDutchPaymentRequestedEvent;
 import com.ssafy.pickpay.dto.GroupJoinResponseDTO;
 import com.ssafy.pickpay.dto.GroupOrderReceiptResponseDTO;
 import com.ssafy.pickpay.dto.GroupOrderReceiptResponseDTO.UserReceiptDTO;
 import com.ssafy.pickpay.dto.OrderReceiptItemDTO;
+import com.ssafy.pickpay.dto.PickupRouletteResponseDTO;
+import com.ssafy.pickpay.dto.PickupRouletteResponseDTO.PickupCandidateDTO;
 import com.ssafy.pickpay.repository.GroupOrderRepository;
-import com.ssafy.pickpay.repository.MenuRepository;
 import com.ssafy.pickpay.repository.OrderItemsRepository;
 import com.ssafy.pickpay.repository.OrderRepository;
 import com.ssafy.pickpay.repository.UserRepository;
@@ -40,114 +43,149 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class GroupOrderService {
-	
-	private final OrderService orderService;
-	private final GroupOrderRepository groupOrderRepository;
+
+    private final SecureRandom secureRandom = new SecureRandom();
+
+    private final OrderService orderService;
+    private final GroupOrderRepository groupOrderRepository;
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
     private final OrderItemsRepository orderItemsRepository;
-    private final MenuRepository menuRepository;
     private final FirebaseSyncService firebaseSyncService;
-	
-	// 그룹 주문 세선 생성
+    private final ApplicationEventPublisher eventPublisher;
+
     @Transactional
     public GroupOrder createSession(Long userId) {
-    	
-    	// 이미 유저가 만든 OPEN 방이 있는지 확인
-    	Optional<GroupOrder> existingGroupOrder =
-    			groupOrderRepository.findByHost_UserIdAndStatus(userId, GroupOrderStatus.OPEN);
-    	if(existingGroupOrder.isPresent()) {
-    		return existingGroupOrder.get(); // 이미 방이 있으면 기존 방 반환
-    	}
-  
-    	// 로그인한 사용자의 userId(PK) -> DB에서 방장할 유저 조회 
-        User host = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
+        Optional<GroupOrder> existingGroupOrder =
+                groupOrderRepository.findByHost_UserIdAndStatus(userId, GroupOrderStatus.OPEN);
+        if (existingGroupOrder.isPresent()) {
+            return existingGroupOrder.get();
+        }
 
-        // RDB에 방 정보 저장
+        User host = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+
         GroupOrder groupOrder = GroupOrder.createGroupOrder(host);
         GroupOrder savedOrder = groupOrderRepository.save(groupOrder);
 
-        // firebase에 실시간 노드 생성 
         DatabaseReference ref = FirebaseDatabase.getInstance()
                 .getReference("group_orders/" + savedOrder.getGroupId());
 
         Map<String, Object> initialData = new HashMap<>();
         initialData.put("status", GroupOrderStatus.OPEN.name());
-        initialData.put("hostId", userId); // 유저의 PK 숫자를 Firebase에 기입 
-        
-        // 비동기로 안전하게 쓰기
+        initialData.put("hostId", userId);
+
         ref.setValueAsync(initialData);
-        
 
         return savedOrder;
     }
-	
-	// shareToken으로 GroupOrder 조회 후 방장 여부 계산
+
     @Transactional(readOnly = true)
     public GroupJoinResponseDTO joinGroup(Long userId, String shareToken) {
-    	GroupOrder groupOrder = groupOrderRepository.findByShareToken(shareToken)
-    			.orElseThrow(() -> new IllegalArgumentException("유효하지 않은 초대링크 입니다."));
-    	
-    	GroupOrderStatus status = groupOrder.getStatus();
-    	
-    	if(status == GroupOrderStatus.PAID) {
-    		throw new IllegalStateException("이미 결제가 완료된 그룹방입니다.");
-    	}
-    	
-    	if (status == GroupOrderStatus.LOCKED) {
-            throw new IllegalStateException("이미 주문이 마감된 그룹방입니다.");
-        }
-    	
-    	boolean isHost = groupOrder.getHost().getUserId().equals(userId);
-    	
-    	return new GroupJoinResponseDTO(
-    			groupOrder.getGroupId(),
-    			groupOrder.getStatus().name(),
-    			isHost);
-    }
-	
-	// 방장 주문 마감 처리 
-    @Transactional
-    public void closeSession(Long requestUserId, Long groupId, GroupPayType payType) {
+        GroupOrder groupOrder = groupOrderRepository.findByShareToken(shareToken)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid invite link."));
 
+        GroupOrderStatus status = groupOrder.getStatus();
+
+        if (status == GroupOrderStatus.PAID) {
+            throw new IllegalStateException("This group order is already paid.");
+        }
+
+        if (status == GroupOrderStatus.LOCKED) {
+            throw new IllegalStateException("This group order is already closed.");
+        }
+
+        boolean isHost = groupOrder.getHost().getUserId().equals(userId);
+
+        return new GroupJoinResponseDTO(
+                groupOrder.getGroupId(),
+                groupOrder.getStatus().name(),
+                isHost
+        );
+    }
+
+    @Transactional
+    public void closeSession(Long requestUserId, String groupId, GroupPayType payType) {
         GroupOrder groupOrder = groupOrderRepository.findById(groupId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 그룹입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("Group not found."));
 
         validateCanCloseGroupOrder(groupOrder, requestUserId);
 
         List<FirebaseCartItemDTO> firebaseItems;
         try {
-            firebaseItems = firebaseSyncService.getCartItems(groupId.toString());
+            firebaseItems = firebaseSyncService.getCartItems(groupId);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Firebase 장바구니 조회 중 요청이 중단되었습니다.", e);
+            throw new RuntimeException("Interrupted while reading Firebase cart.", e);
         } catch (ExecutionException | TimeoutException e) {
-            throw new RuntimeException("Firebase 장바구니 조회 중 오류가 발생했습니다.", e);
+            throw new RuntimeException("Failed to read Firebase cart.", e);
         } catch (Exception e) {
-            throw new RuntimeException("Firebase 장바구니 조회 중 알 수 없는 오류가 발생했습니다.", e);
+            throw new RuntimeException("Unexpected error while reading Firebase cart.", e);
         }
 
         if (firebaseItems.isEmpty()) {
-            throw new IllegalStateException("장바구니가 비어 있어 마감할 수 없습니다.");
+            throw new IllegalStateException("Cannot close an empty cart.");
         }
 
         Map<Long, List<FirebaseCartItemDTO>> itemsByUser = firebaseItems.stream()
                 .collect(Collectors.groupingBy(FirebaseCartItemDTO::getUserId));
 
-        switch (payType) {
+        List<Order> createdOrders = switch (payType) {
             case DUTCH -> createGroupOrdersByUser(groupId, itemsByUser);
-            case HOST -> createGroupOrderForHost(requestUserId, groupId, firebaseItems);
-        }
+            case HOST -> List.of(createGroupOrderForHost(requestUserId, groupId, firebaseItems));
+        };
 
         groupOrder.closeAndSetPayType(payType);
         firebaseSyncService.updateFirebaseGroupStatus(groupId, payType);
+
+        if (payType == GroupPayType.DUTCH) {
+            eventPublisher.publishEvent(
+                    GroupDutchPaymentRequestedEvent.from(groupId, createdOrders)
+            );
+        }
     }
 
-    private void createGroupOrdersByUser(
-            Long groupId,
+    @Transactional
+    public PickupRouletteResponseDTO selectPickupWinner(Long requestUserId, String groupId) {
+        GroupOrder groupOrder = groupOrderRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("그룹을 찾을수 없습니다."));
+
+        validateHost(groupOrder, requestUserId);
+
+        List<PickupCandidateDTO> candidates = getPickupCandidates(groupId);
+        if (candidates.isEmpty()) {
+            throw new IllegalStateException("빈 장바구니에서 픽업 유저를 뽑을 수 없습니다.");
+        }
+
+        if (groupOrder.getStatus() != GroupOrderStatus.OPEN) {
+            throw new IllegalStateException("OPEN 상태 그룹에서만 픽업 유저 선정이 가능합니다.");
+        }
+
+        int winnerIndex = secureRandom.nextInt(candidates.size());
+        PickupCandidateDTO selectedCandidate = candidates.get(winnerIndex);
+        User winner = userRepository.findById(selectedCandidate.userId())
+                .orElseThrow(() -> new IllegalArgumentException("픽업 유저를 찾을 수 없습니다."));
+
+        groupOrder.setPickupUser(winner);
+        updateFirebasePickupRoulette(groupId, winner, winnerIndex, candidates);
+        pushPickupWinnerChatMessage(groupId, winner);
+
+        return new PickupRouletteResponseDTO(
+                groupId,
+                winner.getUserId(),
+                winner.getNickname(),
+                winnerIndex,
+                false,
+                candidates
+        );
+    }
+
+    private List<Order> createGroupOrdersByUser(
+            String groupId,
             Map<Long, List<FirebaseCartItemDTO>> itemsByUser
     ) {
+        List<Order> createdOrders = new ArrayList<>();
+
         for (Map.Entry<Long, List<FirebaseCartItemDTO>> entry : itemsByUser.entrySet()) {
             Long userId = entry.getKey();
             List<FirebaseCartItemDTO> userCartItems = entry.getValue();
@@ -157,15 +195,18 @@ public class GroupOrderService {
                             item.getProductId(),
                             item.getQuantity()
                     ))
-                    .collect(Collectors.toList());
+                    .toList();
 
-            orderService.createOrder(userId, cartItems, groupId);
+            Order order = orderService.createOrder(userId, cartItems, groupId);
+            createdOrders.add(order);
         }
+
+        return createdOrders;
     }
 
-    private void createGroupOrderForHost(
+    private Order createGroupOrderForHost(
             Long hostUserId,
-            Long groupId,
+            String groupId,
             List<FirebaseCartItemDTO> firebaseItems
     ) {
         List<CartItemRequest> cartItems = firebaseItems.stream()
@@ -173,73 +214,154 @@ public class GroupOrderService {
                         item.getProductId(),
                         item.getQuantity()
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
-        orderService.createOrder(hostUserId, cartItems, groupId);
+        return orderService.createOrder(hostUserId, cartItems, groupId);
+    }
+
+    private List<PickupCandidateDTO> getPickupCandidates(String groupId) {
+        List<FirebaseCartItemDTO> firebaseItems;
+        try {
+            firebaseItems = firebaseSyncService.getCartItems(groupId);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while reading Firebase cart.", e);
+        } catch (ExecutionException | TimeoutException e) {
+            throw new RuntimeException("Failed to read Firebase cart.", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Unexpected error while reading Firebase cart.", e);
+        }
+
+        List<Long> candidateUserIds = firebaseItems.stream()
+                .map(FirebaseCartItemDTO::getUserId)
+                .filter(userId -> userId != null && userId > 0)
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        List<Long> distinctUserIds = new ArrayList<>(new LinkedHashSet<>(candidateUserIds));
+        if (distinctUserIds.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, User> usersById = new HashMap<>();
+        userRepository.findAllById(distinctUserIds)
+                .forEach(user -> usersById.put(user.getUserId(), user));
+
+        return distinctUserIds.stream()
+                .map(userId -> {
+                    User user = usersById.get(userId);
+                    if (user == null) {
+                        throw new IllegalArgumentException("Candidate user not found.");
+                    }
+                    return new PickupCandidateDTO(user.getUserId(), user.getNickname());
+                })
+                .toList();
+    }
+
+    private void updateFirebasePickupRoulette(
+            String groupId,
+            User winner,
+            int winnerIndex,
+            List<PickupCandidateDTO> candidates
+    ) {
+        DatabaseReference rouletteRef = FirebaseDatabase.getInstance()
+                .getReference("group_orders/" + groupId + "/pickupRoulette");
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("winnerUserId", winner.getUserId());
+        updates.put("winnerNickname", winner.getNickname());
+        updates.put("winnerIndex", winnerIndex);
+        updates.put("selectedAt", System.currentTimeMillis());
+        updates.put("candidates", candidates.stream()
+                .map(candidate -> {
+                    Map<String, Object> candidateMap = new HashMap<>();
+                    candidateMap.put("userId", candidate.userId());
+                    candidateMap.put("nickname", candidate.nickname());
+                    return candidateMap;
+                })
+                .toList());
+
+        try {
+            rouletteRef.setValueAsync(updates).get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while updating pickup roulette.", e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException("Failed to update pickup roulette.", e);
+        }
+    }
+
+    private void pushPickupWinnerChatMessage(String groupId, User winner) {
+        DatabaseReference messagesRef = FirebaseDatabase.getInstance()
+                .getReference("group_orders/" + groupId + "/chat/messages");
+
+        Map<String, Object> message = new HashMap<>();
+        message.put("senderId", 0L);
+        message.put("sendName", "PickPay");
+        message.put("message", winner.getNickname() + "님이 픽업 담당자로 선정되었습니다.");
+        message.put("createdAt", System.currentTimeMillis());
+
+        messagesRef.push().setValueAsync(message);
     }
 
     private void validateCanCloseGroupOrder(GroupOrder groupOrder, Long requestUserId) {
-
-        if (!groupOrder.getHost().getUserId().equals(requestUserId)) {
-            throw new AccessDeniedException("방장만 주문을 마감할 수 있습니다.");
-        }
+        validateHost(groupOrder, requestUserId);
 
         if (groupOrder.getStatus() == GroupOrderStatus.PAID) {
-            throw new IllegalStateException("이미 결제가 완료된 그룹방입니다.");
+            throw new IllegalStateException("This group order is already paid.");
         }
 
         if (groupOrder.getStatus() == GroupOrderStatus.LOCKED) {
-            throw new IllegalStateException("이미 주문이 마감된 그룹방입니다.");
+            throw new IllegalStateException("This group order is already closed.");
         }
 
         if (groupOrder.getStatus() != GroupOrderStatus.OPEN) {
-            throw new IllegalStateException("마감할 수 없는 그룹방 상태입니다.");
+            throw new IllegalStateException("This group order cannot be closed.");
         }
     }
-    
-    // 영수증 조회 
+
+    private void validateHost(GroupOrder groupOrder, Long requestUserId) {
+        if (!groupOrder.getHost().getUserId().equals(requestUserId)) {
+            throw new AccessDeniedException("Only the host can manage this group order.");
+        }
+    }
+
     @Transactional(readOnly = true)
-    public GroupOrderReceiptResponseDTO getReceipt(Long groupId) {
-    	
-    	GroupOrder groupOrder = groupOrderRepository.findById(groupId)
-    			.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 그룹입니다"));
-    	
-    	List<Order> orders = orderRepository.findByGroupOrder_GroupId(groupId);
-    	
-    	// 영수증 리스트, 그룹 price 
-    	Long totalGroupPrice = 0L;
-    	List<UserReceiptDTO> userReceiptList = new ArrayList<>();
-    	
-    	// 모든 주문서를 돌면서 영수증 상세 내역 채우기 
-    	for(Order order : orders) {
-    		totalGroupPrice += order.getTotalPrice();
-    		List<OrderItems> rawOrderItems = orderItemsRepository.findByOrder_OrderId(order.getOrderId());
-    		List<OrderReceiptItemDTO> itemDTOList = rawOrderItems.stream()
-    				.map(item -> new OrderReceiptItemDTO( // record 기본 생성자 
-    						item.getProduct().getName(), // Product = Menu
-    						item.getQuantity(),
-    						item.getProduct().getPrice()
-    						))
-    				.collect(Collectors.toList());
-    		
-    		UserReceiptDTO userReceiptDTO = UserReceiptDTO.builder()
-    				.userId(order.getUser().getUserId())
+    public GroupOrderReceiptResponseDTO getReceipt(String groupId) {
+        GroupOrder groupOrder = groupOrderRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("Group not found."));
+
+        List<Order> orders = orderRepository.findByGroupOrder_GroupId(groupId);
+
+        Long totalGroupPrice = 0L;
+        List<UserReceiptDTO> userReceiptList = new ArrayList<>();
+
+        for (Order order : orders) {
+            totalGroupPrice += order.getTotalPrice();
+            List<OrderItems> rawOrderItems = orderItemsRepository.findByOrder_OrderId(order.getOrderId());
+            List<OrderReceiptItemDTO> itemDTOList = rawOrderItems.stream()
+                    .map(item -> new OrderReceiptItemDTO(
+                            item.getProduct().getName(),
+                            item.getQuantity(),
+                            item.getProduct().getPrice()
+                    ))
+                    .collect(Collectors.toList());
+
+            UserReceiptDTO userReceiptDTO = UserReceiptDTO.builder()
+                    .userId(order.getUser().getUserId())
                     .orderNo(order.getOrderNo())
-    				.nickname(order.getUser().getNickname())
-    				.userTotalPrice(order.getTotalPrice())
-    				.items(itemDTOList)
-    				.build();
-    		
-    		userReceiptList.add(userReceiptDTO);
-    	}
-    	
-    	return GroupOrderReceiptResponseDTO.builder()
-    			.groupId(groupOrder.getGroupId())
+                    .nickname(order.getUser().getNickname())
+                    .userTotalPrice(order.getTotalPrice())
+                    .items(itemDTOList)
+                    .build();
+
+            userReceiptList.add(userReceiptDTO);
+        }
+
+        return GroupOrderReceiptResponseDTO.builder()
+                .groupId(groupOrder.getGroupId())
                 .payType(groupOrder.getPayType() == null ? null : groupOrder.getPayType().name())
-    			.totalGroupPrice(totalGroupPrice)
-    			.userReceipts(userReceiptList)
-    			.build();
-    	
-    	
+                .totalGroupPrice(totalGroupPrice)
+                .userReceipts(userReceiptList)
+                .build();
     }
 }

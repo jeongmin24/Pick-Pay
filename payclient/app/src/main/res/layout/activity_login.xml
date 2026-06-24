@@ -1,90 +1,184 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="24dp">
+    android:background="@color/login_background">
 
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toTopOf="@id/login_footer"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingHorizontal="32dp"
+            android:paddingTop="64dp"
+            android:paddingBottom="32dp">
+
+            <!-- 로고 섹션 -->
+            <ImageView
+                android:id="@+id/iv_logo"
+                android:layout_width="90dp"
+                android:layout_height="90dp"
+                android:contentDescription="@string/app_name"
+                android:src="@drawable/ic_pickpay_face" />
+
+            <TextView
+                android:id="@+id/tv_welcome_msg"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="반가워요!"
+                android:textColor="@color/coffee_brown_dark"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_app_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="따뜻한 일상을 결제하는 Pick Pay"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+
+            <!-- 아이디 입력 필드 (정렬 보정 완료) -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_login_id"
+                style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                app:boxBackgroundColor="@color/login_field_background"
+                app:boxCornerRadiusBottomEnd="14dp"
+                app:boxCornerRadiusBottomStart="14dp"
+                app:boxCornerRadiusTopEnd="14dp"
+                app:boxCornerRadiusTopStart="14dp"
+                app:boxStrokeWidth="0dp"
+                app:boxStrokeWidthFocused="0dp"
+                app:hintEnabled="false"
+                app:startIconDrawable="@drawable/ic_login_user"
+                app:startIconTint="@color/login_icon">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_login_id"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="@android:color/transparent"
+                    android:gravity="center_vertical"
+                    android:hint="아이디"
+                    android:includeFontPadding="false"
+                    android:inputType="text"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="0dp"
+                    android:paddingStart="0dp"
+                    android:singleLine="true"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/login_hint"
+                    android:textSize="15sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_password"
+                style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                app:boxBackgroundColor="@color/login_field_background"
+                app:boxCornerRadiusBottomEnd="14dp"
+                app:boxCornerRadiusBottomStart="14dp"
+                app:boxCornerRadiusTopEnd="14dp"
+                app:boxCornerRadiusTopStart="14dp"
+                app:boxStrokeWidth="0dp"
+                app:boxStrokeWidthFocused="0dp"
+                app:endIconMode="password_toggle"
+                app:endIconTint="@color/login_icon"
+                app:hintEnabled="false"
+                app:startIconDrawable="@drawable/ic_login_lock"
+                app:startIconTint="@color/login_icon">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_password"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="@android:color/transparent"
+                    android:gravity="center_vertical"
+                    android:hint="비밀번호"
+                    android:includeFontPadding="false"
+                    android:inputType="textPassword"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="0dp"
+                    android:paddingStart="0dp"
+                    android:singleLine="true"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/login_hint"
+                    android:textSize="15sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- 로그인 버튼 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_login"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="32dp"
+                android:backgroundTint="@color/login_button"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="로그인"
+                android:textColor="@color/login_button_text"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                app:cornerRadius="14dp"
+                app:elevation="1dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_go_to_signup"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="아직 회원이 아니신가요? 회원가입"
+                android:textColor="@color/coffee_brown_dark"
+                android:textSize="13sp" />
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- 푸터 -->
     <LinearLayout
+        android:id="@+id/login_footer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center"
         android:orientation="vertical"
-        android:gravity="center_horizontal"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        android:paddingBottom="20dp"
+        app:layout_constraintBottom_toBottomOf="parent">
 
         <ImageView
-            android:id="@+id/iv_logo"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            android:src="@drawable/ic_bread" />
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:alpha="0.5"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_cup_line"
+            app:tint="@color/login_footer" />
 
         <TextView
-            android:id="@+id/tv_app_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Pick Pay"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:textColor="@color/deep_brown"
-            android:layout_marginTop="4dp" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/til_login_id"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="아이디"
-            app:boxStrokeColor="@color/beige"
-            app:hintTextColor="@color/deep_brown"
-            android:layout_marginTop="24dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_login_id"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="12dp"
-                android:inputType="text" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/til_password"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="비밀번호"
-            app:boxStrokeColor="@color/beige"
-            app:hintTextColor="@color/deep_brown"
-            app:passwordToggleEnabled="true"
-            app:passwordToggleTint="@color/beige"
-            android:layout_marginTop="8dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_password"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="12dp"
-                android:inputType="textPassword" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <Button
-            android:id="@+id/btn_login"
-            android:layout_width="match_parent"
-            android:layout_height="52dp"
-            android:text="로그인"
-            android:textSize="16sp"
-            android:backgroundTint="@color/beige"
-            android:layout_marginTop="20dp" />
-
-        <Button
-            android:id="@+id/btn_go_to_signup"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="회원가입"
-            android:textColor="@color/deep_brown"
-            android:layout_marginTop="4dp" />
-
+            android:layout_marginTop="8dp"
+            android:letterSpacing="0.1"
+            android:text="DIGITAL HYGGE EXPERIENCE"
+            android:textColor="@color/login_footer"
+            android:textSize="10sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <ProgressBar

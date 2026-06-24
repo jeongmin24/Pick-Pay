@@ -43,7 +43,16 @@
         <action
             android:id="@+id/action_fragment_group_order_to_fragment_group_cart"
             app:destination="@id/fragment_group_cart" />
+        <action
+            android:id="@+id/action_fragment_group_order_to_fragment_group_chat"
+            app:destination="@id/fragment_group_chat" />
     </fragment>
+
+    <fragment
+        android:id="@+id/fragment_group_chat"
+        android:name="com.ssafy.payclient.fragment.GroupChatFragment"
+        android:label="GroupChatFragment"
+        tools:layout="@layout/fragment_group_chat" />
 
     <fragment
         android:id="@+id/fragment_group_cart"

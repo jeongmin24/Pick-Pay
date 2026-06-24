@@ -7,4 +7,28 @@
     </style>
 
     <style name="Theme.Payclient" parent="Base.Theme.Payclient" />
+
+    <style name="BottomNavActiveIndicator">
+        <item name="android:width">48dp</item>
+        <item name="android:height">48dp</item>
+        <item name="android:color">@color/nav_selected_bg</item>
+        <item name="shapeAppearance">@style/BottomNavActiveIndicatorShape</item>
+    </style>
+
+    <style name="BottomNavActiveIndicatorShape">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
+
+    <style name="TextAppearance.Payclient.GroupOrderTitle" parent="TextAppearance.MaterialComponents.Headline6">
+        <item name="android:textSize">23sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <style name="TextAppearance.Payclient.ChatTitle" parent="TextAppearance.MaterialComponents.Headline6">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
 </resources>

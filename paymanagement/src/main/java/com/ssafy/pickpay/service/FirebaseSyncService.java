@@ -64,7 +64,7 @@ public class FirebaseSyncService {
     /**
      * 주문 마감 후 Firebase 상태를 LOCKED로 업데이트
      * */
-    public void updateFirebaseGroupStatus(Long groupId, GroupPayType payType) {
+    public void updateFirebaseGroupStatus(String groupId, GroupPayType payType) {
 
         DatabaseReference groupRef = FirebaseDatabase.getInstance()
                 .getReference("group_orders/" + groupId);

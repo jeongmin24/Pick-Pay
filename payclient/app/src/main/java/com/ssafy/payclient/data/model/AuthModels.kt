@@ -32,3 +32,7 @@ data class UserUpdateRequest(
     val loginId: String,
     val nickname: String
 )
+
+data class FcmTokenRequest(
+    val fcmToken: String
+)

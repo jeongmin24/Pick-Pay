@@ -13,8 +13,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -30,8 +28,8 @@ import lombok.Setter;
 public class GroupOrder {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long groupId;
+    @Column(name = "group_id", nullable = false, updatable = false, length = 36)
+    private String groupId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "host_id")
@@ -57,6 +55,7 @@ public class GroupOrder {
 
     public static GroupOrder createGroupOrder(User host) {
         GroupOrder groupOrder = new GroupOrder();
+        groupOrder.setGroupId(UUID.randomUUID().toString());
         groupOrder.setHost(host);
         groupOrder.setStatus(GroupOrderStatus.OPEN);
         groupOrder.setShareToken(UUID.randomUUID().toString());

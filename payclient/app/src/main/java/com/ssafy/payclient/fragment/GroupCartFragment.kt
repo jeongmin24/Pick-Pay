@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -20,6 +21,8 @@ import com.ssafy.payclient.data.model.FirebaseCartItem
 import com.ssafy.payclient.databinding.FragmentGroupCartBinding
 import com.ssafy.payclient.ui.cart.GroupCartAdapter
 import com.ssafy.payclient.ui.cart.GroupCartItemUi
+import java.text.NumberFormat
+import java.util.Locale
 
 class GroupCartFragment : Fragment() {
 
@@ -29,7 +32,7 @@ class GroupCartFragment : Fragment() {
     private lateinit var database: DatabaseReference
     private lateinit var groupCartAdapter: GroupCartAdapter
 
-    private var groupId: Long = -1L
+    private var groupId: String = ""
     private var isHost: Boolean = false
     private var currentUserId: Long = -1L
     private var cartItemsListener: ValueEventListener? = null
@@ -46,7 +49,7 @@ class GroupCartFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        groupId = arguments?.getLong("GROUP_ID") ?: -1L
+        groupId = arguments?.getString("GROUP_ID").orEmpty()
         isHost = arguments?.getBoolean("IS_HOST") ?: false
         currentUserId = arguments?.getLong("USER_ID") ?: -1L
 
@@ -59,6 +62,9 @@ class GroupCartFragment : Fragment() {
     }
 
     private fun setupToolbar() {
+        binding.toolbarGroupCart.navigationIcon?.setTint(
+            ContextCompat.getColor(requireContext(), R.color.coffee_brown_dark)
+        )
         binding.toolbarGroupCart.setNavigationOnClickListener {
             findNavController().popBackStack()
         }
@@ -86,7 +92,7 @@ class GroupCartFragment : Fragment() {
     }
 
     private fun setupCloseButton() {
-        binding.btnCloseOrder.visibility = if (isHost) View.VISIBLE else View.GONE
+        binding.btnCloseOrder.visibility = View.VISIBLE
         binding.btnCloseOrder.setOnClickListener {
             closeOrderAndProceedToPayment()
         }
@@ -119,8 +125,19 @@ class GroupCartFragment : Fragment() {
         groupCartAdapter.updateItems(items)
 
         val isEmpty = items.isEmpty()
+        val itemCount = items.sumOf { it.item.quantity }
+        val totalPrice = items.sumOf { it.item.price * it.item.quantity }
+
+        binding.tvGroupCartSummary.text = "총 ${itemCount}개의 메뉴가 담겨있습니다."
+        binding.tvGroupCartTotal.text = formatWon(totalPrice)
         binding.tvEmptyGroupCart.visibility = if (isEmpty) View.VISIBLE else View.GONE
         binding.rvGroupCartItems.visibility = if (isEmpty) View.GONE else View.VISIBLE
+        binding.btnCloseOrder.isEnabled = isHost && !isEmpty
+        binding.btnCloseOrder.text = if (isHost) {
+            if (isEmpty) "메뉴를 담아주세요" else "주문 마감하기"
+        } else {
+            "방장이 주문을 마감합니다"
+        }
     }
 
     private fun updateMyCartItemQuantity(cartItem: GroupCartItemUi, delta: Int) {
@@ -169,7 +186,7 @@ class GroupCartFragment : Fragment() {
     }
 
     private fun getItemsRef(): DatabaseReference {
-        return database.child("group_orders").child(groupId.toString()).child("items")
+        return database.child("group_orders").child(groupId).child("items")
     }
 
     private fun DataSnapshot.toFirebaseCartItem(): FirebaseCartItem? {
@@ -180,8 +197,10 @@ class GroupCartFragment : Fragment() {
         return item.copy(productId = productId)
     }
 
+    private fun formatWon(value: Long): String = "₩${PRICE_FORMAT.format(value)}"
+
     private fun closeOrderAndProceedToPayment() {
-        if (groupId <= 0L) {
+        if (groupId.isBlank()) {
             Toast.makeText(requireContext(), "그룹방 정보를 확인할 수 없습니다.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -189,7 +208,7 @@ class GroupCartFragment : Fragment() {
         findNavController().navigate(
             R.id.action_fragment_group_cart_to_fragment_group_pay_type,
             Bundle().apply {
-                putLong("GROUP_ID", groupId)
+                putString("GROUP_ID", groupId)
                 putBoolean("IS_HOST", isHost)
                 putLong("USER_ID", currentUserId)
             }
@@ -212,5 +231,9 @@ class GroupCartFragment : Fragment() {
             getItemsRef().removeEventListener(it)
         }
         _binding = null
+    }
+
+    companion object {
+        private val PRICE_FORMAT: NumberFormat = NumberFormat.getNumberInstance(Locale.KOREA)
     }
 }
