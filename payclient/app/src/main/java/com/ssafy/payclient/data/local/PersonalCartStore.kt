@@ -6,7 +6,8 @@ data class PersonalCartItem(
     val menuId: Long,
     val menuName: String,
     val price: Long,
-    val quantity: Int
+    val quantity: Int,
+    val imageUrl: String
 )
 
 object PersonalCartStore {
@@ -19,7 +20,8 @@ object PersonalCartStore {
                 menuId = menu.menuId,
                 menuName = menu.name,
                 price = menu.price,
-                quantity = quantity
+                quantity = quantity,
+                imageUrl = menu.imageUrl
             )
         } else {
             currentItem.copy(quantity = currentItem.quantity + quantity)
