@@ -12,8 +12,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.NavHostFragment
 import com.bumptech.glide.Glide
 import com.ssafy.payclient.MainActivity
+import com.ssafy.payclient.R
 import com.ssafy.payclient.data.local.PersonalCartStore
 import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.model.ReviewResponseDTO
@@ -93,10 +95,9 @@ class ReviewDetailActivity : AppCompatActivity() {
                     Toast.makeText(this, "${successCount}개의 메뉴를 장바구니에 담았습니다.", Toast.LENGTH_SHORT).show()
 
                     val intent = Intent(this, MainActivity::class.java).apply {
-                        putExtra("GO_TO_CART", true)
                         flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        putExtra("GO_TO_CART", true)
                     }
-
                     startActivity(intent)
                     finish()
                 } else {

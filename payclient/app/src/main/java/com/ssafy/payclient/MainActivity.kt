@@ -39,12 +39,6 @@ class MainActivity : AppCompatActivity() {
 
     private val sharedTokenManager by lazy { TokenManager(applicationContext) }
 
-//    private val viewModel: MainViewModel by viewModels {
-//        val apiService = RetrofitClient.getApiService(sharedTokenManager)
-//        val repository = AuthRepository(apiService)
-//        ViewModelFactory(repository, sharedTokenManager)
-//    }
-
     private val menuViewModel: MenuViewModel by viewModels {
         MenuViewModelFactory(sharedTokenManager)
     }
@@ -78,8 +72,8 @@ class MainActivity : AppCompatActivity() {
         registerFcmToken()
         handlePaymentDeepLink(intent)
         handleDutchPaymentIntent(intent)
-//        observeViewModel()
         handlePaymentDeepLink(getIntent())
+        handleGoToCartIntent(intent)
     }
 
     override fun onResume() {
@@ -97,8 +91,8 @@ class MainActivity : AppCompatActivity() {
         setIntent(intent)
         handlePaymentDeepLink(intent)
         handleDutchPaymentIntent(intent)
-
         handleMenuNfcIntent(intent)
+        handleGoToCartIntent(intent)
     }
 
     private fun initViews() {
@@ -225,6 +219,18 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    private fun handleGoToCartIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra("GO_TO_CART", false) == true) {
+            val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
+            val navController = navHostFragment?.navController
+
+            navController?.navigate(R.id.fragment_cart)
+
+            intent.removeExtra("GO_TO_CART")
+        }
+
+    }
+
 //    private fun observeViewModel() {
 //        lifecycleScope.launch {
 //            viewModel.logoutState.collect { state ->
@@ -252,16 +258,6 @@ class MainActivity : AppCompatActivity() {
 //        startActivity(intent)
 //        finish()
 //    }
-
-    private fun checkIntentForCart(intent: Intent?) {
-        val goToCart = intent?.getBooleanExtra("GO_TO_CART", false) ?: false
-        if (goToCart) {
-            val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
-            val navController = navHostFragment?.navController
-
-            navController?.navigate(R.id.fragment_cart)
-        }
-    }
 
     companion object {
         const val PAYMENT_DEEP_LINK_URI = "PAYMENT_DEEP_LINK_URI"

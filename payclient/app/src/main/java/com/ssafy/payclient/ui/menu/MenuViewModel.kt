@@ -78,7 +78,9 @@ class MenuViewModel(private val tokenManager: TokenManager): ViewModel() {
 
             for (name in menuNames) {
                 try {
-                    val menu = menuRepository.getMenuByName(name)
+                    val cleanName = name.trim().replace("\n", "").replace("\r", "")
+                    val finalizedName = java.text.Normalizer.normalize(cleanName, java.text.Normalizer.Form.NFC) // mac 한글 설정 오류
+                    val menu = menuRepository.getMenuByName(finalizedName)
 
                     PersonalCartStore.add(menu, 1)
                     successCount++
