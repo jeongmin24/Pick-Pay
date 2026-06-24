@@ -28,11 +28,6 @@
             android:windowSoftInputMode="adjustResize" />
 
         <service
-            android:name=".data.api.ReviewApiService"
-            android:enabled="true"
-            android:exported="true" />
-
-        <service
             android:name=".data.messaging.PickPayFirebaseMessagingService"
             android:exported="false">
             <intent-filter>
