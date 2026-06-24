@@ -12,16 +12,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.fragment.NavHostFragment
 import com.bumptech.glide.Glide
 import com.ssafy.payclient.MainActivity
-import com.ssafy.payclient.R
-import com.ssafy.payclient.data.local.PersonalCartStore
 import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.model.ReviewResponseDTO
-import com.ssafy.payclient.data.network.RetrofitClient.menuApiService
 import com.ssafy.payclient.databinding.ActivityReviewDetailBinding
-import com.ssafy.payclient.fragment.CartFragment
 import com.ssafy.payclient.ui.menu.MenuViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
