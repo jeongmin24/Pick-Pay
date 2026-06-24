@@ -17,10 +17,10 @@ class RecentOrderAdapter(
 
         fun bind(order: RecentOrderResponseDTO) {
             binding.tvRecentOrderName.text = buildOrderName(order)
-            binding.tvRecentOrderStatus.text = order.status
-            binding.tvRecentOrderNo.text = "Order ${order.orderNo}"
+            binding.tvRecentOrderStatus.text = formatStatus(order.status)
+            binding.tvRecentOrderNo.text = "주문 ${order.orderNo}"
             binding.tvRecentOrderDate.text = formatDate(order.createdAt)
-            binding.tvRecentOrderPrice.text = "${priceFormat.format(order.totalPrice)} won"
+            binding.tvRecentOrderPrice.text = "${priceFormat.format(order.totalPrice)}원"
         }
     }
 
@@ -45,10 +45,10 @@ class RecentOrderAdapter(
     }
 
     private fun buildOrderName(order: RecentOrderResponseDTO): String {
-        val firstMenuName = order.firstMenuName ?: "Order item"
+        val firstMenuName = order.firstMenuName ?: "주문 메뉴"
         val extraCount = order.itemCount - 1
         return if (extraCount > 0) {
-            "$firstMenuName + $extraCount"
+            "$firstMenuName 외 ${extraCount}건"
         } else {
             firstMenuName
         }
@@ -59,6 +59,16 @@ class RecentOrderAdapter(
             .replace("T", " ")
             .substringBefore(".")
             .take(16)
+            .replace("-", ".")
+    }
+
+    private fun formatStatus(status: String): String {
+        return when (status.uppercase()) {
+            "COMPLETED", "DONE", "PICKED_UP", "PAID" -> "수령 완료"
+            "READY" -> "수령 대기"
+            "CANCELED", "CANCELLED" -> "취소"
+            else -> status
+        }
     }
 
     companion object {

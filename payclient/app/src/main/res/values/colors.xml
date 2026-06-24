@@ -18,6 +18,7 @@
     <color name="promo_blue_text">#1769C2</color>
     <color name="matcha_green">#7CB342</color>
     <color name="matcha_green_dark">#416D22</color>
+    <color name="open_green">#42D36B</color>
     <color name="nav_selected_bg">#F0E8E3</color>
     <color name="nav_unselected">#4F4037</color>
     <color name="login_background">#FFFCF8</color>

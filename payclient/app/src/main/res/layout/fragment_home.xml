@@ -84,21 +84,11 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/bg_home_hero"
+                android:background="@drawable/banner"
                 android:paddingStart="22dp"
                 android:paddingTop="76dp"
                 android:paddingEnd="18dp"
                 android:paddingBottom="20dp">
-
-                <ImageView
-                    android:id="@+id/ivHeroParfait"
-                    android:layout_width="150dp"
-                    android:layout_height="150dp"
-                    android:contentDescription="@null"
-                    android:src="@drawable/ic_parfait_hero"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
 
                 <TextView
                     android:id="@+id/tvBannerTag"
@@ -119,7 +109,6 @@
                     android:id="@+id/tvBannerTitle"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
                     android:shadowColor="#70000000"
                     android:shadowDx="0"
                     android:shadowDy="2"
@@ -129,7 +118,6 @@
                     android:textSize="20sp"
                     android:textStyle="bold"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintEnd_toStartOf="@id/ivHeroParfait"
                     app:layout_constraintStart_toStartOf="parent" />
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>
