@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ssafy.pickpay.domain.CustomUserDetails;
 import com.ssafy.pickpay.dto.PaymentCompleteRequestDTO;
 import com.ssafy.pickpay.dto.PaymentCompleteResponseDTO;
+import com.ssafy.pickpay.dto.PaymentFailRequestDTO;
 import com.ssafy.pickpay.service.PaymentService;
 
 import jakarta.validation.Valid;
@@ -41,6 +42,19 @@ public class PaymentController {
 		
 		PaymentCompleteResponseDTO response = paymentService.completePayment(userId, request);
 		
+		return ResponseEntity.ok(response);
+	}
+
+	@PostMapping("/fail")
+	public ResponseEntity<PaymentCompleteResponseDTO> failPayment(
+			Authentication authentication,
+			@Valid @RequestBody PaymentFailRequestDTO request
+	) {
+		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+		Long userId = userDetails.getUserId();
+
+		PaymentCompleteResponseDTO response = paymentService.failPayment(userId, request);
+
 		return ResponseEntity.ok(response);
 	}
 

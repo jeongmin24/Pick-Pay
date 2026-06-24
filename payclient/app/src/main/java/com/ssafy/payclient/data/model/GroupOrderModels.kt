@@ -56,6 +56,7 @@ data class PickupRouletteResponse(
 data class ReceiptResponseDTO(
     val groupId: String,
     val payType: String?,
+    val groupStatus: String?,
     val totalGroupPrice: Long,
     val userReceipts: List<UserReceiptDTO>
 )
@@ -65,6 +66,7 @@ data class UserReceiptDTO(
     val userId: Long,
     val orderNo: String?,
     val nickname: String?,
+    val orderStatus: String?,
     val userTotalPrice: Long,
     val items: List<OrderItemDTO>
 )

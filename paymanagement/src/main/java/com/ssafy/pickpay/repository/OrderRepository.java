@@ -49,6 +49,16 @@ public interface OrderRepository extends JpaRepository<Order, Long>{
         where o.orderNo = :orderNo
     """)
     Optional<Order> findByOrderNoForUpdate(@Param("orderNo") String orderNo);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        select o
+        from Order o
+        join fetch o.user u
+        join fetch o.groupOrder g
+        where g.groupId = :groupId
+    """)
+    List<Order> findByGroupOrderGroupIdForUpdate(@Param("groupId") String groupId);
 	
 	boolean existsByGroupOrder_GroupIdAndStatusNot(
             String groupId,

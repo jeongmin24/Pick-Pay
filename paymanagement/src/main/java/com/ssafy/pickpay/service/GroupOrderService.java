@@ -87,11 +87,11 @@ public class GroupOrderService {
 
         GroupOrderStatus status = groupOrder.getStatus();
 
-        if (status == GroupOrderStatus.PAID) {
+        if (status == GroupOrderStatus.PAID || status == GroupOrderStatus.PAYMENT_FAILED) {
             throw new IllegalStateException("This group order is already paid.");
         }
 
-        if (status == GroupOrderStatus.LOCKED) {
+        if (status == GroupOrderStatus.LOCKED || status == GroupOrderStatus.PAYMENT_PENDING) {
             throw new IllegalStateException("This group order is already closed.");
         }
 
@@ -314,6 +314,10 @@ public class GroupOrderService {
             throw new IllegalStateException("This group order is already closed.");
         }
 
+        if (groupOrder.getStatus() == GroupOrderStatus.PAYMENT_PENDING) {
+            throw new IllegalStateException("This group order is already waiting for payment.");
+        }
+
         if (groupOrder.getStatus() != GroupOrderStatus.OPEN) {
             throw new IllegalStateException("This group order cannot be closed.");
         }
@@ -350,6 +354,7 @@ public class GroupOrderService {
                     .userId(order.getUser().getUserId())
                     .orderNo(order.getOrderNo())
                     .nickname(order.getUser().getNickname())
+                    .orderStatus(order.getStatus().name())
                     .userTotalPrice(order.getTotalPrice())
                     .items(itemDTOList)
                     .build();
@@ -360,6 +365,7 @@ public class GroupOrderService {
         return GroupOrderReceiptResponseDTO.builder()
                 .groupId(groupOrder.getGroupId())
                 .payType(groupOrder.getPayType() == null ? null : groupOrder.getPayType().name())
+                .groupStatus(groupOrder.getStatus().name())
                 .totalGroupPrice(totalGroupPrice)
                 .userReceipts(userReceiptList)
                 .build();

@@ -1,33 +1,48 @@
 package com.ssafy.pickpay.domain;
 
-import jakarta.persistence.*;
-import lombok.*;
+import java.time.LocalDateTime;
+
 import org.hibernate.annotations.CreationTimestamp;
 
 import com.ssafy.pickpay.common.OrderStatus;
 
-import java.time.LocalDateTime;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(
-		name = "orders", // 예약어 충돌 방지
-		indexes = {
-				@Index(name = "idx_orders_order_no", columnList = "order_no")
-		}
-) 
+        name = "orders",
+        indexes = {
+                @Index(name = "idx_orders_order_no", columnList = "order_no")
+        }
+)
 public class Order {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long orderId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id") // Nullable
+    @JoinColumn(name = "group_id")
     private GroupOrder groupOrder;
-    
+
     @Column(name = "order_no", length = 64, unique = true)
-    private String orderNo; // PG사용 orderId 
+    private String orderNo;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
@@ -41,38 +56,47 @@ public class Order {
 
     @CreationTimestamp
     private LocalDateTime createdAt;
-    
-    // 주문서 생성 메서드 
+
     public static Order createOrder(GroupOrder groupOrder, User user) {
         Order order = new Order();
         order.groupOrder = groupOrder;
         order.user = user;
-        order.totalPrice = 0L; // 초기값 설정 (나중에 계산 후 업데이트)
-        order.status = OrderStatus.PENDING; // 결제 대기 상태
+        order.totalPrice = 0L;
+        order.status = OrderStatus.PENDING;
         return order;
     }
-    
+
     public void assignOrderNo(String orderNo) {
-    	if(this.orderNo != null) {
-    		throw new IllegalStateException("이미 주문번호가 발급된 주문입니다.");
-    	}
-    	this.orderNo = orderNo;
+        if (this.orderNo != null) {
+            throw new IllegalStateException("Order number has already been assigned.");
+        }
+        this.orderNo = orderNo;
     }
-    
+
     public void updateTotalPrice(Long totalPrice) {
         this.totalPrice = totalPrice;
     }
-    
-    public void markPaid() {
-    	if(this.status == OrderStatus.PAID) {
-    		return;
-    	}
-    	if (this.status != OrderStatus.PENDING) {
-            throw new IllegalStateException("결제 대기 상태의 주문만 결제 완료 처리할 수 있습니다.");
+
+    public void markPaymentApproved() {
+        if (this.status == OrderStatus.PAYMENT_APPROVED || this.status == OrderStatus.PAID) {
+            return;
         }
-    	this.status = OrderStatus.PAID;
+        if (this.status != OrderStatus.PENDING) {
+            throw new IllegalStateException("Only pending orders can be approved for group payment.");
+        }
+        this.status = OrderStatus.PAYMENT_APPROVED;
     }
-    
+
+    public void markPaid() {
+        if (this.status == OrderStatus.PAID) {
+            return;
+        }
+        if (this.status != OrderStatus.PENDING && this.status != OrderStatus.PAYMENT_APPROVED) {
+            throw new IllegalStateException("Only pending or group-approved orders can be paid.");
+        }
+        this.status = OrderStatus.PAID;
+    }
+
     public void markPaymentFailed() {
         this.status = OrderStatus.PAYMENT_FAILED;
     }
@@ -80,7 +104,7 @@ public class Order {
     public void cancel() {
         this.status = OrderStatus.CANCELLED;
     }
-    
+
     public boolean isPaid() {
         return this.status == OrderStatus.PAID;
     }

@@ -1,9 +1,12 @@
 package com.ssafy.pickpay.service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -11,7 +14,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import com.ssafy.pickpay.common.ErrorCode;
+import com.ssafy.pickpay.common.GroupOrderStatus;
+import com.ssafy.pickpay.common.GroupPayType;
 import com.ssafy.pickpay.common.OrderStatus;
+import com.ssafy.pickpay.common.PaymentStatus;
 import com.ssafy.pickpay.domain.GroupOrder;
 import com.ssafy.pickpay.domain.Menu;
 import com.ssafy.pickpay.domain.Order;
@@ -19,6 +25,7 @@ import com.ssafy.pickpay.domain.OrderItems;
 import com.ssafy.pickpay.domain.Payment;
 import com.ssafy.pickpay.dto.PaymentCompleteRequestDTO;
 import com.ssafy.pickpay.dto.PaymentCompleteResponseDTO;
+import com.ssafy.pickpay.dto.PaymentFailRequestDTO;
 import com.ssafy.pickpay.dto.PgConfirmResponse;
 import com.ssafy.pickpay.exception.BusinessException;
 import com.ssafy.pickpay.infra.pg.PgPaymentClient;
@@ -31,21 +38,27 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Service @RequiredArgsConstructor
+@Service
+@RequiredArgsConstructor
 public class PaymentService {
     private static final String PG_APPROVED_STATUS = "DONE";
-    private static final String COMPENSATION_CANCEL_REASON = "주문 처리 실패로 인한 자동 결제 취소";
-	
-	private final OrderRepository orderRepository;
-	private final OrderItemsRepository orderItemsRepository;
-	private final MenuRepository menuRepository;
-	private final PaymentRepository paymentRepository;
-	private final PgPaymentClient pgPaymentClient;
+    private static final String COMPENSATION_CANCEL_REASON = "Dutch group payment failed";
+    private static final Set<PaymentStatus> CANCELABLE_PAYMENT_STATUSES = Set.of(
+            PaymentStatus.APPROVED_PENDING_GROUP,
+            PaymentStatus.APPROVED
+    );
+
+    private final OrderRepository orderRepository;
+    private final OrderItemsRepository orderItemsRepository;
+    private final MenuRepository menuRepository;
+    private final PaymentRepository paymentRepository;
+    private final PgPaymentClient pgPaymentClient;
+    private final FirebaseSyncService firebaseSyncService;
     private final TransactionTemplate transactionTemplate;
 
     @Value("${payment.expiration-minutes:30}")
     private long paymentExpirationMinutes;
-	
+
     public PaymentCompleteResponseDTO completePayment(
             Long userId,
             PaymentCompleteRequestDTO request
@@ -67,16 +80,38 @@ public class PaymentService {
             return createAlreadyPaidResponse(order);
         }
 
-        validateOrderPayable(order);
-        validatePaymentNotExpired(order);
-        validateAmount(order, request.amount());
+        try {
+            validateOrderPayable(order);
+            validatePaymentNotExpired(order);
+            validateAmount(order, request.amount());
+        } catch (BusinessException exception) {
+            if (isDutchGroupOrder(order) && exception.getErrorCode() == ErrorCode.PAYMENT_EXPIRED) {
+                compensateDutchGroupAfterDefinitiveFailure(
+                        request.orderId(),
+                        null,
+                        "Dutch group payment expired"
+                );
+            }
+            throw exception;
+        }
 
-        // PG사 결제 승인 요청 
-        PgConfirmResponse pgResponse = pgPaymentClient.confirmPayment(
-                request.paymentKey(),
-                request.orderId(),
-                request.amount()
-        );
+        PgConfirmResponse pgResponse;
+        try {
+            pgResponse = pgPaymentClient.confirmPayment(
+                    request.paymentKey(),
+                    request.orderId(),
+                    request.amount()
+            );
+        } catch (BusinessException exception) {
+            if (isDutchGroupOrder(order) && exception.getErrorCode() == ErrorCode.PG_CONFIRM_REJECTED) {
+                compensateDutchGroupAfterDefinitiveFailure(
+                        request.orderId(),
+                        null,
+                        "Dutch member payment was rejected by PG"
+                );
+            }
+            throw exception;
+        }
 
         log.info(
                 "Payment Toss confirm response orderId={}, totalAmount={}, status={}",
@@ -85,21 +120,91 @@ public class PaymentService {
                 pgResponse.status()
         );
 
-        // PG사 결제 승인 성공 후 응답 검증 
-        validatePgResponse(order, request.paymentKey(), pgResponse);
+        try {
+            validatePgResponse(order, request.paymentKey(), pgResponse);
+        } catch (BusinessException exception) {
+            if (isDutchGroupOrder(order)) {
+                compensateDutchGroupAfterApprovedFailure(
+                        request.orderId(),
+                        request.paymentKey(),
+                        exception
+                );
+            } else {
+                cancelApprovedPaymentAfterDbFailure(request, exception);
+            }
+            throw exception;
+        }
 
-        // DB처리 트랜잭션 분리 
         try {
             return transactionTemplate.execute(status ->
                     completePaymentInTransaction(userId, request, pgResponse)
             );
-        } catch (RuntimeException dbException) { // 결제 승인에 성공했는데 DB작업에서 예외가 나는 경우 -> Toss 취소 API 호출 
-            cancelApprovedPaymentAfterDbFailure(request, dbException);
+        } catch (RuntimeException dbException) {
+            if (isDutchGroupOrder(order)) {
+                compensateDutchGroupAfterApprovedFailure(
+                        request.orderId(),
+                        request.paymentKey(),
+                        dbException
+                );
+            } else {
+                cancelApprovedPaymentAfterDbFailure(request, dbException);
+            }
+
             if (dbException instanceof BusinessException businessException) {
                 throw businessException;
             }
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, dbException);
         }
+    }
+
+    public PaymentCompleteResponseDTO failPayment(
+            Long userId,
+            PaymentFailRequestDTO request
+    ) {
+        Order order = orderRepository.findByOrderNoWithUserAndGroupOrder(request.orderId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+
+        validateOrderOwner(order, userId);
+
+        if (order.isPaid()
+                || (order.getGroupOrder() != null
+                && order.getGroupOrder().getStatus() == GroupOrderStatus.PAID)) {
+            return createAlreadyPaidResponse(order);
+        }
+
+        if (order.getGroupOrder() != null
+                && order.getGroupOrder().getStatus() == GroupOrderStatus.PAYMENT_FAILED) {
+            return createPaymentResponse(order, "Group payment already failed.");
+        }
+
+        if (isDutchGroupOrder(order)) {
+            compensateDutchGroupAfterDefinitiveFailure(
+                    request.orderId(),
+                    null,
+                    request.reason()
+            );
+
+            Order failedOrder = orderRepository.findByOrderNoWithUserAndGroupOrder(request.orderId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+            return createPaymentResponse(
+                    failedOrder,
+                    "Group payment failed."
+            );
+        }
+
+        return transactionTemplate.execute(status -> {
+            Order lockedOrder = orderRepository.findByOrderNoForUpdate(request.orderId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+            validateOrderOwner(lockedOrder, userId);
+            if (lockedOrder.isPaid()) {
+                return createAlreadyPaidResponse(lockedOrder);
+            }
+            lockedOrder.markPaymentFailed();
+            return createPaymentResponse(
+                    lockedOrder,
+                    "Payment failed."
+            );
+        });
     }
 
     private PaymentCompleteResponseDTO completePaymentInTransaction(
@@ -135,6 +240,10 @@ public class PaymentService {
             throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
 
+        if (isDutchGroupOrder(lockedOrder)) {
+            return completeDutchPaymentInTransaction(lockedOrder, payment);
+        }
+
         decreaseMenuStock(lockedOrder);
 
         lockedOrder.markPaid();
@@ -143,12 +252,172 @@ public class PaymentService {
 
         updateGroupOrderIfNeeded(lockedOrder);
 
-        return new PaymentCompleteResponseDTO(
-                lockedOrder.getOrderNo(),
-                lockedOrder.getTotalPrice(),
-                lockedOrder.getStatus().name(),
-                "결제가 완료되었습니다."
+        return createPaymentResponse(
+                lockedOrder,
+                "Payment completed."
         );
+    }
+
+    private PaymentCompleteResponseDTO completeDutchPaymentInTransaction(
+            Order lockedOrder,
+            Payment payment
+    ) {
+        lockedOrder.markPaymentApproved();
+        payment.approvePendingGroup();
+        paymentRepository.save(payment);
+
+        GroupOrder groupOrder = lockedOrder.getGroupOrder();
+        List<Order> groupOrders = orderRepository.findByGroupOrderGroupIdForUpdate(
+                groupOrder.getGroupId()
+        );
+
+        boolean hasFailedOrder = groupOrders.stream()
+                .anyMatch(order -> order.getStatus() == OrderStatus.PAYMENT_FAILED
+                        || order.getStatus() == OrderStatus.CANCELLED);
+
+        if (hasFailedOrder) {
+            throw new BusinessException(ErrorCode.PAYMENT_CONFLICT);
+        }
+
+        boolean allApproved = groupOrders.stream()
+                .allMatch(order -> order.getStatus() == OrderStatus.PAYMENT_APPROVED);
+
+        if (!allApproved) {
+            return createPaymentResponse(
+                    lockedOrder,
+                    "Payment approved. Waiting for other members."
+            );
+        }
+
+        decreaseMenuStockForOrders(groupOrders);
+
+        groupOrders.forEach(Order::markPaid);
+        paymentRepository.findByGroupId(groupOrder.getGroupId())
+                .forEach(Payment::approve);
+        groupOrder.markPaid();
+        updateFirebaseGroupPaymentStatusQuietly(groupOrder.getGroupId(), GroupOrderStatus.PAID);
+
+        return createPaymentResponse(
+                lockedOrder,
+                "All group members have paid."
+        );
+    }
+
+    private void compensateDutchGroupAfterApprovedFailure(
+            String orderNo,
+            String currentPaymentKey,
+            RuntimeException dbException
+    ) {
+        DutchCompensationTarget target = compensateDutchGroupAfterDefinitiveFailure(
+                orderNo,
+                currentPaymentKey,
+                COMPENSATION_CANCEL_REASON
+        );
+
+        if (target.cancelPaymentKeys().isEmpty()) {
+            return;
+        }
+
+        log.warn(
+                "Dutch group compensation completed groupId={}, canceledPayments={}",
+                target.groupId(),
+                target.cancelPaymentKeys().size()
+        );
+
+        if (dbException instanceof BusinessException businessException) {
+            throw businessException;
+        }
+    }
+
+    private DutchCompensationTarget compensateDutchGroupAfterDefinitiveFailure(
+            String orderNo,
+            String currentPaymentKey,
+            String reason
+    ) {
+        DutchCompensationTarget target = transactionTemplate.execute(status ->
+                markDutchGroupFailedAndCollectCancelTargets(orderNo, currentPaymentKey)
+        );
+
+        if (target == null || target.cancelPaymentKeys().isEmpty()) {
+            DutchCompensationTarget safeTarget = target == null
+                    ? new DutchCompensationTarget(null, List.of())
+                    : target;
+            updateFirebaseGroupPaymentStatusQuietly(
+                    safeTarget.groupId(),
+                    GroupOrderStatus.PAYMENT_FAILED
+            );
+            return safeTarget;
+        }
+
+        List<String> canceledPaymentKeys = cancelApprovedPayments(target.cancelPaymentKeys(), reason);
+
+        transactionTemplate.executeWithoutResult(status ->
+                markPaymentsCanceled(canceledPaymentKeys, reason)
+        );
+
+        updateFirebaseGroupPaymentStatusQuietly(target.groupId(), GroupOrderStatus.PAYMENT_FAILED);
+
+        return new DutchCompensationTarget(target.groupId(), canceledPaymentKeys);
+    }
+
+    private DutchCompensationTarget markDutchGroupFailedAndCollectCancelTargets(
+            String orderNo,
+            String currentPaymentKey
+    ) {
+        Order failedOrder = orderRepository.findByOrderNoForUpdate(orderNo)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+
+        if (!isDutchGroupOrder(failedOrder)) {
+            return new DutchCompensationTarget(null, List.of());
+        }
+
+        GroupOrder groupOrder = failedOrder.getGroupOrder();
+        List<Order> groupOrders = orderRepository.findByGroupOrderGroupIdForUpdate(
+                groupOrder.getGroupId()
+        );
+
+        groupOrders.forEach(Order::markPaymentFailed);
+        groupOrder.markPaymentFailed();
+
+        LinkedHashSet<String> paymentKeys = paymentRepository.findByGroupId(groupOrder.getGroupId())
+                .stream()
+                .filter(payment -> CANCELABLE_PAYMENT_STATUSES.contains(payment.getStatus()))
+                .map(Payment::getPaymentKey)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        if (currentPaymentKey != null && !currentPaymentKey.isBlank()) {
+            paymentKeys.add(currentPaymentKey);
+        }
+
+        return new DutchCompensationTarget(
+                groupOrder.getGroupId(),
+                new ArrayList<>(paymentKeys)
+        );
+    }
+
+    private List<String> cancelApprovedPayments(List<String> paymentKeys, String reason) {
+        List<String> canceledPaymentKeys = new ArrayList<>();
+
+        for (String paymentKey : paymentKeys) {
+            String idempotencyKey = "dutch-group-cancel-"
+                    + Integer.toUnsignedString(paymentKey.hashCode());
+
+            pgPaymentClient.cancelPayment(
+                    paymentKey,
+                    reason,
+                    idempotencyKey
+            );
+            canceledPaymentKeys.add(paymentKey);
+        }
+
+        return canceledPaymentKeys;
+    }
+
+    private void markPaymentsCanceled(List<String> paymentKeys, String reason) {
+        for (String paymentKey : paymentKeys) {
+            paymentRepository.findByPaymentKey(paymentKey)
+                    .ifPresent(payment -> payment.cancel(reason));
+        }
     }
 
     private void cancelApprovedPaymentAfterDbFailure(
@@ -161,10 +430,9 @@ public class PaymentService {
                 + Integer.toUnsignedString(request.paymentKey().hashCode());
 
         try {
-        	// cancelAmount 안넣으면 전액취소
             pgPaymentClient.cancelPayment(
                     request.paymentKey(),
-                    COMPENSATION_CANCEL_REASON,
+                    "Payment canceled after order processing failure",
                     idempotencyKey
             );
         } catch (RuntimeException cancelException) {
@@ -178,8 +446,8 @@ public class PaymentService {
             throw new BusinessException(ErrorCode.PG_CANCEL_FAILED, dbException);
         }
     }
-	
-	private void validateOrderOwner(Order order, Long loginUserId) {
+
+    private void validateOrderOwner(Order order, Long loginUserId) {
         if (!Objects.equals(order.getUser().getUserId(), loginUserId)) {
             throw new BusinessException(ErrorCode.ORDER_FORBIDDEN);
         }
@@ -229,19 +497,30 @@ public class PaymentService {
             throw new BusinessException(ErrorCode.PG_CONFIRM_REJECTED);
         }
     }
-    
-    private void decreaseMenuStock(Order order) {
-        List<OrderItems> orderItems = orderItemsRepository.findAllByOrderIdWithProduct(
-                order.getOrderId()
-        );
 
-        if (orderItems.isEmpty()) {
+    private void decreaseMenuStock(Order order) {
+        decreaseMenuStockForOrders(List.of(order));
+    }
+
+    private void decreaseMenuStockForOrders(List<Order> orders) {
+        List<OrderItems> allOrderItems = orders.stream()
+                .flatMap(order -> orderItemsRepository
+                        .findAllByOrderIdWithProduct(order.getOrderId())
+                        .stream())
+                .toList();
+
+        if (allOrderItems.isEmpty()) {
             throw new BusinessException(ErrorCode.PAYMENT_CONFLICT);
         }
 
-        List<Long> menuIds = orderItems.stream()
-                .map(orderItem -> orderItem.getProduct().getMenuId())
-                .distinct()
+        Map<Long, Integer> quantitiesByMenuId = allOrderItems.stream()
+                .collect(Collectors.groupingBy(
+                        orderItem -> orderItem.getProduct().getMenuId(),
+                        Collectors.summingInt(OrderItems::getQuantity)
+                ));
+
+        List<Long> menuIds = quantitiesByMenuId.keySet()
+                .stream()
                 .sorted()
                 .toList();
 
@@ -250,17 +529,14 @@ public class PaymentService {
         Map<Long, Menu> menuMap = lockedMenus.stream()
                 .collect(Collectors.toMap(Menu::getMenuId, menu -> menu));
 
-        for (OrderItems orderItem : orderItems) {
-            Menu product = orderItem.getProduct();
-            Long menuId = product.getMenuId();
-
+        for (Long menuId : menuIds) {
             Menu lockedMenu = menuMap.get(menuId);
 
             if (lockedMenu == null) {
                 throw new BusinessException(ErrorCode.PAYMENT_CONFLICT);
             }
 
-            lockedMenu.decreaseStock(orderItem.getQuantity());
+            lockedMenu.decreaseStock(quantitiesByMenuId.get(menuId));
         }
     }
 
@@ -281,6 +557,48 @@ public class PaymentService {
         }
     }
 
+    private boolean isDutchGroupOrder(Order order) {
+        return order.getGroupOrder() != null
+                && order.getGroupOrder().getPayType() == GroupPayType.DUTCH;
+    }
+
+    private void updateFirebaseGroupPaymentStatusQuietly(
+            String groupId,
+            GroupOrderStatus status
+    ) {
+        if (groupId == null) {
+            return;
+        }
+
+        try {
+            firebaseSyncService.updateFirebaseGroupPaymentStatus(groupId, status);
+        } catch (RuntimeException exception) {
+            log.warn(
+                    "Firebase group payment status sync failed groupId={}, status={}",
+                    groupId,
+                    status,
+                    exception
+            );
+        }
+    }
+
+    private PaymentCompleteResponseDTO createPaymentResponse(Order order, String message) {
+        GroupOrder groupOrder = order.getGroupOrder();
+
+        return new PaymentCompleteResponseDTO(
+                order.getOrderNo(),
+                order.getTotalPrice(),
+                order.getStatus().name(),
+                groupOrder == null ? null : groupOrder.getGroupId(),
+                groupOrder == null ? null : groupOrder.getStatus().name(),
+                message
+        );
+    }
+
+    private PaymentCompleteResponseDTO createAlreadyPaidResponse(Order order) {
+        return createPaymentResponse(order, "Order is already paid.");
+    }
+
     private String maskPaymentKey(String paymentKey) {
         if (paymentKey == null || paymentKey.length() <= 12) {
             return "***";
@@ -288,13 +606,9 @@ public class PaymentService {
         return paymentKey.substring(0, 6) + "..." + paymentKey.substring(paymentKey.length() - 4);
     }
 
-    private PaymentCompleteResponseDTO createAlreadyPaidResponse(Order order) {
-        return new PaymentCompleteResponseDTO(
-                order.getOrderNo(),
-                order.getTotalPrice(),
-                order.getStatus().name(),
-                "이미 결제 완료된 주문입니다."
-        );
+    private record DutchCompensationTarget(
+            String groupId,
+            List<String> cancelPaymentKeys
+    ) {
     }
-
 }

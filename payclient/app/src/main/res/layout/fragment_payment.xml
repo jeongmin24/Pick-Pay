@@ -16,7 +16,7 @@
             android:layout_height="?attr/actionBarSize"
             android:background="#FFFFFF"
             app:navigationIcon="@android:drawable/ic_media_previous"
-            app:title="결제하기"
+            app:title="Payment"
             app:titleTextColor="#333333" />
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -94,7 +94,7 @@
             android:layout_marginEnd="16dp"
             android:layout_marginBottom="48dp"
             android:backgroundTint="#333333"
-            android:text="홈으로 돌아가기"
+            android:text="Go home"
             android:textColor="#FFFFFF"
             android:textSize="17sp"
             android:visibility="gone" />

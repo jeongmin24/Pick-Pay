@@ -62,13 +62,14 @@ public class GroupOrder {
         return groupOrder;
     }
 
-    // 주문 마감 및 결제 방식 확정 
     public void closeAndSetPayType(GroupPayType payType) {
         if (this.status != GroupOrderStatus.OPEN) {
-            throw new IllegalStateException("이미 마감되었거나 종료된 주문 세션입니다..");
+            throw new IllegalStateException("Group order is already closed.");
         }
 
-        this.status = GroupOrderStatus.LOCKED;
+        this.status = payType == GroupPayType.DUTCH
+                ? GroupOrderStatus.PAYMENT_PENDING
+                : GroupOrderStatus.LOCKED;
         this.payType = payType;
     }
 
@@ -77,10 +78,18 @@ public class GroupOrder {
             return;
         }
 
-        if (this.status != GroupOrderStatus.LOCKED) {
-            throw new IllegalStateException("LOCKED 상태의 그룹만 PAID 전환이 가능합니다.");
+        if (this.status != GroupOrderStatus.LOCKED
+                && this.status != GroupOrderStatus.PAYMENT_PENDING) {
+            throw new IllegalStateException("Only locked or payment-pending groups can be paid.");
         }
 
         this.status = GroupOrderStatus.PAID;
+    }
+
+    public void markPaymentFailed() {
+        if (this.status == GroupOrderStatus.PAYMENT_FAILED) {
+            return;
+        }
+        this.status = GroupOrderStatus.PAYMENT_FAILED;
     }
 }

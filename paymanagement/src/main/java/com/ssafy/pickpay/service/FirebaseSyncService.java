@@ -70,7 +70,12 @@ public class FirebaseSyncService {
                 .getReference("group_orders/" + groupId);
 
         Map<String, Object> updates = new HashMap<>();
-        updates.put("status", GroupOrderStatus.LOCKED.name());
+        updates.put(
+                "status",
+                payType == GroupPayType.DUTCH
+                        ? GroupOrderStatus.PAYMENT_PENDING.name()
+                        : GroupOrderStatus.LOCKED.name()
+        );
         updates.put("payType", payType.name());
 
         try {
@@ -82,6 +87,23 @@ public class FirebaseSyncService {
 
         } catch (ExecutionException e) {
             throw new RuntimeException("Firebase 그룹 상태 업데이트 중 오류가 발생했습니다.", e);
+        }
+    }
+
+    public void updateFirebaseGroupPaymentStatus(String groupId, GroupOrderStatus status) {
+        DatabaseReference groupRef = FirebaseDatabase.getInstance()
+                .getReference("group_orders/" + groupId);
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("status", status.name());
+
+        try {
+            groupRef.updateChildrenAsync(updates).get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while updating Firebase group payment status.", e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException("Failed to update Firebase group payment status.", e);
         }
     }
 }

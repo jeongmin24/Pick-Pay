@@ -19,6 +19,7 @@ import com.ssafy.payclient.data.local.PersonalCartStore
 import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.model.IndividualReceiptResponseDTO
 import com.ssafy.payclient.data.model.PaymentCompleteRequest
+import com.ssafy.payclient.data.model.PaymentFailRequest
 import com.ssafy.payclient.data.model.ReceiptResponseDTO
 import com.ssafy.payclient.data.model.UserReceiptDTO
 import com.ssafy.payclient.data.network.RetrofitClient
@@ -74,7 +75,8 @@ class PaymentFragment : Fragment() {
     }
 
     private fun setupPaymentInfo() {
-        binding.tvPaymentAmount.text = "$totalPrice 원"
+        binding.tvPaymentAmount.text = "${formatPrice(totalPrice)} won"
+        binding.tvPaymentDescription.text = "Press Pay to open the card payment window."
         binding.btnPayment.isEnabled = true
         binding.btnHome.visibility = View.GONE
         binding.tvReceiptDetails.visibility = View.GONE
@@ -89,25 +91,21 @@ class PaymentFragment : Fragment() {
         }
     }
 
-    // 결제창 호출 ( Toss Payments SDK )
     private fun requestPayment() {
         val paymentInfo = TossPaymentInfo(
             orderId = orderId,
-            orderName = orderName.ifBlank { "Individual order" },
+            orderName = orderName.ifBlank { "PickPay order" },
             amount = totalPrice
         )
-        val paymentMethod = TossPaymentMethod.Card
 
-        // 실제 결제 팝업 띄우기
         tossPayments.requestPayment(
             requireActivity(),
-            paymentMethod,
+            TossPaymentMethod.Card,
             paymentInfo,
-            paymentResultLauncher // 결제 결과 콜백 함수
+            paymentResultLauncher
         )
     }
 
-    // 결제를 마치거나 취소해서 팝업이 닫힐때 콜백
     private fun handlePaymentResult(resultCode: Int, data: Intent?) {
         when (resultCode) {
             TossPayments.RESULT_PAYMENT_SUCCESS -> {
@@ -115,7 +113,7 @@ class PaymentFragment : Fragment() {
                     as? TossPaymentResult.Success
 
                 if (success == null) {
-                    Toast.makeText(requireContext(), "결제 결과를 확인할 수 없습니다.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Payment result is missing.", Toast.LENGTH_SHORT).show()
                     return
                 }
 
@@ -130,12 +128,17 @@ class PaymentFragment : Fragment() {
                     fail?.errorMessage ?: "Payment failed.",
                     Toast.LENGTH_SHORT
                 ).show()
+                notifyPaymentFailed(fail?.errorMessage ?: "Payment failed.")
             }
-            else -> Toast.makeText(
-                requireContext(),
-                "Payment was canceled.",
-                Toast.LENGTH_SHORT
-            ).show()
+
+            else -> {
+                Toast.makeText(
+                    requireContext(),
+                    "Payment was canceled.",
+                    Toast.LENGTH_SHORT
+                ).show()
+                notifyPaymentFailed("Payment was canceled.")
+            }
         }
     }
 
@@ -166,26 +169,18 @@ class PaymentFragment : Fragment() {
                     orderId = approvedOrderId,
                     amount = amount
                 )
-                Log.d(
-                    TAG,
-                    "Payment complete request paymentKey=${paymentKey.maskPaymentKey()}, " +
-                        "orderId=$approvedOrderId, amount=$amount"
-                )
+
                 val response = apiService.completePayment(request)
 
                 if (response.isSuccessful) {
                     val body = response.body()
-                    Log.d(
-                        TAG,
-                        "Payment complete success orderId=${body?.orderId}, " +
-                            "amount=${body?.amount}, status=${body?.orderStatus}"
-                    )
                     PersonalCartStore.clear()
                     Toast.makeText(
                         requireContext(),
-                        body?.message ?: "결제가 완료되었습니다.",
+                        body?.message ?: "Payment completed.",
                         Toast.LENGTH_SHORT
                     ).show()
+
                     if (groupId.isNotBlank()) {
                         fetchGroupReceipt(groupId, approvedOrderId)
                     } else {
@@ -199,7 +194,7 @@ class PaymentFragment : Fragment() {
                     )
                     Toast.makeText(
                         requireContext(),
-                        "결제 승인에 실패했습니다. (${response.code()})",
+                        "Payment confirmation failed. (${response.code()})",
                         Toast.LENGTH_SHORT
                     ).show()
                     isPaymentCompleting = false
@@ -208,7 +203,7 @@ class PaymentFragment : Fragment() {
             } catch (e: Exception) {
                 Toast.makeText(
                     requireContext(),
-                    "결제 승인 중 오류가 발생했습니다: ${e.message}",
+                    "Payment confirmation error: ${e.message}",
                     Toast.LENGTH_SHORT
                 ).show()
                 isPaymentCompleting = false
@@ -228,26 +223,53 @@ class PaymentFragment : Fragment() {
                 val userReceipt = receipt?.userReceipts?.firstOrNull { it.orderNo == orderNo }
 
                 if (receipt == null || userReceipt == null) {
-                    showReceiptLoadFailure("그룹 영수증 응답을 확인할 수 없습니다.")
+                    showReceiptLoadFailure("Group receipt response is invalid.")
                     return
                 }
 
-                renderGroupReceipt(receipt, userReceipt, orderNo)
+                renderGroupReceipt(receipt, userReceipt)
             } else {
                 Log.e(
                     TAG,
                     "Group receipt fetch failed groupId=$groupId, status=${response.code()}, " +
                         "body=${response.errorBody()?.string()}"
                 )
-                showReceiptLoadFailure("그룹 영수증 조회에 실패했습니다. (${response.code()})")
+                showReceiptLoadFailure("Group receipt failed. (${response.code()})")
             }
         } catch (e: Exception) {
-            Log.e(
-                TAG,
-                "Group receipt fetch error groupId=$groupId",
-                e
-            )
-            showReceiptLoadFailure("그룹 영수증 조회 중 오류가 발생했습니다: ${e.message}")
+            Log.e(TAG, "Group receipt fetch error groupId=$groupId", e)
+            showReceiptLoadFailure("Group receipt error: ${e.message}")
+        }
+    }
+
+    private fun notifyPaymentFailed(reason: String) {
+        if (groupId.isBlank() || orderId.isBlank()) {
+            return
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val tokenManager = TokenManager(requireContext().applicationContext)
+                val apiService = RetrofitClient.getPaymentApiService(tokenManager)
+                val response = apiService.failPayment(
+                    PaymentFailRequest(
+                        orderId = orderId,
+                        reason = reason
+                    )
+                )
+
+                if (response.isSuccessful) {
+                    fetchGroupReceipt(groupId, orderId)
+                } else {
+                    Log.e(
+                        TAG,
+                        "Payment fail notify failed status=${response.code()}, " +
+                            "body=${response.errorBody()?.string()}"
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Payment fail notify error", e)
+            }
         }
     }
 
@@ -260,7 +282,7 @@ class PaymentFragment : Fragment() {
             if (response.isSuccessful) {
                 val receipt = response.body()
                 if (receipt == null) {
-                    showReceiptLoadFailure("영수증 응답이 비어 있습니다.")
+                    showReceiptLoadFailure("Receipt response is empty.")
                     return
                 }
                 renderReceipt(receipt, orderNo)
@@ -270,21 +292,17 @@ class PaymentFragment : Fragment() {
                     "Receipt fetch failed orderNo=$orderNo, status=${response.code()}, " +
                         "body=${response.errorBody()?.string()}"
                 )
-                showReceiptLoadFailure("영수증 조회에 실패했습니다. (${response.code()})")
+                showReceiptLoadFailure("Receipt failed. (${response.code()})")
             }
         } catch (e: Exception) {
-            Log.e(
-                TAG,
-                "Receipt fetch error orderNo=$orderNo",
-                e
-            )
-            showReceiptLoadFailure("영수증 조회 중 오류가 발생했습니다: ${e.message}")
+            Log.e(TAG, "Receipt fetch error orderNo=$orderNo", e)
+            showReceiptLoadFailure("Receipt error: ${e.message}")
         }
     }
 
     private fun renderReceipt(receipt: IndividualReceiptResponseDTO, orderNo: String) {
         binding.toolbarPayment.title = "Receipt"
-        binding.tvPaymentAmount.text = "${formatPrice(receipt.totalPrice)} 원"
+        binding.tvPaymentAmount.text = "${formatPrice(receipt.totalPrice)} won"
         binding.tvPaymentDescription.text = "Payment completed"
         binding.tvReceiptDetails.text = buildReceiptText(receipt, orderNo)
         binding.tvReceiptDetails.visibility = View.VISIBLE
@@ -298,13 +316,16 @@ class PaymentFragment : Fragment() {
 
     private fun renderGroupReceipt(
         receipt: ReceiptResponseDTO,
-        userReceipt: UserReceiptDTO,
-        orderNo: String
+        userReceipt: UserReceiptDTO
     ) {
-        binding.toolbarPayment.title = "Receipt"
-        binding.tvPaymentAmount.text = "${formatPrice(userReceipt.userTotalPrice)} 원"
-        binding.tvPaymentDescription.text = "Payment completed"
-        binding.tvReceiptDetails.text = buildGroupReceiptText(receipt, userReceipt, orderNo)
+        binding.toolbarPayment.title = "Group Receipt"
+        binding.tvPaymentAmount.text = "${formatPrice(userReceipt.userTotalPrice)} won"
+        binding.tvPaymentDescription.text = when (receipt.groupStatus) {
+            "PAID" -> "All group members have paid."
+            "PAYMENT_FAILED" -> "Group payment failed and approved payments were canceled."
+            else -> "Your payment is approved. Waiting for other members."
+        }
+        binding.tvReceiptDetails.text = buildGroupReceiptText(receipt, userReceipt)
         binding.tvReceiptDetails.visibility = View.VISIBLE
         binding.btnPayment.visibility = View.GONE
         binding.btnHome.visibility = View.VISIBLE
@@ -328,7 +349,7 @@ class PaymentFragment : Fragment() {
     private fun buildReceiptText(receipt: IndividualReceiptResponseDTO, orderNo: String): String {
         val itemLines = receipt.items.joinToString(separator = "\n") { item ->
             val subtotal = item.price * item.quantity
-            "${item.menuName.orEmpty()} x ${item.quantity}  ${formatPrice(subtotal)} 원"
+            "${item.menuName.orEmpty()} x ${item.quantity}  ${formatPrice(subtotal)} won"
         }
 
         return buildString {
@@ -337,31 +358,40 @@ class PaymentFragment : Fragment() {
             appendLine("Ordered at: ${receipt.createdAt}")
             appendLine()
             appendLine("Items")
-            appendLine(if (itemLines.isBlank()) "No items" else itemLines)
+            appendLine(itemLines.ifBlank { "No items" })
             appendLine()
-            append("Total: ${formatPrice(receipt.totalPrice)} 원")
+            append("Total: ${formatPrice(receipt.totalPrice)} won")
         }
     }
 
     private fun buildGroupReceiptText(
         receipt: ReceiptResponseDTO,
-        userReceipt: UserReceiptDTO,
-        orderNo: String
+        myReceipt: UserReceiptDTO
     ): String {
-        val itemLines = userReceipt.items.joinToString(separator = "\n") { item ->
-            val subtotal = item.price * item.quantity
-            "${item.menuName.orEmpty()} x ${item.quantity}  ${formatPrice(subtotal)} 원"
-        }
-
         return buildString {
-            appendLine("Order No. $orderNo")
             appendLine("Group No. ${receipt.groupId}")
             appendLine("Pay Type: ${receipt.payType.orEmpty()}")
+            appendLine("Group Status: ${receipt.groupStatus.orEmpty()}")
+            appendLine("Group Total: ${formatPrice(receipt.totalGroupPrice)} won")
             appendLine()
-            appendLine("Items")
-            appendLine(if (itemLines.isBlank()) "No items" else itemLines)
-            appendLine()
-            append("Total: ${formatPrice(userReceipt.userTotalPrice)} 원")
+            appendLine("Members")
+
+            receipt.userReceipts.forEachIndexed { index, userReceipt ->
+                if (index > 0) appendLine()
+                val ownerLabel = if (userReceipt.orderNo == myReceipt.orderNo) " (me)" else ""
+                appendLine(
+                    "${userReceipt.nickname.orEmpty()}$ownerLabel | " +
+                        "${formatPrice(userReceipt.userTotalPrice)} won | " +
+                        userReceipt.orderStatus.orEmpty()
+                )
+                appendLine("Order No. ${userReceipt.orderNo.orEmpty()}")
+
+                val itemLines = userReceipt.items.joinToString(separator = "\n") { item ->
+                    val subtotal = item.price * item.quantity
+                    "- ${item.menuName.orEmpty()} x ${item.quantity}  ${formatPrice(subtotal)} won"
+                }
+                appendLine(itemLines.ifBlank { "- No items" })
+            }
         }
     }
 
@@ -389,16 +419,18 @@ class PaymentFragment : Fragment() {
                 val amount = uri.getQueryParameter("amount")?.toLongOrNull() ?: totalPrice
 
                 if (paymentKey.isBlank() || approvedOrderId.isBlank()) {
-                    Toast.makeText(requireContext(), "결제 승인 정보를 확인할 수 없습니다.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Payment confirmation data is missing.", Toast.LENGTH_SHORT).show()
                     _binding?.btnPayment?.isEnabled = true
                     return
                 }
 
                 completePayment(paymentKey, approvedOrderId, amount)
             }
+
             "/fail" -> {
-                val message = uri.getQueryParameter("message") ?: "결제에 실패했습니다."
+                val message = uri.getQueryParameter("message") ?: "Payment failed."
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                notifyPaymentFailed(message)
                 _binding?.btnPayment?.isEnabled = true
             }
         }

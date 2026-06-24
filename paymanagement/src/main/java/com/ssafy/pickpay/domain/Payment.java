@@ -23,7 +23,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Payment {
 
-	@Id
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long paymentId;
 
@@ -54,9 +54,19 @@ public class Payment {
         return payment;
     }
 
+    public void approvePendingGroup() {
+        this.status = PaymentStatus.APPROVED_PENDING_GROUP;
+        this.approvedAt = LocalDateTime.now();
+    }
+
     public void approve() {
         this.status = PaymentStatus.APPROVED;
         this.approvedAt = LocalDateTime.now();
+    }
+
+    public void cancel(String reason) {
+        this.status = PaymentStatus.CANCELED;
+        this.failReason = reason;
     }
 
     public void fail(String reason) {
