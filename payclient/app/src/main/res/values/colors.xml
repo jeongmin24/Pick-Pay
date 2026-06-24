@@ -33,4 +33,12 @@
     <color name="review_detail_star">#FFA000</color>
     <color name="review_ai_bg">#EAF7EE</color>
     <color name="review_ai_text">#298148</color>
+    <color name="payment_background">#FFFCF8</color>
+    <color name="payment_divider">#E8D8CA</color>
+    <color name="payment_primary">#8B674E</color>
+    <color name="payment_amount">#C49E82</color>
+    <color name="payment_muted">#6D625B</color>
+    <color name="payment_ring">#F4EDE6</color>
+    <color name="receipt_chip">#E9DED4</color>
+    <color name="receipt_dash">#DED0C5</color>
 </resources>

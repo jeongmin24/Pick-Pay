@@ -1,102 +1,475 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FA">
+    android:background="@color/payment_background">
 
-    <com.google.android.material.appbar.AppBarLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/paymentTopBar"
+        android:layout_width="0dp"
+        android:layout_height="64dp"
+        android:background="@color/payment_background"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
-        <androidx.appcompat.widget.Toolbar
+        <ImageView
             android:id="@+id/toolbar_payment"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="#FFFFFF"
-            app:navigationIcon="@android:drawable/ic_media_previous"
-            app:title="Payment"
-            app:titleTextColor="#333333" />
-    </com.google.android.material.appbar.AppBarLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:contentDescription="뒤로가기"
+            android:padding="16dp"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/black"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
-            android:id="@+id/tv_payment_amount"
+            android:id="@+id/tv_payment_toolbar_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="Payment"
+            android:textColor="@color/payment_primary"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <View
+        android:id="@+id/paymentDivider"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="@color/payment_divider"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/paymentTopBar" />
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/paymentScrollView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:overScrollMode="never"
+        android:paddingBottom="18dp"
+        app:layout_constraintBottom_toTopOf="@id/paymentBottomBar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/paymentDivider">
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="#FFFFFF"
-            android:padding="16dp"
-            android:textColor="#FF5A5F"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:gravity="center_horizontal"
+            android:minHeight="700dp"
+            android:orientation="vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp">
 
-        <ScrollView
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:fillViewport="true">
+            <FrameLayout
+                android:id="@+id/paymentPulseContainer"
+                android:layout_width="220dp"
+                android:layout_height="220dp"
+                android:layout_marginTop="2dp">
 
-            <LinearLayout
+                <View
+                    android:id="@+id/paymentPulseRingBack"
+                    android:layout_width="178dp"
+                    android:layout_height="178dp"
+                    android:layout_gravity="center"
+                    android:alpha="0.55"
+                    android:background="@drawable/bg_payment_pulse_ring" />
+
+                <View
+                    android:id="@+id/paymentPulseRingFront"
+                    android:layout_width="178dp"
+                    android:layout_height="178dp"
+                    android:layout_gravity="center"
+                    android:alpha="0.45"
+                    android:background="@drawable/bg_payment_pulse_ring" />
+
+                <FrameLayout
+                    android:layout_width="144dp"
+                    android:layout_height="144dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/bg_payment_circle"
+                    android:elevation="2dp">
+
+                    <ImageView
+                        android:layout_width="76dp"
+                        android:layout_height="76dp"
+                        android:layout_gravity="center"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_cash_payment" />
+                </FrameLayout>
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/receiptSuccessIcon"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_marginTop="36dp"
+                android:background="@drawable/bg_receipt_check_circle"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_receipt_check" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/tvPaymentAmountLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:text="TOTAL AMOUNT"
+                android:textColor="@color/payment_muted"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_payment_amount"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:minHeight="320dp"
-                android:orientation="vertical"
-                android:padding="24dp">
+                android:layout_marginTop="10dp"
+                android:gravity="center"
+                android:textColor="@color/payment_amount"
+                android:textSize="48sp"
+                android:textStyle="bold" />
 
-                <TextView
-                    android:id="@+id/tv_payment_description"
+            <TextView
+                android:id="@+id/tv_payment_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="50dp"
+                android:gravity="center"
+                android:lineSpacingExtra="6dp"
+                android:text="Press Pay to open the card payment window."
+                android:textColor="@color/payment_muted"
+                android:textSize="18sp" />
+
+            <LinearLayout
+                android:id="@+id/layoutPaymentInfoCards"
+                android:layout_width="match_parent"
+                android:layout_height="126dp"
+                android:layout_marginTop="56dp"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_payment_info_card"
+                    android:elevation="2dp"
+                    android:gravity="center_vertical"
+                    android:orientation="vertical"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="14dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_timer_outline" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="Estimated Time"
+                        android:textColor="@color/payment_muted"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="10 mins"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_payment_info_card"
+                    android:elevation="2dp"
+                    android:gravity="center_vertical"
+                    android:orientation="vertical"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="14dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_location_outline" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="Pickup Store"
+                        android:textColor="@color/payment_muted"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="1f counter"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/receiptCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="36dp"
+                android:background="@drawable/bg_receipt_card"
+                android:elevation="2dp"
+                android:orientation="vertical"
+                android:paddingStart="34dp"
+                android:paddingTop="32dp"
+                android:paddingEnd="34dp"
+                android:paddingBottom="34dp"
+                android:visibility="gone">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <TextView
+                        android:id="@+id/tvReceiptStore"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="12dp"
+                        android:text="Cafe Hygge"
+                        android:textColor="@color/payment_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        app:layout_constraintEnd_toStartOf="@id/tvReceiptPaid"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/tvReceiptPaid"
+                        android:layout_width="58dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/bg_receipt_paid_chip"
+                        android:gravity="center"
+                        android:text="PAID"
+                        android:textColor="@color/payment_muted"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        app:layout_constraintBottom_toBottomOf="@id/tvReceiptStore"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="@id/tvReceiptStore" />
+
+                    <TextView
+                        android:id="@+id/tvReceiptOrderNo"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:textColor="@color/coffee_brown_dark"
+                        android:textSize="15sp"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/tvReceiptStore" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:text="Press Pay to open the card payment window."
-                    android:textColor="#777777"
-                    android:textSize="16sp" />
+                    android:layout_marginTop="34dp">
+
+                    <TextView
+                        android:id="@+id/tvReceiptTimeLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ordered Time"
+                        android:textColor="@color/coffee_brown_dark"
+                        android:textSize="16sp"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/tvReceiptTime"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="end"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:layout_constraintBaseline_toBaselineOf="@id/tvReceiptTimeLabel"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/tvReceiptTimeLabel" />
+
+                    <TextView
+                        android:id="@+id/tvReceiptMethodLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="22dp"
+                        android:text="Payment Method"
+                        android:textColor="@color/coffee_brown_dark"
+                        android:textSize="16sp"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/tvReceiptTimeLabel" />
+
+                    <TextView
+                        android:id="@+id/tvReceiptMethod"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="end"
+                        android:text="Hygge Pay"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:layout_constraintBaseline_toBaselineOf="@id/tvReceiptMethodLabel"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/tvReceiptMethodLabel" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="34dp"
+                    android:background="@color/receipt_dash" />
+
+                <LinearLayout
+                    android:id="@+id/layoutReceiptItems"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="26dp"
+                    android:orientation="vertical" />
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="28dp"
+                    android:background="@color/receipt_dash" />
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="30dp">
+
+                    <TextView
+                        android:id="@+id/tvReceiptTotalLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Total Amount"
+                        android:textColor="@color/text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <TextView
+                        android:id="@+id/tvReceiptTotal"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="end"
+                        android:textColor="@color/payment_primary"
+                        android:textSize="26sp"
+                        android:textStyle="bold"
+                        app:layout_constraintBaseline_toBaselineOf="@id/tvReceiptTotalLabel"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/tvReceiptTotalLabel" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
 
                 <TextView
-                    android:id="@+id/tv_receipt_details"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="24dp"
-                    android:background="#FFFFFF"
-                    android:lineSpacingExtra="4dp"
-                    android:padding="16dp"
-                    android:textColor="#333333"
-                    android:textSize="15sp"
-                    android:visibility="gone" />
+                    android:gravity="center"
+                    android:text="Thank you for your visit!"
+                    android:textColor="@color/payment_muted"
+                    android:textSize="14sp"
+                    android:textStyle="bold|italic" />
             </LinearLayout>
-        </ScrollView>
 
-        <Button
+            <ImageView
+                android:id="@+id/ivReceiptCups"
+                android:layout_width="72dp"
+                android:layout_height="24dp"
+                android:layout_marginTop="28dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_receipt_cups"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tv_receipt_details"
+                android:layout_width="1dp"
+                android:layout_height="1dp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <FrameLayout
+        android:id="@+id/paymentBottomBar"
+        android:layout_width="0dp"
+        android:layout_height="90dp"
+        android:background="@drawable/bg_payment_bottom"
+        android:paddingStart="20dp"
+        android:paddingTop="18dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="10dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_payment"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="48dp"
-            android:backgroundTint="#FF5A5F"
+            android:layout_height="62dp"
+            android:backgroundTint="@color/payment_primary"
             android:enabled="true"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:text="Pay"
-            android:textColor="#FFFFFF"
-            android:textSize="17sp" />
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            app:cornerRadius="31dp"
+            app:elevation="0dp"
+            app:icon="@drawable/ic_card_check"
+            app:iconGravity="textEnd"
+            app:iconPadding="10dp"
+            app:iconTint="@color/white" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_home"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="48dp"
-            android:backgroundTint="#333333"
+            android:layout_height="62dp"
+            android:backgroundTint="@color/payment_amount"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:text="Go home"
-            android:textColor="#FFFFFF"
-            android:textSize="17sp"
-            android:visibility="gone" />
-    </LinearLayout>
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:visibility="gone"
+            app:cornerRadius="31dp"
+            app:elevation="0dp" />
+    </FrameLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
