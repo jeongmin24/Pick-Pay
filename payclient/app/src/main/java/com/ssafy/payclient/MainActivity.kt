@@ -39,11 +39,11 @@ class MainActivity : AppCompatActivity() {
 
     private val sharedTokenManager by lazy { TokenManager(applicationContext) }
 
-    private val viewModel: MainViewModel by viewModels {
-        val apiService = RetrofitClient.getApiService(sharedTokenManager)
-        val repository = AuthRepository(apiService)
-        ViewModelFactory(repository, sharedTokenManager)
-    }
+//    private val viewModel: MainViewModel by viewModels {
+//        val apiService = RetrofitClient.getApiService(sharedTokenManager)
+//        val repository = AuthRepository(apiService)
+//        ViewModelFactory(repository, sharedTokenManager)
+//    }
 
     private val menuViewModel: MenuViewModel by viewModels {
         MenuViewModelFactory(sharedTokenManager)
@@ -82,13 +82,11 @@ class MainActivity : AppCompatActivity() {
         handlePaymentDeepLink(getIntent())
     }
 
-    // 4. 앱이 화면에 켜져 있을 때 NFC 시스템 이벤트를 선점(독점)
     override fun onResume() {
         super.onResume()
         nfcAdapter?.enableForegroundDispatch(this, nfcPendingIntent, null, null)
     }
 
-    // 5. 앱이 화면에서 벗어나면 독점 해제
     override fun onPause() {
         super.onPause()
         nfcAdapter?.disableForegroundDispatch(this)
@@ -100,7 +98,6 @@ class MainActivity : AppCompatActivity() {
         handlePaymentDeepLink(intent)
         handleDutchPaymentIntent(intent)
 
-        // 6. NFC 태그가 인식되었는지 체크
         handleMenuNfcIntent(intent)
     }
 

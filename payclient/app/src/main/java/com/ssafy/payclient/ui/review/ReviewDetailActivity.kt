@@ -20,7 +20,7 @@ import kotlinx.coroutines.withContext
 
 class ReviewDetailActivity : AppCompatActivity() {
     private lateinit var binding: ActivityReviewDetailBinding
-    private var detectedMenu: String = "" // 분석된 메뉴명을 저장할 변수
+    private var detectedMenu: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

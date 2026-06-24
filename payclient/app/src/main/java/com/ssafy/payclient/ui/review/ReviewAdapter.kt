@@ -30,7 +30,7 @@ class ReviewAdapter : RecyclerView.Adapter<ReviewAdapter.ReviewViewHolder>() {
             binding.tvNickname.text = review.nickname
             binding.tvReviewDate.text = review.createdAt.toReviewDate()
             binding.tvRating.text = "★ ${review.rating.coerceIn(0, 5)}"
-            binding.tvContent.text = "\"${review.content}\""
+            binding.tvContent.text = "${review.content}"
 
             if (review.imageUrl.isNullOrBlank()) {
                 binding.ivReviewImage.visibility = View.GONE
