@@ -20,22 +20,12 @@
             android:background="@drawable/bg_matcha_menu"
             app:layout_constraintTop_toTopOf="parent">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_marginTop="12dp"
-                android:text="Season Special"
-                android:textColor="#D7C1A5"
-                android:textSize="10sp"
-                android:textStyle="bold" />
-
             <ImageView
-                android:layout_width="116dp"
-                android:layout_height="132dp"
-                android:layout_gravity="center"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
                 android:contentDescription="@null"
-                android:src="@drawable/ic_matcha_parfait" />
+                android:scaleType="centerCrop"
+                android:src="@drawable/home_recommend_matcha" />
         </FrameLayout>
 
         <TextView
