@@ -30,6 +30,15 @@ public interface OrderRepository extends JpaRepository<Order, Long>{
 	Optional<Order> findByOrderNo(String orderNo);
 	Optional<Order> findByOrderNoAndUser_UserId(String orderNo, Long userId);
 	Optional<Order> findByOrderNoAndUser_UserIdAndGroupOrderIsNull(String orderNo, Long userId);
+
+	@Query("""
+		select o
+		from Order o
+		join fetch o.user u
+		left join fetch o.groupOrder g
+		where o.orderNo = :orderNo
+	""")
+	Optional<Order> findByOrderNoWithUserAndGroupOrder(@Param("orderNo") String orderNo);
 	
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

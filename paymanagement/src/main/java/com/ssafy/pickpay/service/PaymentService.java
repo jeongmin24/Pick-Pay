@@ -1,13 +1,16 @@
 package com.ssafy.pickpay.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import com.ssafy.pickpay.common.ErrorCode;
 import com.ssafy.pickpay.common.OrderStatus;
 import com.ssafy.pickpay.domain.GroupOrder;
 import com.ssafy.pickpay.domain.Menu;
@@ -17,6 +20,7 @@ import com.ssafy.pickpay.domain.Payment;
 import com.ssafy.pickpay.dto.PaymentCompleteRequestDTO;
 import com.ssafy.pickpay.dto.PaymentCompleteResponseDTO;
 import com.ssafy.pickpay.dto.PgConfirmResponse;
+import com.ssafy.pickpay.exception.BusinessException;
 import com.ssafy.pickpay.infra.pg.PgPaymentClient;
 import com.ssafy.pickpay.repository.MenuRepository;
 import com.ssafy.pickpay.repository.OrderItemsRepository;
@@ -35,16 +39,21 @@ public class PaymentService {
 	private final OrderRepository orderRepository;
 	private final OrderItemsRepository orderItemsRepository;
 	private final MenuRepository menuRepository;
-    private final PaymentRepository paymentRepository;
+	private final PaymentRepository paymentRepository;
 	private final PgPaymentClient pgPaymentClient;
     private final TransactionTemplate transactionTemplate;
+
+    @Value("${payment.expiration-minutes:30}")
+    private long paymentExpirationMinutes;
 	
     public PaymentCompleteResponseDTO completePayment(
             Long userId,
             PaymentCompleteRequestDTO request
     ) {
-        Order order = orderRepository.findByOrderNoAndUser_UserId(request.orderId(), userId)
-                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
+        Order order = orderRepository.findByOrderNoWithUserAndGroupOrder(request.orderId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+
+        validateOrderOwner(order, userId);
 
         log.info(
                 "Payment order matched orderNo={}, dbAmount={}, status={}, requestAmount={}",
@@ -54,16 +63,13 @@ public class PaymentService {
                 request.amount()
         );
 
-        validateAmount(order, request.amount());
-
         if (order.isPaid()) {
-            return new PaymentCompleteResponseDTO(
-                    order.getOrderNo(),
-                    order.getTotalPrice(),
-                    order.getStatus().name(),
-                    "이미 결제 완료된 주문입니다."
-            );
+            return createAlreadyPaidResponse(order);
         }
+
+        validateOrderPayable(order);
+        validatePaymentNotExpired(order);
+        validateAmount(order, request.amount());
 
         // PG사 결제 승인 요청 
         PgConfirmResponse pgResponse = pgPaymentClient.confirmPayment(
@@ -89,7 +95,10 @@ public class PaymentService {
             );
         } catch (RuntimeException dbException) { // 결제 승인에 성공했는데 DB작업에서 예외가 나는 경우 -> Toss 취소 API 호출 
             cancelApprovedPaymentAfterDbFailure(request, dbException);
-            throw new IllegalStateException("결제 승인 후 주문 처리에 실패하여 결제를 취소했습니다.", dbException);
+            if (dbException instanceof BusinessException businessException) {
+                throw businessException;
+            }
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, dbException);
         }
     }
 
@@ -99,20 +108,17 @@ public class PaymentService {
             PgConfirmResponse pgResponse
     ) {
         Order lockedOrder = orderRepository.findByOrderNoForUpdate(request.orderId())
-                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
         validateOrderOwner(lockedOrder, userId);
+        if (lockedOrder.isPaid()) {
+            return createAlreadyPaidResponse(lockedOrder);
+        }
+
+        validateOrderPayable(lockedOrder);
+        validatePaymentNotExpired(lockedOrder);
         validateAmount(lockedOrder, request.amount());
         validatePgResponse(lockedOrder, request.paymentKey(), pgResponse);
-
-        if (lockedOrder.isPaid()) {
-            return new PaymentCompleteResponseDTO(
-                    lockedOrder.getOrderNo(),
-                    lockedOrder.getTotalPrice(),
-                    lockedOrder.getStatus().name(),
-                    "이미 결제 완료된 주문입니다."
-            );
-        }
 
         Payment payment = paymentRepository.findByPaymentKey(request.paymentKey())
                 .orElseGet(() -> Payment.approving(
@@ -122,11 +128,11 @@ public class PaymentService {
                 ));
 
         if (!Objects.equals(payment.getOrder().getOrderId(), lockedOrder.getOrderId())) {
-            throw new IllegalArgumentException("결제 키가 다른 주문에 이미 사용되었습니다.");
+            throw new BusinessException(ErrorCode.PAYMENT_CONFLICT);
         }
 
         if (!Objects.equals(payment.getAmount(), pgResponse.totalAmount())) {
-            throw new IllegalArgumentException("저장된 결제 금액과 PG 승인 금액이 일치하지 않습니다.");
+            throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
 
         decreaseMenuStock(lockedOrder);
@@ -169,44 +175,58 @@ public class PaymentService {
                     maskPaymentKey(request.paymentKey()),
                     cancelException
             );
-            throw new IllegalStateException(
-                    "결제는 승인되었지만 주문 처리와 자동 취소가 모두 실패했습니다. 관리자 확인이 필요합니다.",
-                    dbException
-            );
+            throw new BusinessException(ErrorCode.PG_CANCEL_FAILED, dbException);
         }
     }
 	
 	private void validateOrderOwner(Order order, Long loginUserId) {
         if (!Objects.equals(order.getUser().getUserId(), loginUserId)) {
-            throw new IllegalArgumentException("본인의 주문만 결제할 수 있습니다.");
+            throw new BusinessException(ErrorCode.ORDER_FORBIDDEN);
+        }
+    }
+
+    private void validateOrderPayable(Order order) {
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new BusinessException(ErrorCode.PAYMENT_CONFLICT);
+        }
+    }
+
+    private void validatePaymentNotExpired(Order order) {
+        if (order.getCreatedAt() == null) {
+            return;
+        }
+
+        LocalDateTime expiredAt = order.getCreatedAt().plusMinutes(paymentExpirationMinutes);
+        if (LocalDateTime.now().isAfter(expiredAt)) {
+            throw new BusinessException(ErrorCode.PAYMENT_EXPIRED);
         }
     }
 
     private void validateAmount(Order order, Long requestAmount) {
         if (!Objects.equals(order.getTotalPrice(), requestAmount)) {
-            throw new IllegalArgumentException("주문 금액이 일치하지 않습니다.");
+            throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
     }
 
     private void validatePgResponse(Order order, String paymentKey, PgConfirmResponse pgResponse) {
         if (pgResponse == null) {
-            throw new IllegalArgumentException("PG 응답이 비어 있습니다.");
+            throw new BusinessException(ErrorCode.PG_CONFIRM_FAILED);
         }
 
         if (!Objects.equals(paymentKey, pgResponse.paymentKey())) {
-            throw new IllegalArgumentException("PG 결제 키가 일치하지 않습니다.");
+            throw new BusinessException(ErrorCode.PG_CONFIRM_REJECTED);
         }
 
         if (!Objects.equals(order.getOrderNo(), pgResponse.orderId())) {
-            throw new IllegalArgumentException("PG 주문 번호가 일치하지 않습니다.");
+            throw new BusinessException(ErrorCode.PG_CONFIRM_REJECTED);
         }
 
         if (!Objects.equals(order.getTotalPrice(), pgResponse.totalAmount())) {
-            throw new IllegalArgumentException("PG 승인 금액이 일치하지 않습니다.");
+            throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
 
         if (!PG_APPROVED_STATUS.equals(pgResponse.status())) {
-            throw new IllegalArgumentException("PG 결제 승인 상태가 올바르지 않습니다.");
+            throw new BusinessException(ErrorCode.PG_CONFIRM_REJECTED);
         }
     }
     
@@ -216,7 +236,7 @@ public class PaymentService {
         );
 
         if (orderItems.isEmpty()) {
-            throw new IllegalStateException("주문 항목이 비어 있습니다.");
+            throw new BusinessException(ErrorCode.PAYMENT_CONFLICT);
         }
 
         List<Long> menuIds = orderItems.stream()
@@ -237,7 +257,7 @@ public class PaymentService {
             Menu lockedMenu = menuMap.get(menuId);
 
             if (lockedMenu == null) {
-                throw new IllegalArgumentException("메뉴 정보를 찾을 수 없습니다. menuId=" + menuId);
+                throw new BusinessException(ErrorCode.PAYMENT_CONFLICT);
             }
 
             lockedMenu.decreaseStock(orderItem.getQuantity());
@@ -266,6 +286,15 @@ public class PaymentService {
             return "***";
         }
         return paymentKey.substring(0, 6) + "..." + paymentKey.substring(paymentKey.length() - 4);
+    }
+
+    private PaymentCompleteResponseDTO createAlreadyPaidResponse(Order order) {
+        return new PaymentCompleteResponseDTO(
+                order.getOrderNo(),
+                order.getTotalPrice(),
+                order.getStatus().name(),
+                "이미 결제 완료된 주문입니다."
+        );
     }
 
 }

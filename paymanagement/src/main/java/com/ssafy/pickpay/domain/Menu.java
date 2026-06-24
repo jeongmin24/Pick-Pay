@@ -17,6 +17,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import com.ssafy.pickpay.common.ErrorCode;
+import com.ssafy.pickpay.exception.BusinessException;
+
 @Entity
 @Getter @Setter
 @Builder
@@ -40,13 +43,13 @@ public class Menu {
         }
 
         if (this.stockQuantity == null) {
-            throw new IllegalStateException("재고 수량이 설정되어 있지 않습니다.");
+            throw new BusinessException(ErrorCode.OUT_OF_STOCK);
         }
     	
     	int restStock = this.stockQuantity - quantity;
     	
     	if(restStock < 0) {
-    		throw new IllegalStateException("물량 부족으로 재고를 줄일 수 없습니다. 현재 재고: "  + this.stockQuantity);
+            throw new BusinessException(ErrorCode.OUT_OF_STOCK);
     	}
     	
     	this.stockQuantity = restStock;

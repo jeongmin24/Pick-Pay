@@ -7,9 +7,12 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
+import com.ssafy.pickpay.common.ErrorCode;
 import com.ssafy.pickpay.dto.PgConfirmResponse;
+import com.ssafy.pickpay.exception.BusinessException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -72,7 +75,13 @@ public class PgPaymentClientImpl implements PgPaymentClient {
 					e.getResponseBodyAsString(),
 					e
 			);
-			throw e;
+			if (e.getStatusCode().is4xxClientError()) {
+				throw new BusinessException(ErrorCode.PG_CONFIRM_REJECTED, e);
+			}
+			throw new BusinessException(ErrorCode.PG_CONFIRM_FAILED, e);
+		} catch (RestClientException e) {
+			log.error("Toss confirm failed by client error", e);
+			throw new BusinessException(ErrorCode.PG_CONFIRM_FAILED, e);
 		}
 	}
 
@@ -114,7 +123,10 @@ public class PgPaymentClientImpl implements PgPaymentClient {
 					e.getResponseBodyAsString(),
 					e
 			);
-			throw e;
+			throw new BusinessException(ErrorCode.PG_CANCEL_FAILED, e);
+		} catch (RestClientException e) {
+			log.error("Toss cancel failed by client error", e);
+			throw new BusinessException(ErrorCode.PG_CANCEL_FAILED, e);
 		}
 	}
 
