@@ -54,7 +54,6 @@ class GroupPayTypeFragment : Fragment() {
     }
 
     private fun setupPayTypeButtons() {
-        binding.tvGroupPayTypeSummary.text = "그룹방 번호 $groupId"
 
         if (!isHost) {
             binding.btnDutchPay.isEnabled = false

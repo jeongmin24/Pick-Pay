@@ -43,6 +43,7 @@ class OrderDetailFragment : Fragment() {
 
         setupToolbar()
         setupItems()
+        setupReorderButton()
 
         if (orderNo.isBlank()) {
             showError("Order number is missing.")
@@ -66,6 +67,16 @@ class OrderDetailFragment : Fragment() {
         }
     }
 
+    private fun setupReorderButton() {
+        binding.btnOrderDetailReorder.setOnClickListener {
+            Toast.makeText(
+                requireContext(),
+                "Reorder is not available for this order.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
     private fun loadOrderDetail(orderNo: String) {
         showLoading(true)
 
@@ -78,15 +89,15 @@ class OrderDetailFragment : Fragment() {
                 if (response.isSuccessful) {
                     val receipt = response.body()
                     if (receipt == null) {
-                        showError("Order detail is empty.")
+                        showError("주문 상세가 비어 있습니다.")
                     } else {
                         renderOrderDetail(receipt)
                     }
                 } else {
-                    showError("Order detail failed: ${response.code()}")
+                    showError("주문 상세 조회에 실패했습니다: ${response.code()}")
                 }
             } catch (e: Exception) {
-                showError("Order detail error: ${e.message}")
+                showError("주문 상세 오류: ${e.message}")
             }
         }
     }
@@ -96,11 +107,12 @@ class OrderDetailFragment : Fragment() {
         currentBinding.progressOrderDetail.visibility = View.GONE
         currentBinding.groupOrderDetailContent.visibility = View.VISIBLE
         currentBinding.tvOrderDetailError.visibility = View.GONE
+        currentBinding.btnOrderDetailReorder.visibility = View.VISIBLE
 
-        currentBinding.tvOrderDetailNo.text = "Order ${receipt.displayOrderNo ?: orderNo}"
-        currentBinding.tvOrderDetailStatus.text = receipt.status
+        currentBinding.tvOrderDetailNo.text = "ORDER ${receipt.displayOrderNo ?: orderNo}"
+        currentBinding.tvOrderDetailStatus.text = receipt.status.uppercase(Locale.KOREA)
         currentBinding.tvOrderDetailDate.text = formatDate(receipt.createdAt)
-        currentBinding.tvOrderDetailTotal.text = "${formatPrice(receipt.totalPrice)} won"
+        currentBinding.tvOrderDetailTotal.text = "${formatPrice(receipt.totalPrice)}원"
         currentBinding.tvOrderDetailItemCount.text = "${receipt.items.size} items"
 
         itemAdapter.submitList(receipt.items)
@@ -110,6 +122,7 @@ class OrderDetailFragment : Fragment() {
         val currentBinding = _binding ?: return
         currentBinding.progressOrderDetail.visibility = if (isLoading) View.VISIBLE else View.GONE
         currentBinding.groupOrderDetailContent.visibility = if (isLoading) View.GONE else View.VISIBLE
+        currentBinding.btnOrderDetailReorder.visibility = View.GONE
         currentBinding.tvOrderDetailError.visibility = View.GONE
     }
 
@@ -117,6 +130,7 @@ class OrderDetailFragment : Fragment() {
         val currentBinding = _binding ?: return
         currentBinding.progressOrderDetail.visibility = View.GONE
         currentBinding.groupOrderDetailContent.visibility = View.GONE
+        currentBinding.btnOrderDetailReorder.visibility = View.GONE
         currentBinding.tvOrderDetailError.visibility = View.VISIBLE
         currentBinding.tvOrderDetailError.text = message
         context?.let {

@@ -18,9 +18,9 @@ class OrderDetailItemAdapter(
         fun bind(item: OrderItemDTO) {
             val subtotal = item.price * item.quantity
             binding.tvOrderDetailItemName.text = item.menuName ?: "Menu item"
-            binding.tvOrderDetailItemQuantity.text = "Qty ${item.quantity}"
-            binding.tvOrderDetailItemUnitPrice.text = "${priceFormat.format(item.price)} won"
-            binding.tvOrderDetailItemSubtotal.text = "${priceFormat.format(subtotal)} won"
+            binding.tvOrderDetailItemQuantity.text = "수량 ${item.quantity}"
+            binding.tvOrderDetailItemUnitPrice.text = "${priceFormat.format(item.price)}원"
+            binding.tvOrderDetailItemSubtotal.text = "${priceFormat.format(subtotal)}원"
         }
     }
 
