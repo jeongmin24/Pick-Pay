@@ -6,12 +6,14 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.ssafy.pickpay.common.OrderStatus;
 import com.ssafy.pickpay.domain.GroupOrder;
 import com.ssafy.pickpay.domain.Menu;
 import com.ssafy.pickpay.domain.Order;
 import com.ssafy.pickpay.domain.OrderItems;
+import com.ssafy.pickpay.domain.Payment;
 import com.ssafy.pickpay.dto.PaymentCompleteRequestDTO;
 import com.ssafy.pickpay.dto.PaymentCompleteResponseDTO;
 import com.ssafy.pickpay.dto.PgConfirmResponse;
@@ -19,29 +21,30 @@ import com.ssafy.pickpay.infra.pg.PgPaymentClient;
 import com.ssafy.pickpay.repository.MenuRepository;
 import com.ssafy.pickpay.repository.OrderItemsRepository;
 import com.ssafy.pickpay.repository.OrderRepository;
+import com.ssafy.pickpay.repository.PaymentRepository;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service @RequiredArgsConstructor
 public class PaymentService {
+    private static final String PG_APPROVED_STATUS = "DONE";
+    private static final String COMPENSATION_CANCEL_REASON = "주문 처리 실패로 인한 자동 결제 취소";
 	
 	private final OrderRepository orderRepository;
 	private final OrderItemsRepository orderItemsRepository;
 	private final MenuRepository menuRepository;
+    private final PaymentRepository paymentRepository;
 	private final PgPaymentClient pgPaymentClient;
+    private final TransactionTemplate transactionTemplate;
 	
-	@Transactional
     public PaymentCompleteResponseDTO completePayment(
             Long userId,
             PaymentCompleteRequestDTO request
     ) {
-        Order order = orderRepository.findByOrderNoForUpdate(request.orderId())
+        Order order = orderRepository.findByOrderNoAndUser_UserId(request.orderId(), userId)
                 .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
-
-        validateOrderOwner(order, userId);
 
         log.info(
                 "Payment order matched orderNo={}, dbAmount={}, status={}, requestAmount={}",
@@ -50,6 +53,8 @@ public class PaymentService {
                 order.getStatus(),
                 request.amount()
         );
+
+        validateAmount(order, request.amount());
 
         if (order.isPaid()) {
             return new PaymentCompleteResponseDTO(
@@ -60,8 +65,7 @@ public class PaymentService {
             );
         }
 
-        validateAmount(order, request.amount());
-
+        // PG사 결제 승인 요청 
         PgConfirmResponse pgResponse = pgPaymentClient.confirmPayment(
                 request.paymentKey(),
                 request.orderId(),
@@ -75,20 +79,101 @@ public class PaymentService {
                 pgResponse.status()
         );
 
-        validatePgResponse(order, pgResponse);
+        // PG사 결제 승인 성공 후 응답 검증 
+        validatePgResponse(order, request.paymentKey(), pgResponse);
 
-        decreaseMenuStock(order);
+        // DB처리 트랜잭션 분리 
+        try {
+            return transactionTemplate.execute(status ->
+                    completePaymentInTransaction(userId, request, pgResponse)
+            );
+        } catch (RuntimeException dbException) { // 결제 승인에 성공했는데 DB작업에서 예외가 나는 경우 -> Toss 취소 API 호출 
+            cancelApprovedPaymentAfterDbFailure(request, dbException);
+            throw new IllegalStateException("결제 승인 후 주문 처리에 실패하여 결제를 취소했습니다.", dbException);
+        }
+    }
 
-        order.markPaid();
+    private PaymentCompleteResponseDTO completePaymentInTransaction(
+            Long userId,
+            PaymentCompleteRequestDTO request,
+            PgConfirmResponse pgResponse
+    ) {
+        Order lockedOrder = orderRepository.findByOrderNoForUpdate(request.orderId())
+                .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
 
-        updateGroupOrderIfNeeded(order);
+        validateOrderOwner(lockedOrder, userId);
+        validateAmount(lockedOrder, request.amount());
+        validatePgResponse(lockedOrder, request.paymentKey(), pgResponse);
+
+        if (lockedOrder.isPaid()) {
+            return new PaymentCompleteResponseDTO(
+                    lockedOrder.getOrderNo(),
+                    lockedOrder.getTotalPrice(),
+                    lockedOrder.getStatus().name(),
+                    "이미 결제 완료된 주문입니다."
+            );
+        }
+
+        Payment payment = paymentRepository.findByPaymentKey(request.paymentKey())
+                .orElseGet(() -> Payment.approving(
+                        lockedOrder,
+                        request.paymentKey(),
+                        pgResponse.totalAmount()
+                ));
+
+        if (!Objects.equals(payment.getOrder().getOrderId(), lockedOrder.getOrderId())) {
+            throw new IllegalArgumentException("결제 키가 다른 주문에 이미 사용되었습니다.");
+        }
+
+        if (!Objects.equals(payment.getAmount(), pgResponse.totalAmount())) {
+            throw new IllegalArgumentException("저장된 결제 금액과 PG 승인 금액이 일치하지 않습니다.");
+        }
+
+        decreaseMenuStock(lockedOrder);
+
+        lockedOrder.markPaid();
+        payment.approve();
+        paymentRepository.save(payment);
+
+        updateGroupOrderIfNeeded(lockedOrder);
 
         return new PaymentCompleteResponseDTO(
-                order.getOrderNo(),
-                order.getTotalPrice(),
-                order.getStatus().name(),
+                lockedOrder.getOrderNo(),
+                lockedOrder.getTotalPrice(),
+                lockedOrder.getStatus().name(),
                 "결제가 완료되었습니다."
         );
+    }
+
+    private void cancelApprovedPaymentAfterDbFailure(
+            PaymentCompleteRequestDTO request,
+            RuntimeException dbException
+    ) {
+        String idempotencyKey = "payment-db-failure-"
+                + request.orderId()
+                + "-"
+                + Integer.toUnsignedString(request.paymentKey().hashCode());
+
+        try {
+        	// cancelAmount 안넣으면 전액취소
+            pgPaymentClient.cancelPayment(
+                    request.paymentKey(),
+                    COMPENSATION_CANCEL_REASON,
+                    idempotencyKey
+            );
+        } catch (RuntimeException cancelException) {
+            dbException.addSuppressed(cancelException);
+            log.error(
+                    "Payment compensation cancel failed orderId={}, paymentKey={}",
+                    request.orderId(),
+                    maskPaymentKey(request.paymentKey()),
+                    cancelException
+            );
+            throw new IllegalStateException(
+                    "결제는 승인되었지만 주문 처리와 자동 취소가 모두 실패했습니다. 관리자 확인이 필요합니다.",
+                    dbException
+            );
+        }
     }
 	
 	private void validateOrderOwner(Order order, Long loginUserId) {
@@ -103,7 +188,15 @@ public class PaymentService {
         }
     }
 
-    private void validatePgResponse(Order order, PgConfirmResponse pgResponse) {
+    private void validatePgResponse(Order order, String paymentKey, PgConfirmResponse pgResponse) {
+        if (pgResponse == null) {
+            throw new IllegalArgumentException("PG 응답이 비어 있습니다.");
+        }
+
+        if (!Objects.equals(paymentKey, pgResponse.paymentKey())) {
+            throw new IllegalArgumentException("PG 결제 키가 일치하지 않습니다.");
+        }
+
         if (!Objects.equals(order.getOrderNo(), pgResponse.orderId())) {
             throw new IllegalArgumentException("PG 주문 번호가 일치하지 않습니다.");
         }
@@ -112,7 +205,7 @@ public class PaymentService {
             throw new IllegalArgumentException("PG 승인 금액이 일치하지 않습니다.");
         }
 
-        if (!"DONE".equals(pgResponse.status()) && !"PAID".equals(pgResponse.status())) {
+        if (!PG_APPROVED_STATUS.equals(pgResponse.status())) {
             throw new IllegalArgumentException("PG 결제 승인 상태가 올바르지 않습니다.");
         }
     }
@@ -168,5 +261,11 @@ public class PaymentService {
         }
     }
 
+    private String maskPaymentKey(String paymentKey) {
+        if (paymentKey == null || paymentKey.length() <= 12) {
+            return "***";
+        }
+        return paymentKey.substring(0, 6) + "..." + paymentKey.substring(paymentKey.length() - 4);
+    }
 
 }

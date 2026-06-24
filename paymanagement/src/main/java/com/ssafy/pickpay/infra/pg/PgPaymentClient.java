@@ -9,5 +9,11 @@ public interface PgPaymentClient {
 			String orderId,
 			Long amount
 			);
+
+	PgConfirmResponse cancelPayment(
+			String paymentKey,
+			String cancelReason,
+			String idempotencyKey
+			);
 	
 }

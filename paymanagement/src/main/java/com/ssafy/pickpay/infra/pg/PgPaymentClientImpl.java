@@ -26,6 +26,9 @@ public class PgPaymentClientImpl implements PgPaymentClient {
 	
 	@Value("${pg.confirm-url}")
 	private String confirmUrl;
+
+	@Value("${pg.cancel-url:https://api.tosspayments.com/v1/payments/{paymentKey}/cancel}")
+	private String cancelUrl;
 	
 	@Override
 	public PgConfirmResponse confirmPayment(String paymentKey, String orderId, Long amount) {
@@ -65,6 +68,48 @@ public class PgPaymentClientImpl implements PgPaymentClient {
 		} catch (RestClientResponseException e) {
 			log.error(
 					"Toss confirm failed status={}, body={}",
+					e.getStatusCode(),
+					e.getResponseBodyAsString(),
+					e
+			);
+			throw e;
+		}
+	}
+
+	@Override
+	public PgConfirmResponse cancelPayment(String paymentKey, String cancelReason, String idempotencyKey) {
+		String encodedSecretKey = Base64.getEncoder()
+				.encodeToString((secretKey + ":").getBytes(StandardCharsets.UTF_8));
+
+		log.warn(
+				"Toss cancel request paymentKey={}, reason={}, idempotencyKey={}",
+				maskPaymentKey(paymentKey),
+				cancelReason,
+				idempotencyKey
+		);
+
+		try {
+			PgConfirmResponse response = restClient.post()
+					.uri(cancelUrl, paymentKey)
+					.header("Authorization", "Basic " + encodedSecretKey)
+					.header("Content-Type", "application/json")
+					.header("Idempotency-Key", idempotencyKey)
+					.body(Map.of("cancelReason", cancelReason))
+					.retrieve()
+					.body(PgConfirmResponse.class);
+
+			log.warn(
+					"Toss cancel success paymentKey={}, orderId={}, totalAmount={}, status={}",
+					response != null ? maskPaymentKey(response.paymentKey()) : null,
+					response != null ? response.orderId() : null,
+					response != null ? response.totalAmount() : null,
+					response != null ? response.status() : null
+			);
+
+			return response;
+		} catch (RestClientResponseException e) {
+			log.error(
+					"Toss cancel failed status={}, body={}",
 					e.getStatusCode(),
 					e.getResponseBodyAsString(),
 					e
