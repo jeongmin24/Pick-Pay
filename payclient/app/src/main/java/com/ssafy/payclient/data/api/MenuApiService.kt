@@ -10,4 +10,7 @@ interface MenuApiService {
 
     @GET("api/menus/{menuId}")
     suspend fun getMenuById(@Path("menuId") menuId: Long): MenuDTO
+
+    @GET("api/menus/name/{name}")
+    suspend fun getMenuByName(@Path("name") name: String): MenuDTO
 }

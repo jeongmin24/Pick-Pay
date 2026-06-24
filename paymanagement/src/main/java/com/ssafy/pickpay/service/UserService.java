@@ -97,7 +97,7 @@ public class UserService{
 		User user = userRepository.findByLoginId(loginId)
 				.orElseThrow(() -> new UsernameNotFoundException("해당 유저를 찾을 수 없습니다." + loginId));
 		
-		return new UserResponseDTO(loginId, user.getNickname());
+		return new UserResponseDTO(loginId, user.getNickname(), user.getImageUrl());
 	}
 	
 	// 자체 로그인 회원 탈퇴

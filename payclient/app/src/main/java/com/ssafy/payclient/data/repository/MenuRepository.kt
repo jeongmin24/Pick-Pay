@@ -23,4 +23,8 @@ class MenuRepository(private val tokenManager: TokenManager) {
     suspend fun getMenuById(menuId: Long): MenuDTO {
         return RetrofitClient.getMenuApiService(tokenManager).getMenuById(menuId)
     }
+
+    suspend fun getMenuByName(name: String): MenuDTO {
+        return RetrofitClient.getMenuApiService(tokenManager).getMenuByName(name)
+    }
 }

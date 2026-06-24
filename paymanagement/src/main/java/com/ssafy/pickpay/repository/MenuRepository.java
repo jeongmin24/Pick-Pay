@@ -30,5 +30,7 @@ public interface MenuRepository extends JpaRepository<Menu, Long> {
         order by m.menuId asc
     """)
     List<Menu> findAllByMenuIdsForUpdate(@Param("menuIds") List<Long> menuIds);
+	
+	Optional<Menu> findByName(String name);
 
 }
