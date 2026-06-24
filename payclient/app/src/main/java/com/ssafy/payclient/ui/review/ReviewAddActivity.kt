@@ -147,8 +147,8 @@ class ReviewAddActivity : AppCompatActivity() {
     private fun sendReviewToServer(content: String, rating: Int) {
         lifecycleScope.launch {
             try {
-                val contentBody = content
-                val ratingBody = rating.toString()
+                val contentBody = RequestBody.create("text/plain".toMediaTypeOrNull(), content)
+                val ratingBody = RequestBody.create("text/plain".toMediaTypeOrNull(), rating.toString())
 
                 val imagePart = withContext(Dispatchers.IO) {
                     selectedImageUri?.let { uri -> prepareMultipartPart(uri) }
