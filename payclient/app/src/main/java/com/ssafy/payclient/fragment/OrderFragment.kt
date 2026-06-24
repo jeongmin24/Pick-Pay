@@ -221,7 +221,7 @@ class OrderFragment : Fragment() {
     }
 
     private fun navigateToGroupOrder(
-        groupId: Long,
+        groupId: String,
         isHost: Boolean,
         userId: Long,
         shareLink: String? = null
@@ -232,7 +232,7 @@ class OrderFragment : Fragment() {
         }
 
         val bundle = Bundle().apply {
-            putLong("GROUP_ID", groupId)
+            putString("GROUP_ID", groupId)
             putBoolean("IS_HOST", isHost)
             putLong("USER_ID", userId)
             putString("SHARE_LINK", shareLink)
