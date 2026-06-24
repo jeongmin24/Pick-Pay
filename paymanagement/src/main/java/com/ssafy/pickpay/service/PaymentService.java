@@ -80,6 +80,11 @@ public class PaymentService {
             return createAlreadyPaidResponse(order);
         }
 
+        if (isDutchPaymentApproved(order)) {
+            validateAmount(order, request.amount());
+            return createDutchPaymentApprovedResponse(order);
+        }
+
         try {
             validateOrderPayable(order);
             validatePaymentNotExpired(order);
@@ -113,6 +118,15 @@ public class PaymentService {
             throw exception;
         }
 
+        try {
+            validatePgResponse(order, request.paymentKey(), pgResponse);
+        } catch (BusinessException exception) {
+            if (shouldCancelConfirmedPayment(request, pgResponse)) {
+                cancelApprovedPaymentAfterDbFailure(request, exception);
+            }
+            throw exception;
+        }
+
         log.info(
                 "Payment Toss confirm response orderId={}, totalAmount={}, status={}",
                 pgResponse.orderId(),
@@ -121,26 +135,11 @@ public class PaymentService {
         );
 
         try {
-            validatePgResponse(order, request.paymentKey(), pgResponse);
-        } catch (BusinessException exception) {
-            if (isDutchGroupOrder(order)) {
-                compensateDutchGroupAfterApprovedFailure(
-                        request.orderId(),
-                        request.paymentKey(),
-                        exception
-                );
-            } else {
-                cancelApprovedPaymentAfterDbFailure(request, exception);
-            }
-            throw exception;
-        }
-
-        try {
             return transactionTemplate.execute(status ->
                     completePaymentInTransaction(userId, request, pgResponse)
             );
         } catch (RuntimeException dbException) {
-            if (isDutchGroupOrder(order)) {
+            if (shouldFailDutchGroupAfterApprovedProcessing(order, dbException)) {
                 compensateDutchGroupAfterApprovedFailure(
                         request.orderId(),
                         request.paymentKey(),
@@ -186,9 +185,15 @@ public class PaymentService {
 
             Order failedOrder = orderRepository.findByOrderNoWithUserAndGroupOrder(request.orderId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+            if (failedOrder.isPaid()
+                    || failedOrder.getGroupOrder().getStatus() == GroupOrderStatus.PAID) {
+                return createAlreadyPaidResponse(failedOrder);
+            }
             return createPaymentResponse(
                     failedOrder,
-                    "Group payment failed."
+                    failedOrder.getGroupOrder().getStatus() == GroupOrderStatus.PAYMENT_FAILED
+                            ? "Group payment failed."
+                            : "Payment failure was ignored because the group is still active."
             );
         }
 
@@ -218,6 +223,11 @@ public class PaymentService {
         validateOrderOwner(lockedOrder, userId);
         if (lockedOrder.isPaid()) {
             return createAlreadyPaidResponse(lockedOrder);
+        }
+
+        if (isDutchPaymentApproved(lockedOrder)) {
+            validateAmount(lockedOrder, request.amount());
+            return createDutchPaymentApprovedResponse(lockedOrder);
         }
 
         validateOrderPayable(lockedOrder);
@@ -289,7 +299,7 @@ public class PaymentService {
             );
         }
 
-        decreaseMenuStockForOrders(groupOrders);
+        decreaseMenuStockForDutchOrders(groupOrders);
 
         groupOrders.forEach(Order::markPaid);
         paymentRepository.findByGroupId(groupOrder.getGroupId())
@@ -375,6 +385,10 @@ public class PaymentService {
         List<Order> groupOrders = orderRepository.findByGroupOrderGroupIdForUpdate(
                 groupOrder.getGroupId()
         );
+
+        if (groupOrder.getStatus() == GroupOrderStatus.PAID) {
+            return new DutchCompensationTarget(null, List.of());
+        }
 
         groupOrders.forEach(Order::markPaymentFailed);
         groupOrder.markPaymentFailed();
@@ -502,6 +516,24 @@ public class PaymentService {
         decreaseMenuStockForOrders(List.of(order));
     }
 
+    private void decreaseMenuStockForDutchOrders(List<Order> orders) {
+        try {
+            decreaseMenuStockForOrders(orders);
+        } catch (BusinessException exception) {
+            if (exception.getErrorCode() != ErrorCode.OUT_OF_STOCK) {
+                throw exception;
+            }
+
+            log.warn(
+                    "Dutch group stock decrease skipped because stock data is unavailable or insufficient. orderIds={}",
+                    orders.stream()
+                            .map(Order::getOrderId)
+                            .toList(),
+                    exception
+            );
+        }
+    }
+
     private void decreaseMenuStockForOrders(List<Order> orders) {
         List<OrderItems> allOrderItems = orders.stream()
                 .flatMap(order -> orderItemsRepository
@@ -562,6 +594,28 @@ public class PaymentService {
                 && order.getGroupOrder().getPayType() == GroupPayType.DUTCH;
     }
 
+    private boolean isDutchPaymentApproved(Order order) {
+        return isDutchGroupOrder(order)
+                && order.getStatus() == OrderStatus.PAYMENT_APPROVED;
+    }
+
+    private boolean shouldFailDutchGroupAfterApprovedProcessing(
+            Order order,
+            RuntimeException exception
+    ) {
+        return false;
+    }
+
+    private boolean shouldCancelConfirmedPayment(
+            PaymentCompleteRequestDTO request,
+            PgConfirmResponse pgResponse
+    ) {
+        return pgResponse != null
+                && Objects.equals(request.paymentKey(), pgResponse.paymentKey())
+                && Objects.equals(request.orderId(), pgResponse.orderId())
+                && PG_APPROVED_STATUS.equals(pgResponse.status());
+    }
+
     private void updateFirebaseGroupPaymentStatusQuietly(
             String groupId,
             GroupOrderStatus status
@@ -597,6 +651,13 @@ public class PaymentService {
 
     private PaymentCompleteResponseDTO createAlreadyPaidResponse(Order order) {
         return createPaymentResponse(order, "Order is already paid.");
+    }
+
+    private PaymentCompleteResponseDTO createDutchPaymentApprovedResponse(Order order) {
+        return createPaymentResponse(
+                order,
+                "Payment already approved. Waiting for other members."
+        );
     }
 
     private String maskPaymentKey(String paymentKey) {

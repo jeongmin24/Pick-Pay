@@ -67,6 +67,10 @@ public class PgPaymentClientImpl implements PgPaymentClient {
 					response != null ? response.status() : null
 			);
 
+			if (response == null) {
+				throw new BusinessException(ErrorCode.PG_CONFIRM_FAILED);
+			}
+
 			return response;
 		} catch (RestClientResponseException e) {
 			log.error(

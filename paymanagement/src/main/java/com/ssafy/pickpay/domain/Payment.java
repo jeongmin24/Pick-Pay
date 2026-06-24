@@ -38,7 +38,7 @@ public class Payment {
     private Long amount;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private PaymentStatus status;
 
     private LocalDateTime approvedAt;
