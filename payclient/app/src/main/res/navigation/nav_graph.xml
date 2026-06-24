@@ -82,6 +82,19 @@
         <action
             android:id="@+id/action_fragment_group_pay_type_to_fragment_payment"
             app:destination="@id/fragment_payment" />
+        <action
+            android:id="@+id/action_fragment_group_pay_type_to_fragment_group_payment_waiting"
+            app:destination="@id/fragment_group_payment_waiting" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/fragment_group_payment_waiting"
+        android:name="com.ssafy.payclient.fragment.GroupPaymentWaitingFragment"
+        android:label="GroupPaymentWaitingFragment"
+        tools:layout="@layout/fragment_group_payment_waiting">
+        <action
+            android:id="@+id/action_fragment_group_payment_waiting_to_fragment_payment"
+            app:destination="@id/fragment_payment" />
     </fragment>
 
     <fragment
@@ -99,5 +112,11 @@
         android:name="com.ssafy.payclient.fragment.PaymentFragment"
         android:label="PaymentFragment"
         tools:layout="@layout/fragment_payment" />
+
+    <fragment
+        android:id="@+id/fragment_payment_failure"
+        android:name="com.ssafy.payclient.fragment.PaymentFailureFragment"
+        android:label="PaymentFailureFragment"
+        tools:layout="@layout/fragment_payment_failure" />
 
 </navigation>

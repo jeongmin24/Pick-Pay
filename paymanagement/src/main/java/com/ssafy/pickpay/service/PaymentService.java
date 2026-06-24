@@ -94,12 +94,13 @@ public class PaymentService {
                 compensateDutchGroupAfterDefinitiveFailure(
                         request.orderId(),
                         null,
-                        "Dutch group payment expired"
+                        "더치페이 결제 시간이 만료되었습니다."
                 );
             }
             throw exception;
         }
 
+        // PG사로 요청 (I/O) 
         PgConfirmResponse pgResponse;
         try {
             pgResponse = pgPaymentClient.confirmPayment(
@@ -112,12 +113,13 @@ public class PaymentService {
                 compensateDutchGroupAfterDefinitiveFailure(
                         request.orderId(),
                         null,
-                        "Dutch member payment was rejected by PG"
+                        "PG사에 결제가 거절되었습니다."
                 );
             }
             throw exception;
         }
 
+        // PG사 응답값 검증 
         try {
             validatePgResponse(order, request.paymentKey(), pgResponse);
         } catch (BusinessException exception) {
@@ -134,22 +136,24 @@ public class PaymentService {
                 pgResponse.status()
         );
 
+        // PG 승인 후 DB작업을 트랜잭션 안에서 수행 (transactionTemplate) 
         try {
             return transactionTemplate.execute(status ->
                     completePaymentInTransaction(userId, request, pgResponse)
             );
         } catch (RuntimeException dbException) {
             if (shouldFailDutchGroupAfterApprovedProcessing(order, dbException)) {
-                compensateDutchGroupAfterApprovedFailure(
+                compensateDutchGroupAfterApprovedFailure( // 더치페이면 그룹에 해당하는 order 모두 취소
                         request.orderId(),
                         request.paymentKey(),
                         dbException
                 );
-            } else {
+            } else { // 더치페이가 아니면 내 결제 1건만 취소 
                 cancelApprovedPaymentAfterDbFailure(request, dbException);
             }
 
-            if (dbException instanceof BusinessException businessException) {
+            // 에러 응답 리턴 
+            if (dbException instanceof BusinessException businessException) { 
                 throw businessException;
             }
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, dbException);
@@ -217,6 +221,7 @@ public class PaymentService {
             PaymentCompleteRequestDTO request,
             PgConfirmResponse pgResponse
     ) {
+    	// orderNo로 비관적락(for update)을 걸고 주문을 가져옴 
         Order lockedOrder = orderRepository.findByOrderNoForUpdate(request.orderId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
@@ -235,6 +240,7 @@ public class PaymentService {
         validateAmount(lockedOrder, request.amount());
         validatePgResponse(lockedOrder, request.paymentKey(), pgResponse);
 
+        // Payment가 존재하지 않으면 새로 생성 
         Payment payment = paymentRepository.findByPaymentKey(request.paymentKey())
                 .orElseGet(() -> Payment.approving(
                         lockedOrder,
@@ -250,16 +256,18 @@ public class PaymentService {
             throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
 
+        // 1. 더치페이 분기 
         if (isDutchGroupOrder(lockedOrder)) {
             return completeDutchPaymentInTransaction(lockedOrder, payment);
         }
 
+        // 2. 일반 결제 또는 호스트 단독 결제 분기 
         decreaseMenuStock(lockedOrder);
-
         lockedOrder.markPaid();
         payment.approve();
         paymentRepository.save(payment);
 
+        // 3. 호스트 결제인 경우 그룹 주문 전체를 PAID로 변경 
         updateGroupOrderIfNeeded(lockedOrder);
 
         return createPaymentResponse(
@@ -272,15 +280,18 @@ public class PaymentService {
             Order lockedOrder,
             Payment payment
     ) {
-        lockedOrder.markPaymentApproved();
-        payment.approvePendingGroup();
+    	// 현재 결제한 유저의 주문과 결제 상태를 대기, 중간 상태로 변경
+        lockedOrder.markPaymentApproved(); // OrderStatus.PAYMENT_APPROVED
+        payment.approvePendingGroup(); // PaymentStatus.APPROVED_PENDING_GROUP
         paymentRepository.save(payment);
 
+        // groupId로 같은 그룹 주문을 찾아서 락을 걸고(for update) 가져옴
         GroupOrder groupOrder = lockedOrder.getGroupOrder();
         List<Order> groupOrders = orderRepository.findByGroupOrderGroupIdForUpdate(
                 groupOrder.getGroupId()
         );
 
+        // 누군가 실패했거나 취소한 주문이 있다면 전체 취소를 유도 
         boolean hasFailedOrder = groupOrders.stream()
                 .anyMatch(order -> order.getStatus() == OrderStatus.PAYMENT_FAILED
                         || order.getStatus() == OrderStatus.CANCELLED);
@@ -289,27 +300,30 @@ public class PaymentService {
             throw new BusinessException(ErrorCode.PAYMENT_CONFLICT);
         }
 
+        // 모든 멤버가 결제 승인(PAYMEN_APPROVED) 상태가 되었는지 확인 
         boolean allApproved = groupOrders.stream()
                 .allMatch(order -> order.getStatus() == OrderStatus.PAYMENT_APPROVED);
 
+        // 아직 결제 안한 멤버가 남아있다면 확정을 미루고 대기 메시지 리턴 
         if (!allApproved) {
             return createPaymentResponse(
                     lockedOrder,
-                    "Payment approved. Waiting for other members."
+                    "다른 사람들 결제가 끝날때까지 기다려주세요."
             );
         }
 
+        // 모두 승인 된 경우 일괄 확정 처리 !! 여기서 메뉴 재고 확인해서 결제가 안되게 막아야함 
         decreaseMenuStockForDutchOrders(groupOrders);
 
-        groupOrders.forEach(Order::markPaid);
-        paymentRepository.findByGroupId(groupOrder.getGroupId())
+        groupOrders.forEach(Order::markPaid); // 모든 멤버의 주문 상태를 PAID로 변경 
+        paymentRepository.findByGroupId(groupOrder.getGroupId()) // 모든 결제 상태를 APPROVED로 변경 
                 .forEach(Payment::approve);
-        groupOrder.markPaid();
-        updateFirebaseGroupPaymentStatusQuietly(groupOrder.getGroupId(), GroupOrderStatus.PAID);
+        groupOrder.markPaid(); // 그룹 주문 자체를 최종 PAID로 변경 
+        updateFirebaseGroupPaymentStatusQuietly(groupOrder.getGroupId(), GroupOrderStatus.PAID); // 파이어베이스 동기화 
 
         return createPaymentResponse(
                 lockedOrder,
-                "All group members have paid."
+                "모든 멤버 결제가 완료됐습니다."
         );
     }
 
@@ -520,9 +534,9 @@ public class PaymentService {
         try {
             decreaseMenuStockForOrders(orders);
         } catch (BusinessException exception) {
-            if (exception.getErrorCode() != ErrorCode.OUT_OF_STOCK) {
-                throw exception;
-            }
+//            if (exception.getErrorCode() != ErrorCode.OUT_OF_STOCK) {
+//                throw exception;
+//            }
 
             log.warn(
                     "Dutch group stock decrease skipped because stock data is unavailable or insufficient. orderIds={}",
@@ -531,6 +545,7 @@ public class PaymentService {
                             .toList(),
                     exception
             );
+            throw exception;
         }
     }
 
@@ -603,7 +618,13 @@ public class PaymentService {
             Order order,
             RuntimeException exception
     ) {
-        return false;
+//        return false;
+    	if(!isDutchGroupOrder(order)) {
+    		return false;
+    	}
+    	
+    	return exception instanceof BusinessException businessException
+    			&& businessException.getErrorCode() == ErrorCode.OUT_OF_STOCK;
     }
 
     private boolean shouldCancelConfirmedPayment(

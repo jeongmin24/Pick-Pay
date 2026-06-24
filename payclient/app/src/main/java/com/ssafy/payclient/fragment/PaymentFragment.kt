@@ -20,8 +20,6 @@ import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.model.IndividualReceiptResponseDTO
 import com.ssafy.payclient.data.model.PaymentCompleteRequest
 import com.ssafy.payclient.data.model.PaymentFailRequest
-import com.ssafy.payclient.data.model.ReceiptResponseDTO
-import com.ssafy.payclient.data.model.UserReceiptDTO
 import com.ssafy.payclient.data.network.RetrofitClient
 import com.ssafy.payclient.databinding.FragmentPaymentBinding
 import com.tosspayments.paymentsdk.TossPayments
@@ -48,7 +46,9 @@ class PaymentFragment : Fragment() {
     private val orderName: String by lazy { requireArguments().getString(ARG_ORDER_NAME).orEmpty() }
     private val totalPrice: Long by lazy { requireArguments().getLong(ARG_TOTAL_PRICE) }
     private val groupId: String by lazy { requireArguments().getString(ARG_GROUP_ID).orEmpty() }
+    private val currentUserId: Long by lazy { requireArguments().getLong(ARG_USER_ID, -1L) }
     private var isPaymentCompleting = false
+    private var isPaymentFailureHandling = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -128,7 +128,7 @@ class PaymentFragment : Fragment() {
                     fail?.errorMessage ?: "Payment failed.",
                     Toast.LENGTH_SHORT
                 ).show()
-                notifyPaymentFailed(fail?.errorMessage ?: "Payment failed.")
+                handlePaymentFailure(fail?.errorMessage ?: "Payment failed.")
             }
 
             else -> {
@@ -137,7 +137,7 @@ class PaymentFragment : Fragment() {
                     "Payment was canceled.",
                     Toast.LENGTH_SHORT
                 ).show()
-                notifyPaymentFailed("Payment was canceled.")
+                handlePaymentFailure("Payment was canceled.")
             }
         }
     }
@@ -182,7 +182,7 @@ class PaymentFragment : Fragment() {
                     ).show()
 
                     if (groupId.isNotBlank()) {
-                        fetchGroupReceipt(groupId, approvedOrderId)
+                        navigatePaymentWaiting()
                     } else {
                         fetchReceipt(approvedOrderId)
                     }
@@ -212,64 +212,40 @@ class PaymentFragment : Fragment() {
         }
     }
 
-    private suspend fun fetchGroupReceipt(groupId: String, orderNo: String) {
-        try {
-            val tokenManager = TokenManager(requireContext().applicationContext)
-            val apiService = RetrofitClient.getGroupOrderApiService(tokenManager)
-            val response = apiService.getGroupReceipt(groupId)
+    private fun handlePaymentFailure(reason: String) {
+        if (isPaymentFailureHandling) return
+        isPaymentFailureHandling = true
+        binding.btnPayment.isEnabled = false
 
-            if (response.isSuccessful) {
-                val receipt = response.body()
-                val userReceipt = receipt?.userReceipts?.firstOrNull { it.orderNo == orderNo }
-
-                if (receipt == null || userReceipt == null) {
-                    showReceiptLoadFailure("Group receipt response is invalid.")
-                    return
-                }
-
-                renderGroupReceipt(receipt, userReceipt)
-            } else {
-                Log.e(
-                    TAG,
-                    "Group receipt fetch failed groupId=$groupId, status=${response.code()}, " +
-                        "body=${response.errorBody()?.string()}"
-                )
-                showReceiptLoadFailure("Group receipt failed. (${response.code()})")
+        viewLifecycleOwner.lifecycleScope.launch {
+            notifyPaymentFailed(reason)
+            if (_binding != null) {
+                navigatePaymentFailure(reason)
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Group receipt fetch error groupId=$groupId", e)
-            showReceiptLoadFailure("Group receipt error: ${e.message}")
         }
     }
 
-    private fun notifyPaymentFailed(reason: String) {
-        if (groupId.isBlank() || orderId.isBlank()) {
-            return
-        }
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val tokenManager = TokenManager(requireContext().applicationContext)
-                val apiService = RetrofitClient.getPaymentApiService(tokenManager)
-                val response = apiService.failPayment(
-                    PaymentFailRequest(
-                        orderId = orderId,
-                        reason = reason
-                    )
+    private suspend fun notifyPaymentFailed(reason: String) {
+        try {
+            if (orderId.isBlank()) return
+            val tokenManager = TokenManager(requireContext().applicationContext)
+            val apiService = RetrofitClient.getPaymentApiService(tokenManager)
+            val response = apiService.failPayment(
+                PaymentFailRequest(
+                    orderId = orderId,
+                    reason = reason
                 )
+            )
 
-                if (response.isSuccessful) {
-                    fetchGroupReceipt(groupId, orderId)
-                } else {
-                    Log.e(
-                        TAG,
-                        "Payment fail notify failed status=${response.code()}, " +
-                            "body=${response.errorBody()?.string()}"
-                    )
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Payment fail notify error", e)
+            if (!response.isSuccessful) {
+                Log.e(
+                    TAG,
+                    "Payment fail notify failed status=${response.code()}, " +
+                        "body=${response.errorBody()?.string()}"
+                )
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Payment fail notify error", e)
         }
     }
 
@@ -314,27 +290,6 @@ class PaymentFragment : Fragment() {
         isPaymentCompleting = false
     }
 
-    private fun renderGroupReceipt(
-        receipt: ReceiptResponseDTO,
-        userReceipt: UserReceiptDTO
-    ) {
-        binding.toolbarPayment.title = "Group Receipt"
-        binding.tvPaymentAmount.text = "${formatPrice(userReceipt.userTotalPrice)} won"
-        binding.tvPaymentDescription.text = when (receipt.groupStatus) {
-            "PAID" -> "All group members have paid."
-            "PAYMENT_FAILED" -> "Group payment failed and approved payments were canceled."
-            else -> "Your payment is approved. Waiting for other members."
-        }
-        binding.tvReceiptDetails.text = buildGroupReceiptText(receipt, userReceipt)
-        binding.tvReceiptDetails.visibility = View.VISIBLE
-        binding.btnPayment.visibility = View.GONE
-        binding.btnHome.visibility = View.VISIBLE
-        binding.toolbarPayment.setNavigationOnClickListener {
-            navigateHome()
-        }
-        isPaymentCompleting = false
-    }
-
     private fun showReceiptLoadFailure(message: String) {
         binding.tvPaymentDescription.text = message
         binding.btnPayment.visibility = View.GONE
@@ -364,42 +319,36 @@ class PaymentFragment : Fragment() {
         }
     }
 
-    private fun buildGroupReceiptText(
-        receipt: ReceiptResponseDTO,
-        myReceipt: UserReceiptDTO
-    ): String {
-        return buildString {
-            appendLine("Group No. ${receipt.groupId}")
-            appendLine("Pay Type: ${receipt.payType.orEmpty()}")
-            appendLine("Group Status: ${receipt.groupStatus.orEmpty()}")
-            appendLine("Group Total: ${formatPrice(receipt.totalGroupPrice)} won")
-            appendLine()
-            appendLine("Members")
-
-            receipt.userReceipts.forEachIndexed { index, userReceipt ->
-                if (index > 0) appendLine()
-                val ownerLabel = if (userReceipt.orderNo == myReceipt.orderNo) " (me)" else ""
-                appendLine(
-                    "${userReceipt.nickname.orEmpty()}$ownerLabel | " +
-                        "${formatPrice(userReceipt.userTotalPrice)} won | " +
-                        userReceipt.orderStatus.orEmpty()
-                )
-                appendLine("Order No. ${userReceipt.orderNo.orEmpty()}")
-
-                val itemLines = userReceipt.items.joinToString(separator = "\n") { item ->
-                    val subtotal = item.price * item.quantity
-                    "- ${item.menuName.orEmpty()} x ${item.quantity}  ${formatPrice(subtotal)} won"
-                }
-                appendLine(itemLines.ifBlank { "- No items" })
-            }
-        }
-    }
-
     private fun navigateHome() {
         val popped = findNavController().popBackStack(R.id.fragment_home, false)
         if (!popped) {
             findNavController().navigate(R.id.fragment_home)
         }
+    }
+
+    private fun navigatePaymentWaiting() {
+        findNavController().navigate(
+            R.id.fragment_group_payment_waiting,
+            Bundle().apply {
+                putString(GroupPaymentWaitingFragment.ARG_GROUP_ID, groupId)
+                putLong(GroupPaymentWaitingFragment.ARG_USER_ID, currentUserId)
+            }
+        )
+        isPaymentCompleting = false
+    }
+
+    private fun navigatePaymentFailure(reason: String) {
+        findNavController().navigate(
+            R.id.fragment_payment_failure,
+            Bundle().apply {
+                putString(PaymentFailureFragment.ARG_TITLE, "결제 실패")
+                putString(
+                    PaymentFailureFragment.ARG_MESSAGE,
+                    reason.ifBlank { "주문 결제가 완료되지 않았어요. 잠시 후 홈으로 이동합니다." }
+                )
+            }
+        )
+        isPaymentCompleting = false
     }
 
     private fun observePaymentDeepLink() {
@@ -430,8 +379,7 @@ class PaymentFragment : Fragment() {
             "/fail" -> {
                 val message = uri.getQueryParameter("message") ?: "Payment failed."
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-                notifyPaymentFailed(message)
-                _binding?.btnPayment?.isEnabled = true
+                handlePaymentFailure(message)
             }
         }
     }
@@ -456,6 +404,7 @@ class PaymentFragment : Fragment() {
         const val ARG_TOTAL_PRICE = "TOTAL_PRICE"
         const val ARG_ORDER_NAME = "ORDER_NAME"
         const val ARG_GROUP_ID = "GROUP_ID"
+        const val ARG_USER_ID = "USER_ID"
         private const val TAG = "PaymentFragment"
     }
 }
