@@ -38,6 +38,13 @@ public class MenuController {
 		return ResponseEntity.ok(menu);
 	}
 	
+	@GetMapping("/name/{name}")
+	public ResponseEntity<MenuResponseDTO> getMenuByName(@PathVariable String name, HttpServletRequest request) {
+		String baseUrl = getBaseUrl(request);
+		MenuResponseDTO menu = menuService.findMenuByName(name, baseUrl);
+		return ResponseEntity.ok(menu);
+	}
+	
 	@PatchMapping("/{menuId}")
 	public ResponseEntity<Void> decreaseStock(@PathVariable Long menuId, @RequestParam int quantity) {
 		menuService.decreaseStock(menuId, quantity);

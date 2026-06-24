@@ -30,6 +30,12 @@ public class MenuService {
 				.map(menu -> new MenuResponseDTO(menu, baseUrl))
 				.orElseThrow(() -> new IllegalArgumentException("해당 메뉴가 존재하지 않습니다."));
 	}
+	
+	public MenuResponseDTO findMenuByName(String name, String baseUrl) {
+		return menuRepository.findByName(name)
+				.map(menu -> new MenuResponseDTO(menu, baseUrl))
+				.orElseThrow(() -> new IllegalArgumentException("해당 메뉴가 존재하지 않습니다."));
+	}
 
 	@Transactional
 	public void decreaseStock(Long menuId, int quantity) {

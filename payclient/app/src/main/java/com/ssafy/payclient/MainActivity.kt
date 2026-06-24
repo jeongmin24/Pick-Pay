@@ -246,11 +246,21 @@ class MainActivity : AppCompatActivity() {
 //        }
 //    }
 
-    private fun navigateToLogin() {
-        val intent = Intent(this, LoginActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        startActivity(intent)
-        finish()
+//    private fun navigateToLogin() {
+//        val intent = Intent(this, LoginActivity::class.java)
+//        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+//        startActivity(intent)
+//        finish()
+//    }
+
+    private fun checkIntentForCart(intent: Intent?) {
+        val goToCart = intent?.getBooleanExtra("GO_TO_CART", false) ?: false
+        if (goToCart) {
+            val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
+            val navController = navHostFragment?.navController
+
+            navController?.navigate(R.id.fragment_cart)
+        }
     }
 
     companion object {

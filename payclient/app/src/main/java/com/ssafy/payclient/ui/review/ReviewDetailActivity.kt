@@ -1,5 +1,6 @@
 package com.ssafy.payclient.ui.review
 
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
@@ -12,8 +13,14 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
+import com.ssafy.payclient.MainActivity
+import com.ssafy.payclient.data.local.PersonalCartStore
+import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.model.ReviewResponseDTO
+import com.ssafy.payclient.data.network.RetrofitClient.menuApiService
 import com.ssafy.payclient.databinding.ActivityReviewDetailBinding
+import com.ssafy.payclient.fragment.CartFragment
+import com.ssafy.payclient.ui.menu.MenuViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -21,6 +28,11 @@ import kotlinx.coroutines.withContext
 class ReviewDetailActivity : AppCompatActivity() {
     private lateinit var binding: ActivityReviewDetailBinding
     private var detectedMenu: String = ""
+
+    private val viewModel: MenuViewModel by lazy {
+        val tokenManager = TokenManager(this)
+        MenuViewModel(tokenManager)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,7 +48,6 @@ class ReviewDetailActivity : AppCompatActivity() {
             WindowInsetsCompat.CONSUMED
         }
 
-        // 초기 상태 설정: 질문 영역 숨기기
         binding.llAiSection.visibility = View.GONE
         binding.ivBack.setOnClickListener { finish() }
 
@@ -56,12 +67,10 @@ class ReviewDetailActivity : AppCompatActivity() {
             }
         }
 
-        // 1단계: 메뉴 분석 버튼
         binding.btnAnalyzeMenu.setOnClickListener {
             analyzeMenuOnly()
         }
 
-        // 2단계: 질문하기 버튼
         binding.btnAskAi.setOnClickListener {
             val userQuestion = binding.etPrompt.text.toString().trim()
             if (userQuestion.isEmpty()) {
@@ -70,9 +79,33 @@ class ReviewDetailActivity : AppCompatActivity() {
             }
             askAboutMenu(userQuestion)
         }
+
+        binding.btnOrderMenu.setOnClickListener {
+            val menuData = detectedMenu
+
+            if (menuData.isEmpty()) {
+                Toast.makeText(this, "먼저 메뉴 분석을 완료해주세요.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            viewModel.addAnalyzedMenusToCart(menuData) { successCount, failMenus ->
+                if (failMenus.isEmpty()) {
+                    Toast.makeText(this, "${successCount}개의 메뉴를 장바구니에 담았습니다.", Toast.LENGTH_SHORT).show()
+
+                    val intent = Intent(this, MainActivity::class.java).apply {
+                        putExtra("GO_TO_CART", true)
+                        flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    }
+
+                    startActivity(intent)
+                    finish()
+                } else {
+                    Toast.makeText(this, "성공: ${successCount}개 / 실패: ${failMenus.joinToString()}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 
-    // [1단계] 이미지에서 메뉴 이름만 추출
     private fun analyzeMenuOnly() {
         binding.pbLoading.visibility = View.VISIBLE
         binding.btnAnalyzeMenu.isEnabled = false
@@ -197,3 +230,4 @@ class ReviewDetailActivity : AppCompatActivity() {
         Helper.cleanUp { Log.d("싸피", "AI 자원 반환") }
     }
 }
+
