@@ -67,7 +67,7 @@ class CartAdapter(
 
     private fun imageFor(position: Int): Int {
         return when (position % 3) {
-            0 -> R.drawable.ic_latte_cup
+            0 -> R.drawable.ic_matcha_parfait
             1 -> R.drawable.ic_matcha_parfait
             else -> R.drawable.ic_parfait_hero
         }

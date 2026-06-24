@@ -34,8 +34,6 @@ class MenuAdapter(
 
             Glide.with(binding.root.context)
                 .load(menu.imageUrl)
-                .placeholder(R.drawable.ic_latte_cup)
-                .error(R.drawable.ic_latte_cup)
                 .centerCrop()
                 .into(binding.ivMenuImage)
 

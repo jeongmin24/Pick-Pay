@@ -11,6 +11,10 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.animation.DecelerateInterpolator
 import android.widget.Toast
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -31,6 +35,7 @@ import com.ssafy.payclient.data.network.RetrofitClient
 import com.ssafy.payclient.databinding.FragmentGroupChatBinding
 import com.ssafy.payclient.ui.chat.GroupChatAdapter
 import kotlinx.coroutines.launch
+import kotlin.math.max
 
 class GroupChatFragment : Fragment() {
 
@@ -48,6 +53,7 @@ class GroupChatFragment : Fragment() {
     private var messagesListener: ValueEventListener? = null
     private var pickupRouletteListener: ValueEventListener? = null
     private var isRouletteRunning: Boolean = false
+    private var isRouletteExpanded: Boolean = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -68,6 +74,7 @@ class GroupChatFragment : Fragment() {
 
         setupToolbar()
         setupRecyclerView()
+        setupWindowInsets()
         setupMessageInput()
         setupPickupRoulette()
         loadCurrentUserNickname()
@@ -79,6 +86,27 @@ class GroupChatFragment : Fragment() {
         binding.toolbarGroupChat.setNavigationOnClickListener {
             findNavController().popBackStack()
         }
+    }
+
+    private fun setupWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val systemBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            val bottomInset = max(systemBottom, imeBottom)
+
+            binding.layoutGroupChatInput.updateLayoutParams<ConstraintLayout.LayoutParams> {
+                bottomMargin = bottomInset
+            }
+
+            if (imeBottom > 0 && ::chatAdapter.isInitialized && chatAdapter.itemCount > 0) {
+                binding.rvGroupChatMessages.post {
+                    binding.rvGroupChatMessages.scrollToPosition(chatAdapter.itemCount - 1)
+                }
+            }
+
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     private fun setupRecyclerView() {
@@ -118,10 +146,23 @@ class GroupChatFragment : Fragment() {
         binding.btnRunPickupRoulette.setOnClickListener {
             runPickupRoulette()
         }
+        binding.btnTogglePickupRoulette.setOnClickListener {
+            isRouletteExpanded = !isRouletteExpanded
+            renderRouletteExpansion()
+        }
+        renderRouletteExpansion()
 
         if (!isHost) {
             binding.tvPickupRouletteStatus.text = "방장이 픽업 담당자를 뽑으면 결과가 표시됩니다."
         }
+    }
+
+    private fun renderRouletteExpansion() {
+        binding.layoutPickupRouletteContent.visibility =
+            if (isRouletteExpanded) View.VISIBLE else View.GONE
+        binding.btnTogglePickupRoulette.rotation = if (isRouletteExpanded) 0f else 180f
+        binding.btnTogglePickupRoulette.contentDescription =
+            if (isRouletteExpanded) "픽업 룰렛 접기" else "픽업 룰렛 펼치기"
     }
 
     private fun observeMessages() {
@@ -179,6 +220,7 @@ class GroupChatFragment : Fragment() {
         chatAdapter.submitList(messages)
 
         val isEmpty = messages.isEmpty()
+        binding.layoutEmptyGroupChat.visibility = if (isEmpty) View.VISIBLE else View.GONE
         binding.tvEmptyGroupChat.visibility = if (isEmpty) View.VISIBLE else View.GONE
         binding.rvGroupChatMessages.visibility = if (isEmpty) View.GONE else View.VISIBLE
 
@@ -198,6 +240,8 @@ class GroupChatFragment : Fragment() {
         if (isRouletteRunning) return
 
         isRouletteRunning = true
+        isRouletteExpanded = true
+        renderRouletteExpansion()
         binding.btnRunPickupRoulette.isEnabled = false
         binding.btnRunPickupRoulette.text = "진행 중"
         binding.tvPickupRouletteStatus.text = "후보를 불러와 룰렛을 돌리고 있습니다."
