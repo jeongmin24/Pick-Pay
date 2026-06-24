@@ -23,12 +23,12 @@
         android:background="@drawable/bg_bottom_nav"
         app:menu="@menu/bottom_nav_menu"
 
-        app:itemIconTint="@color/bottom_nav_item_color"
+        app:itemIconTint="@color/coffee_brown"
         app:itemTextColor="@color/bottom_nav_item_color"
 
         app:labelVisibilityMode="labeled"
         app:itemRippleColor="@android:color/transparent"
-        app:itemActiveIndicatorStyle="@null"
+        app:itemActiveIndicatorStyle="@style/BottomNavActiveIndicator"
 
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"

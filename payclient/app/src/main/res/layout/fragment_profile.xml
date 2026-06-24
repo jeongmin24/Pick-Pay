@@ -43,7 +43,7 @@
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="16dp"
                 android:text="마이페이지"
-                android:textColor="@color/coffee_brown"
+                android:textColor="@color/coffee_brown_dark"
                 android:textSize="20sp"
                 android:textStyle="bold"
                 app:layout_constraintBottom_toBottomOf="parent"
@@ -157,18 +157,17 @@
                     app:layout_constraintBottom_toBottomOf="@id/ivProfile"
                     app:layout_constraintEnd_toEndOf="@id/ivProfile" />
 
-                <TextView
+                <ImageView
                     android:id="@+id/btnLogout"
-                    android:layout_width="40dp"
-                    android:layout_height="wrap_content"
-                    android:background="?android:attr/selectableItemBackground"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
                     android:clickable="true"
+                    android:contentDescription="로그아웃"
                     android:focusable="true"
-                    android:gravity="center"
-                    android:text="로그&#10;아웃"
-                    android:textColor="#D7232A"
-                    android:textSize="10sp"
-                    android:textStyle="bold"
+                    android:padding="7dp"
+                    android:src="@drawable/ic_logout"
+                    app:tint="#D7232A"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />

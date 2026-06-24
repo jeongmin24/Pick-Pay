@@ -14,14 +14,23 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="22dp"
+        android:paddingTop="0dp"
         android:paddingBottom="24dp">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/layout_home_header"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
 
         <ImageView
             android:id="@+id/ivHeaderCup"
             android:layout_width="22dp"
             android:layout_height="22dp"
-            android:layout_marginStart="16dp"
             android:contentDescription="@null"
             android:src="@drawable/ic_cup_line"
             app:tint="@color/coffee_brown"
@@ -38,9 +47,10 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:text="안녕하세요, 테스터2님!"
-            android:textColor="@color/text_primary"
-            android:textSize="18sp"
+            android:textColor="@color/coffee_brown_dark"
+            android:textSize="20sp"
             android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/btnNotification"
             app:layout_constraintStart_toEndOf="@id/ivHeaderCup"
             app:layout_constraintTop_toTopOf="parent" />
@@ -49,7 +59,6 @@
             android:id="@+id/btnNotification"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:layout_marginEnd="20dp"
             android:contentDescription="알림"
             android:padding="2dp"
             android:src="@drawable/ic_bell_outline"
@@ -57,19 +66,20 @@
             app:layout_constraintBottom_toBottomOf="@id/tvWelcomeTitle"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/tvWelcomeTitle" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/cvMainBanner"
             android:layout_width="0dp"
             android:layout_height="174dp"
             android:layout_marginStart="16dp"
-            android:layout_marginTop="28dp"
+            android:layout_marginTop="18dp"
             android:layout_marginEnd="16dp"
             app:cardCornerRadius="18dp"
             app:cardElevation="0dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvWelcomeTitle">
+            app:layout_constraintTop_toBottomOf="@id/layout_home_header">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
@@ -164,7 +174,7 @@
                             android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:contentDescription="@null"
-                            android:src="@drawable/ic_cutlery"
+                            android:src="@drawable/local_dining_24px"
                             app:tint="@color/coffee_brown" />
                     </FrameLayout>
 

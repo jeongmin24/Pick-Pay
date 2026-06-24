@@ -34,8 +34,8 @@
             android:layout_marginStart="8dp"
             android:layout_marginEnd="16dp"
             android:text="사용자 리뷰 목록"
-            android:textColor="@color/text_primary"
-            android:textSize="18sp"
+            android:textColor="@color/coffee_brown_dark"
+            android:textSize="20sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/iv_review_search"
@@ -72,8 +72,8 @@
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddReview"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
         android:layout_marginEnd="18dp"
         android:layout_marginBottom="18dp"
         android:clickable="true"
@@ -82,7 +82,7 @@
         android:src="@drawable/ic_add"
         app:backgroundTint="@color/coffee_brown"
         app:elevation="5dp"
-        app:fabCustomSize="56dp"
+        app:fabCustomSize="52dp"
         app:tint="@color/white"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

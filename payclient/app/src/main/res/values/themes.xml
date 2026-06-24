@@ -7,4 +7,16 @@
     </style>
 
     <style name="Theme.Payclient" parent="Base.Theme.Payclient" />
+
+    <style name="BottomNavActiveIndicator">
+        <item name="android:width">48dp</item>
+        <item name="android:height">48dp</item>
+        <item name="android:color">@color/nav_selected_bg</item>
+        <item name="shapeAppearance">@style/BottomNavActiveIndicatorShape</item>
+    </style>
+
+    <style name="BottomNavActiveIndicatorShape">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">12dp</item>
+    </style>
 </resources>

@@ -108,7 +108,6 @@ class MainActivity : AppCompatActivity() {
         val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         val navController = navHostFragment.navController
         binding.bottomNavigation.setupWithNavController(navController)
-        binding.bottomNavigation.itemIconTintList = null
     }
 
     private fun handleMenuNfcIntent(intent: Intent) {

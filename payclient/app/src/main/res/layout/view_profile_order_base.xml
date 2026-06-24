@@ -72,14 +72,16 @@
             android:layout_marginStart="18dp"
             android:layout_marginTop="10dp"
             android:layout_marginEnd="10dp"
+            android:layout_marginBottom="20dp"
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/text_secondary"
             android:textSize="10sp"
-            tools:text="디지털 취계 강남점"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/tv_order_status"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tv_order_name" />
+            app:layout_constraintTop_toBottomOf="@id/tv_order_name"
+            tools:text="디지털 취계 강남점" />
 
         <TextView
             android:id="@+id/tv_order_status"

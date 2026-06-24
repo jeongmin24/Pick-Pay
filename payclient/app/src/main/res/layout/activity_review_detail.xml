@@ -217,7 +217,7 @@
                 android:textSize="14sp"
                 android:textStyle="bold"
                 app:cornerRadius="8dp"
-                app:icon="@drawable/ic_image_search"
+                app:icon="@drawable/frame_inspect_24px"
                 app:iconGravity="textStart"
                 app:iconPadding="8dp"
                 app:iconTint="@color/review_ai_text"
