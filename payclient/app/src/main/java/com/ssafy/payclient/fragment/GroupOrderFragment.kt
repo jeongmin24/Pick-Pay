@@ -218,7 +218,7 @@ class GroupOrderFragment : Fragment() {
 
     private fun setupRecyclerView() {
         menuAdapter = MenuAdapter(emptyList()) { selectedMenu ->
-            addItemToFirebaseCart(selectedMenu.name, selectedMenu.menuId, 1)
+            addItemToFirebaseCart(selectedMenu.name, selectedMenu.menuId, selectedMenu.price, 1)
         }
         binding.rvGroupMenuList.apply {
             layoutManager = GridLayoutManager(context, 2)
@@ -234,7 +234,7 @@ class GroupOrderFragment : Fragment() {
                         is MenuUiState.Loading -> {}
                         is MenuUiState.Success -> {
                             menuAdapter = MenuAdapter(state.menuList) { selectedMenu ->
-                                addItemToFirebaseCart(selectedMenu.name, selectedMenu.menuId, 1)
+                                addItemToFirebaseCart(selectedMenu.name, selectedMenu.menuId, selectedMenu.price, 1)
                             }
                             binding.rvGroupMenuList.adapter = menuAdapter
                         }
@@ -291,7 +291,7 @@ class GroupOrderFragment : Fragment() {
         }
     }
 
-    private fun addItemToFirebaseCart(menuName: String, productId: Long, quantity: Int) {
+    private fun addItemToFirebaseCart(menuName: String, productId: Long, price: Long, quantity: Int) {
 
         // LOCKED or PAID 상태면 장바구니 담기 X
         if (groupStatus != "OPEN") {
@@ -317,11 +317,13 @@ class GroupOrderFragment : Fragment() {
                         menuName = menuName,
                         productId = productId,
                         quantity = quantity,
-                        userId = currentUserId
+                        userId = currentUserId,
+                        price = price
                     )
                 } else {
                     currentData.value = currentItem.copy(
                         productId = currentItem.productId.takeIf { it > 0L } ?: productId,
+                        price = currentItem.price.takeIf { it > 0L } ?: price,
                         quantity = currentItem.quantity + quantity
                     )
                 }

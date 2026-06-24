@@ -7,6 +7,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.ssafy.payclient.data.model.FirebaseCartItem
 import com.ssafy.payclient.databinding.ItemGroupCartBinding
 import com.ssafy.payclient.databinding.ItemGroupCartMenuBinding
+import java.text.NumberFormat
+import java.util.Locale
 
 data class GroupCartItemUi(
     val itemKey: String,
@@ -58,8 +60,11 @@ class GroupCartAdapter(
         ) {
             val item = cartItem.item
             menuBinding.tvGroupCartMenuName.text = item.menuName
-            menuBinding.tvGroupCartQuantity.text = "x${item.quantity}"
+            menuBinding.tvGroupCartQuantity.text = "${formatWon(item.price)} · 수량 ${item.quantity}"
+            menuBinding.tvGroupCartItemTotal.text = formatWon(item.price * item.quantity)
+            menuBinding.tvGroupCartControlQuantity.text = item.quantity.toString()
             menuBinding.layoutQuantityControls.visibility = if (isMine) View.VISIBLE else View.GONE
+            menuBinding.btnGroupCartRemove.visibility = if (isMine) View.VISIBLE else View.GONE
 
             menuBinding.btnGroupCartIncrease.setOnClickListener {
                 onIncreaseClick(cartItem)
@@ -100,5 +105,11 @@ class GroupCartAdapter(
                     items = items.sortedBy { it.item.menuName }
                 )
             }
+    }
+
+    private fun formatWon(value: Long): String = "₩${PRICE_FORMAT.format(value)}"
+
+    companion object {
+        private val PRICE_FORMAT: NumberFormat = NumberFormat.getNumberInstance(Locale.KOREA)
     }
 }

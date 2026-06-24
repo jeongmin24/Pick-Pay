@@ -1,10 +1,15 @@
 package com.ssafy.payclient.ui.signup
 
+import android.graphics.Rect
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.model.SignupRequest
@@ -14,6 +19,7 @@ import com.ssafy.payclient.databinding.ActivitySignupBinding
 import com.ssafy.payclient.util.UiState
 import com.ssafy.payclient.util.ViewModelFactory
 import kotlinx.coroutines.launch
+import kotlin.math.max
 
 class SignupActivity : AppCompatActivity() {
 
@@ -32,11 +38,24 @@ class SignupActivity : AppCompatActivity() {
         binding = ActivitySignupBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setupKeyboardInsets()
         initViews()
         observeViewModel()
     }
 
     private fun initViews() {
+        binding.btnSignupBack.setOnClickListener {
+            finish()
+        }
+
+        binding.etSignupId.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                isIdChecked = false
+            }
+            override fun afterTextChanged(s: Editable?) = Unit
+        })
+
         binding.btnCheckId.setOnClickListener {
             val id = binding.etSignupId.text.toString()
             viewModel.checkId(id)
@@ -45,6 +64,11 @@ class SignupActivity : AppCompatActivity() {
         binding.btnSignup.setOnClickListener {
             if (!isIdChecked) {
                 Toast.makeText(this, "아이디 중복 확인을 해주세요.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (!binding.cbSignupTerms.isChecked) {
+                Toast.makeText(this, "이용약관 및 개인정보처리방침에 동의해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -67,7 +91,65 @@ class SignupActivity : AppCompatActivity() {
             
             viewModel.signup(SignupRequest(id, pw, nickname))
         }
+
+        listOf(
+            binding.etSignupId,
+            binding.etSignupPassword,
+            binding.etSignupPasswordConfirm,
+            binding.etSignupNickname
+        ).forEach { field ->
+            field.setOnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) {
+                    binding.scrollSignup.postDelayed({ scrollFocusedFieldIntoView() }, 220)
+                }
+            }
+        }
     }
+
+    private fun setupKeyboardInsets() {
+        val baseBottomPadding = binding.scrollSignup.paddingBottom
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val systemBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            val keyboardBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            val bottomPadding = baseBottomPadding + max(systemBottom, keyboardBottom)
+
+            binding.scrollSignup.setPadding(
+                binding.scrollSignup.paddingLeft,
+                binding.scrollSignup.paddingTop,
+                binding.scrollSignup.paddingRight,
+                bottomPadding
+            )
+
+            if (keyboardBottom > 0) {
+                binding.scrollSignup.post { scrollFocusedFieldIntoView() }
+            }
+
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.root)
+    }
+
+    private fun scrollFocusedFieldIntoView() {
+        val focusedView = currentFocus ?: return
+        val focusedRect = Rect()
+        focusedView.getDrawingRect(focusedRect)
+        binding.scrollSignup.offsetDescendantRectToMyCoords(focusedView, focusedRect)
+
+        val visibleBottom = binding.scrollSignup.scrollY +
+            binding.scrollSignup.height -
+            binding.scrollSignup.paddingBottom
+        val targetBottom = focusedRect.bottom + 36.dp()
+
+        if (targetBottom > visibleBottom) {
+            binding.scrollSignup.smoothScrollTo(
+                0,
+                binding.scrollSignup.scrollY + targetBottom - visibleBottom
+            )
+        }
+    }
+
+    private fun Int.dp(): Int = (this * resources.displayMetrics.density).toInt()
 
     private fun observeViewModel() {
         lifecycleScope.launch {

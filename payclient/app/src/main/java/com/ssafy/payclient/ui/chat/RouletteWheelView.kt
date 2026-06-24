@@ -18,33 +18,33 @@ class RouletteWheelView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     private val segmentColors = intArrayOf(
-        Color.parseColor("#FF6B6B"),
-        Color.parseColor("#4D96FF"),
-        Color.parseColor("#6BCB77"),
-        Color.parseColor("#FFD93D"),
-        Color.parseColor("#A66CFF"),
-        Color.parseColor("#FF9F1C")
+        Color.parseColor("#8B674E"),
+        Color.parseColor("#C49D82"),
+        Color.parseColor("#EBC2A4"),
+        Color.parseColor("#D4A98A"),
+        Color.parseColor("#E7DBD0"),
+        Color.parseColor("#C39A8F")
     )
     private val segmentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
     }
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE
+        color = Color.parseColor("#F2EAE1")
         style = Paint.Style.STROKE
-        strokeWidth = 5f
+        strokeWidth = 4f
     }
     private val centerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE
+        color = Color.TRANSPARENT
         style = Paint.Style.FILL
     }
     private val pointerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#222222")
+        color = Color.parseColor("#8B674E")
         style = Paint.Style.FILL
     }
     private val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE
+        color = Color.parseColor("#8B674E")
         textAlign = Paint.Align.CENTER
-        textSize = 30f
+        textSize = 34f
         setFakeBoldText(true)
     }
 
@@ -82,7 +82,8 @@ class RouletteWheelView @JvmOverloads constructor(
         val radius = size * 0.43f
         val centerX = width / 2f
         val centerY = height / 2f + size * 0.05f
-        val labels = candidateNames.ifEmpty { listOf("READY") }
+        val isReady = candidateNames.isEmpty()
+        val labels = if (isReady) List(6) { "" } else candidateNames
         val sweep = 360f / labels.size
 
         wheelRect.set(centerX - radius, centerY - radius, centerX + radius, centerY + radius)
@@ -93,10 +94,15 @@ class RouletteWheelView @JvmOverloads constructor(
             canvas.drawArc(wheelRect, startAngle, sweep, true, segmentPaint)
             canvas.drawArc(wheelRect, startAngle, sweep, true, borderPaint)
 
-            drawSegmentText(canvas, label, centerX, centerY, radius, startAngle + sweep / 2f)
+            if (!isReady) {
+                drawSegmentText(canvas, label, centerX, centerY, radius, startAngle + sweep / 2f)
+            }
         }
 
         canvas.drawCircle(centerX, centerY, radius * 0.16f, centerPaint)
+        if (isReady) {
+            canvas.drawText("READY", centerX, centerY + textPaint.textSize / 3f, textPaint)
+        }
         drawPointer(canvas, centerX, centerY - radius)
     }
 
