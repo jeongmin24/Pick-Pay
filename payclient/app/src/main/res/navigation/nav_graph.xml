@@ -33,7 +33,17 @@
         android:id="@+id/fragment_profile"
         android:name="com.ssafy.payclient.fragment.ProfileFragment"
         android:label="ProfileFragment"
-        tools:layout="@layout/fragment_profile" />
+        tools:layout="@layout/fragment_profile">
+        <action
+            android:id="@+id/action_fragment_profile_to_fragment_order_detail"
+            app:destination="@id/fragment_order_detail" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/fragment_order_detail"
+        android:name="com.ssafy.payclient.fragment.OrderDetailFragment"
+        android:label="OrderDetailFragment"
+        tools:layout="@layout/fragment_order_detail" />
 
     <fragment
         android:id="@+id/fragment_group_order"

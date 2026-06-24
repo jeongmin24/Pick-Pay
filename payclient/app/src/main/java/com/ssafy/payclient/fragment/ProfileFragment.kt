@@ -9,8 +9,10 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.ssafy.payclient.MainViewModel
+import com.ssafy.payclient.R
 import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.network.RetrofitClient
 import com.ssafy.payclient.data.repository.AuthRepository
@@ -59,12 +61,23 @@ class ProfileFragment : Fragment() {
     }
 
     private fun setupRecentOrders() {
-        recentOrderAdapter = RecentOrderAdapter()
+        recentOrderAdapter = RecentOrderAdapter { order ->
+            openOrderDetail(order.orderNo)
+        }
         binding.rvOrderHistory.apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = recentOrderAdapter
             isNestedScrollingEnabled = false
         }
+    }
+
+    private fun openOrderDetail(orderNo: String) {
+        findNavController().navigate(
+            R.id.action_fragment_profile_to_fragment_order_detail,
+            Bundle().apply {
+                putString(OrderDetailFragment.ARG_ORDER_NO, orderNo)
+            }
+        )
     }
 
     private fun loadUserInfo() {

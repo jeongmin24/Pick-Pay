@@ -9,7 +9,8 @@ import java.text.NumberFormat
 import java.util.Locale
 
 class RecentOrderAdapter(
-    private var orders: List<RecentOrderResponseDTO> = emptyList()
+    private var orders: List<RecentOrderResponseDTO> = emptyList(),
+    private val onOrderClick: (RecentOrderResponseDTO) -> Unit = {}
 ) : RecyclerView.Adapter<RecentOrderAdapter.RecentOrderViewHolder>() {
 
     inner class RecentOrderViewHolder(private val binding: ItemRecentOrderBinding) :
@@ -21,6 +22,9 @@ class RecentOrderAdapter(
             binding.tvRecentOrderNo.text = "Order ${order.orderNo}"
             binding.tvRecentOrderDate.text = formatDate(order.createdAt)
             binding.tvRecentOrderPrice.text = "${priceFormat.format(order.totalPrice)} won"
+            binding.root.setOnClickListener {
+                onOrderClick(order)
+            }
         }
     }
 
