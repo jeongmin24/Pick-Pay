@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 public record RecentOrderResponseDTO(
         String orderNo,
+        String displayOrderNo,
         Long totalPrice,
         String status,
         LocalDateTime createdAt,

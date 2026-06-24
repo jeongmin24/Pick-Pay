@@ -11,12 +11,14 @@ data class CartItemRequest(
 
 data class IndividualOrderCreateResponseDTO(
     val orderId: String,
+    val displayOrderNo: String?,
     val totalPrice: Long,
     val status: String
 )
 
 data class IndividualReceiptResponseDTO(
     val orderId: Long,
+    val displayOrderNo: String?,
     val totalPrice: Long,
     val status: String,
     val createdAt: String,
@@ -25,6 +27,7 @@ data class IndividualReceiptResponseDTO(
 
 data class RecentOrderResponseDTO(
     val orderNo: String,
+    val displayOrderNo: String?,
     val totalPrice: Long,
     val status: String,
     val createdAt: String,

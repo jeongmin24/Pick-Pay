@@ -28,7 +28,8 @@ import lombok.NoArgsConstructor;
 @Table(
         name = "orders",
         indexes = {
-                @Index(name = "idx_orders_order_no", columnList = "order_no")
+                @Index(name = "idx_orders_order_no", columnList = "order_no"),
+                @Index(name = "idx_orders_created_at_display_order_no", columnList = "created_at, display_order_no")
         }
 )
 public class Order {
@@ -43,6 +44,9 @@ public class Order {
 
     @Column(name = "order_no", length = 64, unique = true)
     private String orderNo;
+
+    @Column(name = "display_order_no", length = 16)
+    private String displayOrderNo;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
@@ -71,6 +75,13 @@ public class Order {
             throw new IllegalStateException("Order number has already been assigned.");
         }
         this.orderNo = orderNo;
+    }
+
+    public void assignDisplayOrderNo(String displayOrderNo) {
+        if (this.displayOrderNo != null) {
+            throw new IllegalStateException("Display order number has already been assigned.");
+        }
+        this.displayOrderNo = displayOrderNo;
     }
 
     public void updateTotalPrice(Long totalPrice) {

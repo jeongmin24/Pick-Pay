@@ -97,7 +97,7 @@ class OrderDetailFragment : Fragment() {
         currentBinding.groupOrderDetailContent.visibility = View.VISIBLE
         currentBinding.tvOrderDetailError.visibility = View.GONE
 
-        currentBinding.tvOrderDetailNo.text = "Order $orderNo"
+        currentBinding.tvOrderDetailNo.text = "Order ${receipt.displayOrderNo ?: orderNo}"
         currentBinding.tvOrderDetailStatus.text = receipt.status
         currentBinding.tvOrderDetailDate.text = formatDate(receipt.createdAt)
         currentBinding.tvOrderDetailTotal.text = "${formatPrice(receipt.totalPrice)} won"

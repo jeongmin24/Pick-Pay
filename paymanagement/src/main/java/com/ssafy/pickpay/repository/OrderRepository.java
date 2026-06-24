@@ -1,5 +1,6 @@
 package com.ssafy.pickpay.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -59,6 +60,19 @@ public interface OrderRepository extends JpaRepository<Order, Long>{
         where g.groupId = :groupId
     """)
     List<Order> findByGroupOrderGroupIdForUpdate(@Param("groupId") String groupId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        select o
+        from Order o
+        where o.createdAt >= :startOfDay
+          and o.createdAt < :startOfNextDay
+          and o.displayOrderNo is not null
+    """)
+    List<Order> findDisplayOrderNoCandidatesForUpdate(
+            @Param("startOfDay") LocalDateTime startOfDay,
+            @Param("startOfNextDay") LocalDateTime startOfNextDay
+    );
 	
 	boolean existsByGroupOrder_GroupIdAndStatusNot(
             String groupId,

@@ -353,6 +353,7 @@ public class GroupOrderService {
             UserReceiptDTO userReceiptDTO = UserReceiptDTO.builder()
                     .userId(order.getUser().getUserId())
                     .orderNo(order.getOrderNo())
+                    .displayOrderNo(order.getDisplayOrderNo())
                     .nickname(order.getUser().getNickname())
                     .orderStatus(order.getStatus().name())
                     .userTotalPrice(order.getTotalPrice())

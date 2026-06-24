@@ -26,6 +26,7 @@ public class GroupOrderReceiptResponseDTO {
     public static class UserReceiptDTO {
         private Long userId;
         private String orderNo;
+        private String displayOrderNo;
         private String nickname;
         private String orderStatus;
         private Long userTotalPrice;

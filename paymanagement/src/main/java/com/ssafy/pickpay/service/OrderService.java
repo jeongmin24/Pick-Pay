@@ -1,5 +1,7 @@
 package com.ssafy.pickpay.service;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ssafy.pickpay.config.DisplayOrderNoGenerator;
 import com.ssafy.pickpay.config.OrderNoGenerator;
 import com.ssafy.pickpay.domain.GroupOrder;
 import com.ssafy.pickpay.domain.Menu;
@@ -32,6 +35,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class OrderService {
+
+    private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
 	
 	private final OrderRepository orderRepository;
 	private final OrderItemsRepository orderItemsRepository;
@@ -39,6 +44,7 @@ public class OrderService {
     private final MenuRepository menuRepository;
     private final GroupOrderRepository groupOrderRepository;
     private final OrderNoGenerator orderNoGenerator;
+    private final DisplayOrderNoGenerator displayOrderNoGenerator;
     
     @Transactional
     public IndividualOrderCreateResponseDTO createIndividualOrder(
@@ -51,6 +57,7 @@ public class OrderService {
     	// DTO로 반환
     	return new IndividualOrderCreateResponseDTO(
     			order.getOrderNo(),
+                order.getDisplayOrderNo(),
     			order.getTotalPrice(),
     			order.getStatus().name() // enum -> String
     			);
@@ -85,6 +92,12 @@ public class OrderService {
     	
     	String orderNo = orderNoGenerator.generate(savedOrder.getOrderId());
     	savedOrder.assignOrderNo(orderNo); // UPDATE
+
+        LocalDate orderDate = savedOrder.getCreatedAt() == null
+                ? LocalDate.now(KOREA_ZONE)
+                : savedOrder.getCreatedAt().toLocalDate();
+        String displayOrderNo = displayOrderNoGenerator.generate(orderDate);
+        savedOrder.assignDisplayOrderNo(displayOrderNo);
     	
     	Map<Long, Integer> mergedItems = mergeItems(items);
     	
@@ -152,6 +165,7 @@ public class OrderService {
 
         return new IndividualOrderReceiptResponseDTO(
                 order.getOrderId(),
+                order.getDisplayOrderNo(),
                 order.getTotalPrice(),
                 order.getStatus().name(),
                 order.getCreatedAt(),
@@ -183,6 +197,7 @@ public class OrderService {
 
                     return new RecentOrderResponseDTO(
                             order.getOrderNo(),
+                            order.getDisplayOrderNo(),
                             order.getTotalPrice(),
                             order.getStatus().name(),
                             order.getCreatedAt(),

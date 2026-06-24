@@ -308,7 +308,7 @@ class PaymentFragment : Fragment() {
         }
 
         return buildString {
-            appendLine("Order No. $orderNo")
+            appendLine("Order No. ${receipt.displayOrderNo ?: orderNo}")
             appendLine("Status: ${receipt.status}")
             appendLine("Ordered at: ${receipt.createdAt}")
             appendLine()

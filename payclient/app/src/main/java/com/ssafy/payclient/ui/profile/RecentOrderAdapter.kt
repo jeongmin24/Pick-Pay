@@ -19,7 +19,7 @@ class RecentOrderAdapter(
         fun bind(order: RecentOrderResponseDTO) {
             binding.tvRecentOrderName.text = buildOrderName(order)
             binding.tvRecentOrderStatus.text = formatStatus(order.status)
-            binding.tvRecentOrderNo.text = "주문 ${order.orderNo}"
+            binding.tvRecentOrderNo.text = "주문 ${order.displayOrderNo ?: order.orderNo}"
             binding.tvRecentOrderDate.text = formatDate(order.createdAt)
 
             binding.tvRecentOrderPrice.text = "${priceFormat.format(order.totalPrice)}원"

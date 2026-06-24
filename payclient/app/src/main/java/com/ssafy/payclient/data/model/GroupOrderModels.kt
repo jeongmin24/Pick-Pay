@@ -65,6 +65,7 @@ data class ReceiptResponseDTO(
 data class UserReceiptDTO(
     val userId: Long,
     val orderNo: String?,
+    val displayOrderNo: String?,
     val nickname: String?,
     val orderStatus: String?,
     val userTotalPrice: Long,
