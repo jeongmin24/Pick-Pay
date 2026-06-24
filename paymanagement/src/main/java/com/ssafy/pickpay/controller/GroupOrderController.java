@@ -17,6 +17,7 @@ import com.ssafy.pickpay.dto.GroupJoinResponseDTO;
 import com.ssafy.pickpay.dto.GroupOrderCloseRequestDTO;
 import com.ssafy.pickpay.dto.GroupOrderCreateResponse;
 import com.ssafy.pickpay.dto.GroupOrderReceiptResponseDTO;
+import com.ssafy.pickpay.dto.PickupRouletteResponseDTO;
 import com.ssafy.pickpay.service.GroupOrderService;
 
 import jakarta.validation.Valid;
@@ -82,6 +83,18 @@ public class GroupOrderController {
 		GroupOrderReceiptResponseDTO receipt = groupOrderService.getReceipt(groupId);
 		
 		return ResponseEntity.ok(receipt);
+	}
+
+	@PostMapping("/{groupId}/pickup-roulette")
+	public ResponseEntity<PickupRouletteResponseDTO> selectPickupWinner(
+			Authentication authentication,
+			@PathVariable String groupId
+	) {
+		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+		Long userId = userDetails.getUserId();
+
+		PickupRouletteResponseDTO response = groupOrderService.selectPickupWinner(userId, groupId);
+		return ResponseEntity.ok(response);
 	}
 
 }

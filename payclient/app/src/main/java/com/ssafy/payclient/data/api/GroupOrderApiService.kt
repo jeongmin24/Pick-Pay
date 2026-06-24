@@ -4,6 +4,7 @@ import com.ssafy.payclient.data.model.CloseGroupOrderRequest
 import com.ssafy.payclient.data.model.GroupJoinRequest
 import com.ssafy.payclient.data.model.GroupJoinResponse
 import com.ssafy.payclient.data.model.GroupOrderCreateResponse
+import com.ssafy.payclient.data.model.PickupRouletteResponse
 import com.ssafy.payclient.data.model.ReceiptResponseDTO
 import retrofit2.Response
 import okhttp3.ResponseBody
@@ -32,5 +33,10 @@ interface GroupOrderApiService {
     suspend fun getGroupReceipt(
         @Path("groupId") groupId: String
     ): Response<ReceiptResponseDTO>
+
+    @POST("/api/groups/{groupId}/pickup-roulette")
+    suspend fun selectPickupWinner(
+        @Path("groupId") groupId: String
+    ): Response<PickupRouletteResponse>
 
 }

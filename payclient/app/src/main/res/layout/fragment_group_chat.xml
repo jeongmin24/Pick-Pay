@@ -27,6 +27,81 @@
         android:orientation="vertical"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_pickup_roulette"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="6dp"
+            app:cardBackgroundColor="#FFFFFF"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="2dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="픽업 룰렛"
+                            android:textColor="#222222"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_pickup_roulette_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="주문을 담은 멤버 중 픽업 담당자를 뽑습니다."
+                            android:textColor="#666666"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btn_run_pickup_roulette"
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        android:minWidth="86dp"
+                        android:text="시작"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <com.ssafy.payclient.ui.chat.RouletteWheelView
+                    android:id="@+id/view_pickup_roulette"
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp"
+                    android:layout_marginTop="10dp"
+                    android:contentDescription="픽업 담당자 룰렛" />
+
+                <TextView
+                    android:id="@+id/tv_pickup_roulette_result"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="아직 선정 전입니다."
+                    android:textColor="#FF5A5F"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"

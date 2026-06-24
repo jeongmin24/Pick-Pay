@@ -1,7 +1,9 @@
 package com.ssafy.pickpay.service;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,6 +31,8 @@ import com.ssafy.pickpay.dto.GroupJoinResponseDTO;
 import com.ssafy.pickpay.dto.GroupOrderReceiptResponseDTO;
 import com.ssafy.pickpay.dto.GroupOrderReceiptResponseDTO.UserReceiptDTO;
 import com.ssafy.pickpay.dto.OrderReceiptItemDTO;
+import com.ssafy.pickpay.dto.PickupRouletteResponseDTO;
+import com.ssafy.pickpay.dto.PickupRouletteResponseDTO.PickupCandidateDTO;
 import com.ssafy.pickpay.repository.GroupOrderRepository;
 import com.ssafy.pickpay.repository.OrderItemsRepository;
 import com.ssafy.pickpay.repository.OrderRepository;
@@ -39,6 +43,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class GroupOrderService {
+
+    private final SecureRandom secureRandom = new SecureRandom();
 
     private final OrderService orderService;
     private final GroupOrderRepository groupOrderRepository;
@@ -139,6 +145,55 @@ public class GroupOrderService {
         }
     }
 
+    @Transactional
+    public PickupRouletteResponseDTO selectPickupWinner(Long requestUserId, String groupId) {
+        GroupOrder groupOrder = groupOrderRepository.findById(groupId)
+                .orElseThrow(() -> new IllegalArgumentException("Group not found."));
+
+        validateHost(groupOrder, requestUserId);
+
+        List<PickupCandidateDTO> candidates = getPickupCandidates(groupId);
+        if (candidates.isEmpty() && groupOrder.getPickupUser() == null) {
+            throw new IllegalStateException("Cannot select pickup winner from an empty cart.");
+        }
+
+        if (groupOrder.getPickupUser() != null) {
+            User existingWinner = groupOrder.getPickupUser();
+            List<PickupCandidateDTO> visibleCandidates = ensureWinnerIncluded(candidates, existingWinner);
+            int winnerIndex = findCandidateIndex(visibleCandidates, existingWinner.getUserId());
+            return new PickupRouletteResponseDTO(
+                    groupId,
+                    existingWinner.getUserId(),
+                    existingWinner.getNickname(),
+                    winnerIndex,
+                    true,
+                    visibleCandidates
+            );
+        }
+
+        if (groupOrder.getStatus() != GroupOrderStatus.OPEN) {
+            throw new IllegalStateException("Pickup winner can only be selected while the group order is open.");
+        }
+
+        int winnerIndex = secureRandom.nextInt(candidates.size());
+        PickupCandidateDTO selectedCandidate = candidates.get(winnerIndex);
+        User winner = userRepository.findById(selectedCandidate.userId())
+                .orElseThrow(() -> new IllegalArgumentException("Winner user not found."));
+
+        groupOrder.setPickupUser(winner);
+        updateFirebasePickupRoulette(groupId, winner, winnerIndex, candidates);
+        pushPickupWinnerChatMessage(groupId, winner);
+
+        return new PickupRouletteResponseDTO(
+                groupId,
+                winner.getUserId(),
+                winner.getNickname(),
+                winnerIndex,
+                false,
+                candidates
+        );
+    }
+
     private List<Order> createGroupOrdersByUser(
             String groupId,
             Map<Long, List<FirebaseCartItemDTO>> itemsByUser
@@ -178,10 +233,114 @@ public class GroupOrderService {
         return orderService.createOrder(hostUserId, cartItems, groupId);
     }
 
-    private void validateCanCloseGroupOrder(GroupOrder groupOrder, Long requestUserId) {
-        if (!groupOrder.getHost().getUserId().equals(requestUserId)) {
-            throw new AccessDeniedException("Only the host can close the group order.");
+    private List<PickupCandidateDTO> getPickupCandidates(String groupId) {
+        List<FirebaseCartItemDTO> firebaseItems;
+        try {
+            firebaseItems = firebaseSyncService.getCartItems(groupId);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while reading Firebase cart.", e);
+        } catch (ExecutionException | TimeoutException e) {
+            throw new RuntimeException("Failed to read Firebase cart.", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Unexpected error while reading Firebase cart.", e);
         }
+
+        List<Long> candidateUserIds = firebaseItems.stream()
+                .map(FirebaseCartItemDTO::getUserId)
+                .filter(userId -> userId != null && userId > 0)
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        List<Long> distinctUserIds = new ArrayList<>(new LinkedHashSet<>(candidateUserIds));
+        if (distinctUserIds.isEmpty()) {
+            return List.of();
+        }
+
+        Map<Long, User> usersById = new HashMap<>();
+        userRepository.findAllById(distinctUserIds)
+                .forEach(user -> usersById.put(user.getUserId(), user));
+
+        return distinctUserIds.stream()
+                .map(userId -> {
+                    User user = usersById.get(userId);
+                    if (user == null) {
+                        throw new IllegalArgumentException("Candidate user not found.");
+                    }
+                    return new PickupCandidateDTO(user.getUserId(), user.getNickname());
+                })
+                .toList();
+    }
+
+    private List<PickupCandidateDTO> ensureWinnerIncluded(List<PickupCandidateDTO> candidates, User winner) {
+        boolean winnerExists = candidates.stream()
+                .anyMatch(candidate -> candidate.userId().equals(winner.getUserId()));
+
+        if (winnerExists) {
+            return candidates;
+        }
+
+        List<PickupCandidateDTO> visibleCandidates = new ArrayList<>(candidates);
+        visibleCandidates.add(new PickupCandidateDTO(winner.getUserId(), winner.getNickname()));
+        return visibleCandidates;
+    }
+
+    private int findCandidateIndex(List<PickupCandidateDTO> candidates, Long winnerUserId) {
+        for (int i = 0; i < candidates.size(); i++) {
+            if (candidates.get(i).userId().equals(winnerUserId)) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    private void updateFirebasePickupRoulette(
+            String groupId,
+            User winner,
+            int winnerIndex,
+            List<PickupCandidateDTO> candidates
+    ) {
+        DatabaseReference rouletteRef = FirebaseDatabase.getInstance()
+                .getReference("group_orders/" + groupId + "/pickupRoulette");
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("winnerUserId", winner.getUserId());
+        updates.put("winnerNickname", winner.getNickname());
+        updates.put("winnerIndex", winnerIndex);
+        updates.put("selectedAt", System.currentTimeMillis());
+        updates.put("candidates", candidates.stream()
+                .map(candidate -> {
+                    Map<String, Object> candidateMap = new HashMap<>();
+                    candidateMap.put("userId", candidate.userId());
+                    candidateMap.put("nickname", candidate.nickname());
+                    return candidateMap;
+                })
+                .toList());
+
+        try {
+            rouletteRef.setValueAsync(updates).get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while updating pickup roulette.", e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException("Failed to update pickup roulette.", e);
+        }
+    }
+
+    private void pushPickupWinnerChatMessage(String groupId, User winner) {
+        DatabaseReference messagesRef = FirebaseDatabase.getInstance()
+                .getReference("group_orders/" + groupId + "/chat/messages");
+
+        Map<String, Object> message = new HashMap<>();
+        message.put("senderId", 0L);
+        message.put("sendName", "PickPay");
+        message.put("message", winner.getNickname() + "님이 픽업 담당자로 선정되었습니다.");
+        message.put("createdAt", System.currentTimeMillis());
+
+        messagesRef.push().setValueAsync(message);
+    }
+
+    private void validateCanCloseGroupOrder(GroupOrder groupOrder, Long requestUserId) {
+        validateHost(groupOrder, requestUserId);
 
         if (groupOrder.getStatus() == GroupOrderStatus.PAID) {
             throw new IllegalStateException("This group order is already paid.");
@@ -193,6 +352,12 @@ public class GroupOrderService {
 
         if (groupOrder.getStatus() != GroupOrderStatus.OPEN) {
             throw new IllegalStateException("This group order cannot be closed.");
+        }
+    }
+
+    private void validateHost(GroupOrder groupOrder, Long requestUserId) {
+        if (!groupOrder.getHost().getUserId().equals(requestUserId)) {
+            throw new AccessDeniedException("Only the host can manage this group order.");
         }
     }
 

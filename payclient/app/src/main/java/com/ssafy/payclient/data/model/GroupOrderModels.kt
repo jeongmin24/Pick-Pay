@@ -33,6 +33,20 @@ data class CloseGroupOrderRequest(
     val payType: GroupPayType
 )
 
+data class PickupCandidate(
+    val userId: Long,
+    val nickname: String?
+)
+
+data class PickupRouletteResponse(
+    val groupId: String,
+    val winnerUserId: Long,
+    val winnerNickname: String?,
+    val winnerIndex: Int,
+    val alreadySelected: Boolean,
+    val candidates: List<PickupCandidate>
+)
+
 /**
  * 단체주문 영수증 조회 API DTO
  */
