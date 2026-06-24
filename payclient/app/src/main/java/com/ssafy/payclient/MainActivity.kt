@@ -196,6 +196,7 @@ class MainActivity : AppCompatActivity() {
                 putLong(PaymentFragment.ARG_TOTAL_PRICE, totalPrice)
                 putString(PaymentFragment.ARG_ORDER_NAME, orderName)
                 putString(PaymentFragment.ARG_GROUP_ID, groupId)
+                putLong(PaymentFragment.ARG_USER_ID, sharedTokenManager.getUserId())
             }
         )
     }

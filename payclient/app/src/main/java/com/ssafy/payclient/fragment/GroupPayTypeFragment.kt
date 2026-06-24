@@ -97,11 +97,7 @@ class GroupPayTypeFragment : Fragment() {
                         ?: "주문이 마감되었습니다."
                     Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
 
-                    if (payType == GroupPayType.HOST) {
-                        navigateHostPayment(apiService)
-                    } else {
-                        findNavController().popBackStack(R.id.fragment_group_order, false)
-                    }
+                    navigatePaymentWaiting()
                 } else {
                     Toast.makeText(
                         requireContext(),
@@ -121,42 +117,12 @@ class GroupPayTypeFragment : Fragment() {
         }
     }
 
-    private suspend fun navigateHostPayment(
-        apiService: com.ssafy.payclient.data.api.GroupOrderApiService
-    ) {
-        val receiptResponse = apiService.getGroupReceipt(groupId)
-
-        if (!receiptResponse.isSuccessful) {
-            Toast.makeText(
-                requireContext(),
-                closeOrderErrorMessage(receiptResponse.code(), receiptResponse.errorBody()?.string()),
-                Toast.LENGTH_SHORT
-            ).show()
-            setLoading(false)
-            return
-        }
-
-        val receipt = receiptResponse.body()
-        val hostReceipt = receipt?.userReceipts?.firstOrNull { it.userId == currentUserId }
-        val orderNo = hostReceipt?.orderNo
-
-        if (receipt == null || hostReceipt == null || orderNo.isNullOrBlank()) {
-            Toast.makeText(
-                requireContext(),
-                "방장 결제 주문 정보를 확인할 수 없습니다.",
-                Toast.LENGTH_SHORT
-            ).show()
-            setLoading(false)
-            return
-        }
-
+    private fun navigatePaymentWaiting() {
         findNavController().navigate(
-            R.id.action_fragment_group_pay_type_to_fragment_payment,
+            R.id.action_fragment_group_pay_type_to_fragment_group_payment_waiting,
             Bundle().apply {
-                putString(PaymentFragment.ARG_ORDER_ID, orderNo)
-                putLong(PaymentFragment.ARG_TOTAL_PRICE, hostReceipt.userTotalPrice)
-                putString(PaymentFragment.ARG_ORDER_NAME, buildGroupOrderName(hostReceipt.items))
-                putString(PaymentFragment.ARG_GROUP_ID, groupId)
+                putString(GroupPaymentWaitingFragment.ARG_GROUP_ID, groupId)
+                putLong(GroupPaymentWaitingFragment.ARG_USER_ID, currentUserId)
             }
         )
     }
@@ -175,11 +141,6 @@ class GroupPayTypeFragment : Fragment() {
                     ?.takeIf { it.isNotBlank() }
             }
         return serverMessage ?: "주문 마감에 실패했습니다. ($code)"
-    }
-
-    private fun buildGroupOrderName(items: List<com.ssafy.payclient.data.model.OrderItemDTO>): String {
-        val firstItemName = items.firstOrNull()?.menuName ?: "단체 주문"
-        return if (items.size <= 1) firstItemName else "$firstItemName 외 ${items.size - 1}건"
     }
 
     override fun onResume() {
