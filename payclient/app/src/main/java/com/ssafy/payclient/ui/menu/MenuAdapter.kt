@@ -1,11 +1,15 @@
 package com.ssafy.payclient.ui.menu
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.ssafy.payclient.R
 import com.ssafy.payclient.data.model.MenuDTO
 import com.ssafy.payclient.databinding.ItemMenuBinding
-
+import java.text.NumberFormat
+import java.util.Locale
 
 class MenuAdapter(
     private var menuList: List<MenuDTO>,
@@ -15,16 +19,30 @@ class MenuAdapter(
     inner class MenuViewHolder(private val binding: ItemMenuBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(menu: MenuDTO) {
+        fun bind(menu: MenuDTO, position: Int) {
             binding.tvMenuName.text = menu.name
-            binding.tvMenuPrice.text = "${menu.price}원"
+            binding.tvMenuPrice.text = "₩${PRICE_FORMAT.format(menu.price)}"
 
-            com.bumptech.glide.Glide.with(binding.root.context)
+            val badgeText = when (position % 4) {
+                0 -> "Best"
+                1 -> "New"
+                2 -> ""
+                else -> "Seasonal"
+            }
+            binding.tvMenuBadge.text = badgeText
+            binding.tvMenuBadge.visibility = if (badgeText.isBlank()) View.INVISIBLE else View.VISIBLE
+
+            Glide.with(binding.root.context)
                 .load(menu.imageUrl)
+                .placeholder(R.drawable.ic_latte_cup)
+                .error(R.drawable.ic_latte_cup)
+                .centerCrop()
                 .into(binding.ivMenuImage)
 
-            // 카드를 클릭했을 때 메뉴 담기
             binding.root.setOnClickListener {
+                onItemClick(menu)
+            }
+            binding.btnAddMenu.setOnClickListener {
                 onItemClick(menu)
             }
         }
@@ -42,7 +60,7 @@ class MenuAdapter(
         holder: MenuViewHolder,
         position: Int
     ) {
-        holder.bind(menuList[position])
+        holder.bind(menuList[position], position)
     }
 
     override fun getItemCount(): Int = menuList.size
@@ -50,5 +68,9 @@ class MenuAdapter(
     fun updateList(newList: List<MenuDTO>) {
         menuList = newList
         notifyDataSetChanged()
+    }
+
+    private companion object {
+        val PRICE_FORMAT: NumberFormat = NumberFormat.getNumberInstance(Locale.KOREA)
     }
 }

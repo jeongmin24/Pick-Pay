@@ -3,88 +3,181 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="24dp">
+    android:background="@color/login_background"
+    android:clipToPadding="false"
+    android:paddingStart="18dp"
+    android:paddingTop="22dp"
+    android:paddingEnd="18dp"
+    android:paddingBottom="22dp">
 
     <LinearLayout
+        android:id="@+id/login_content"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:layout_height="0dp"
         android:gravity="center_horizontal"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:orientation="vertical"
+        android:paddingTop="0dp"
+        app:layout_constraintBottom_toTopOf="@id/login_footer"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
-        <ImageView
-            android:id="@+id/iv_logo"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            android:src="@drawable/ic_bread" />
+        <FrameLayout
+            android:layout_width="168dp"
+            android:layout_height="132dp"
+            android:background="@drawable/bg_login_logo_tile"
+            android:elevation="1dp">
+
+            <ImageView
+                android:id="@+id/iv_logo"
+                android:layout_width="104dp"
+                android:layout_height="104dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/app_name"
+                android:src="@drawable/ic_pickpay_face" />
+        </FrameLayout>
 
         <TextView
             android:id="@+id/tv_app_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:fontFamily="sans-serif"
             android:text="Pick Pay"
+            android:textColor="@color/coffee_brown_dark"
             android:textSize="28sp"
-            android:textStyle="bold"
-            android:textColor="@color/deep_brown"
-            android:layout_marginTop="4dp" />
+            android:textStyle="bold" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_login_id"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="아이디"
-            app:boxStrokeColor="@color/beige"
-            app:hintTextColor="@color/deep_brown"
-            android:layout_marginTop="24dp">
+            android:layout_marginTop="66dp"
+            app:boxBackgroundColor="@color/login_field_background"
+            app:boxBackgroundMode="filled"
+            app:boxCornerRadiusBottomEnd="14dp"
+            app:boxCornerRadiusBottomStart="14dp"
+            app:boxCornerRadiusTopEnd="14dp"
+            app:boxCornerRadiusTopStart="14dp"
+            app:boxStrokeWidth="0dp"
+            app:boxStrokeWidthFocused="0dp"
+            app:hintEnabled="false"
+            app:startIconDrawable="@drawable/ic_login_user"
+            app:startIconTint="@color/login_icon">
+
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_login_id"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="12dp"
-                android:inputType="text" />
+                android:layout_height="72dp"
+                android:background="@drawable/bg_login_field"
+                android:hint="아이디"
+                android:inputType="text"
+                android:paddingStart="0dp"
+                android:paddingEnd="12dp"
+                android:singleLine="true"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/login_hint"
+                android:textSize="18sp" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_password"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="비밀번호"
-            app:boxStrokeColor="@color/beige"
-            app:hintTextColor="@color/deep_brown"
-            app:passwordToggleEnabled="true"
-            app:passwordToggleTint="@color/beige"
-            android:layout_marginTop="8dp">
+            android:layout_marginTop="20dp"
+            app:boxBackgroundColor="@color/login_field_background"
+            app:boxBackgroundMode="filled"
+            app:boxCornerRadiusBottomEnd="14dp"
+            app:boxCornerRadiusBottomStart="14dp"
+            app:boxCornerRadiusTopEnd="14dp"
+            app:boxCornerRadiusTopStart="14dp"
+            app:boxStrokeWidth="0dp"
+            app:boxStrokeWidthFocused="0dp"
+            app:endIconMode="password_toggle"
+            app:endIconTint="@color/login_icon"
+            app:hintEnabled="false"
+            app:startIconDrawable="@drawable/ic_login_lock"
+            app:startIconTint="@color/login_icon">
+
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_password"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="12dp"
-                android:inputType="textPassword" />
+                android:layout_height="72dp"
+                android:background="@drawable/bg_login_field"
+                android:hint="비밀번호"
+                android:inputType="textPassword"
+                android:paddingStart="0dp"
+                android:paddingEnd="12dp"
+                android:singleLine="true"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/login_hint"
+                android:textSize="18sp" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_login"
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="78dp"
+            android:layout_marginTop="42dp"
+            android:backgroundTint="@color/login_button"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:text="로그인"
-            android:textSize="16sp"
-            android:backgroundTint="@color/beige"
-            android:layout_marginTop="20dp" />
+            android:textColor="@color/login_button_text"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            app:cornerRadius="14dp"
+            app:elevation="0dp"
+            app:rippleColor="#20FFFFFF" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_go_to_signup"
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            android:paddingStart="12dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="8dp"
             android:text="회원가입"
-            android:textColor="@color/deep_brown"
-            android:layout_marginTop="4dp" />
+            android:textColor="@color/coffee_brown_dark"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            app:rippleColor="#12000000" />
 
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/login_footer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingBottom="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_cup_line"
+            app:tint="@color/login_footer" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="DIGITAL HYGGE EXPERIENCE"
+            android:textColor="@color/login_footer"
+            android:textSize="14sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <ProgressBar
