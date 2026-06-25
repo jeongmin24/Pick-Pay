@@ -8,7 +8,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AnimationUtils
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -105,16 +104,16 @@ class PaymentFragment : Fragment() {
     }
 
     private fun setupPaymentInfo() {
-        binding.tvPaymentToolbarTitle.text = "Payment"
+        binding.tvPaymentToolbarTitle.text = "\uACB0\uC81C\uD558\uAE30"
         binding.paymentPulseContainer.visibility = View.VISIBLE
-        binding.tvPaymentAmountLabel.text = "TOTAL AMOUNT"
-        binding.tvPaymentDescription.visibility = View.VISIBLE
+        binding.tvPaymentAmountLabel.text = "\uCD1D \uAE08\uC561"
+        binding.tvPaymentDescription.visibility = View.GONE
         binding.layoutPaymentInfoCards.visibility = View.VISIBLE
         binding.receiptSuccessIcon.visibility = View.GONE
         binding.receiptCard.visibility = View.GONE
         binding.ivReceiptCups.visibility = View.GONE
-        binding.tvPaymentAmount.text = "${formatPrice(totalPrice)} won"
-        binding.tvPaymentDescription.text = "Press Pay to open the card payment window."
+        binding.tvPaymentAmount.text = "${formatPrice(totalPrice)} \uC6D0"
+//        binding.tvPaymentDescription.text = "Press Pay to open the card payment window."
         binding.btnPayment.isEnabled = true
         binding.btnHome.visibility = View.GONE
         binding.tvReceiptDetails.visibility = View.GONE
@@ -381,15 +380,15 @@ class PaymentFragment : Fragment() {
         binding.paymentPulseRingFront.clearAnimation()
         binding.receiptSuccessIcon.visibility = View.VISIBLE
         binding.tvPaymentAmountLabel.text = "PAYMENT COMPLETED"
-        binding.tvPaymentAmount.text = "${formatPrice(receipt.totalPrice)} won"
+        binding.tvPaymentAmount.text = "${formatPrice(receipt.totalPrice)} \uC6D0"
         binding.tvPaymentDescription.visibility = View.GONE
         binding.layoutPaymentInfoCards.visibility = View.GONE
         binding.receiptCard.visibility = View.VISIBLE
-        binding.ivReceiptCups.visibility = View.VISIBLE
+        binding.ivReceiptCups.visibility = View.GONE
+        binding.tvReceiptStore.text = "Pick Pay \uC8FC\uBB38"
         binding.tvReceiptOrderNo.text = "Order #${receipt.displayOrderNo ?: orderNo}"
         binding.tvReceiptTime.text = receipt.createdAt.toReceiptDateTime()
-        binding.tvReceiptMethod.text = "Hygge Pay"
-        binding.tvReceiptTotal.text = "${formatPrice(receipt.totalPrice)} won"
+        binding.tvReceiptTotal.text = "${formatPrice(receipt.totalPrice)} \uC6D0"
         renderReceiptItems(receipt)
         binding.tvReceiptDetails.visibility = View.GONE
         binding.btnPayment.visibility = View.GONE
@@ -408,43 +407,32 @@ class PaymentFragment : Fragment() {
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply {
-                    if (index > 0) topMargin = 16.dp
+                    if (index > 0) topMargin = 12.dp
                 }
             }
 
-            val thumb = ImageView(requireContext()).apply {
-                id = View.generateViewId()
-                setBackgroundResource(R.drawable.bg_receipt_item_thumb)
-                setImageResource(item.menuName.orEmpty().receiptIconRes())
-                scaleType = ImageView.ScaleType.CENTER_CROP
-            }
-            row.addView(thumb, ConstraintLayout.LayoutParams(46.dp, 46.dp).apply {
-                startToStart = ConstraintLayout.LayoutParams.PARENT_ID
-                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
-                bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
-            })
-
             val name = TextView(requireContext()).apply {
                 id = View.generateViewId()
-                text = item.menuName.orEmpty().ifBlank { "Menu" }
+                val quantitySuffix = if (item.quantity > 1) " x${item.quantity}" else ""
+                text = item.menuName.orEmpty().ifBlank { "Menu" } + quantitySuffix
                 setTextColor(resources.getColor(R.color.text_primary, null))
-                textSize = 18f
+                textSize = 15f
                 typeface = android.graphics.Typeface.DEFAULT_BOLD
                 maxLines = 1
             }
             row.addView(name, ConstraintLayout.LayoutParams(0, ConstraintLayout.LayoutParams.WRAP_CONTENT).apply {
-                marginStart = 14.dp
                 marginEnd = 12.dp
-                startToEnd = thumb.id
+                startToStart = ConstraintLayout.LayoutParams.PARENT_ID
                 endToStart = View.generateViewId()
-                topToTop = thumb.id
+                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
             })
 
             val price = TextView(requireContext()).apply {
                 id = View.generateViewId()
-                text = "${formatPrice(item.price * item.quantity)} won"
+                text = "${formatPrice(item.price * item.quantity)} \uC6D0"
                 setTextColor(resources.getColor(R.color.payment_primary, null))
-                textSize = 18f
+                textSize = 15f
                 typeface = android.graphics.Typeface.DEFAULT_BOLD
             }
             row.addView(price, ConstraintLayout.LayoutParams(ConstraintLayout.LayoutParams.WRAP_CONTENT, ConstraintLayout.LayoutParams.WRAP_CONTENT).apply {
@@ -455,20 +443,6 @@ class PaymentFragment : Fragment() {
             val nameParams = name.layoutParams as ConstraintLayout.LayoutParams
             nameParams.endToStart = price.id
             name.layoutParams = nameParams
-
-            val meta = TextView(requireContext()).apply {
-                text = if (item.quantity > 1) "Qty ${item.quantity}" else "Size: Regular / Hot"
-                setTextColor(resources.getColor(R.color.coffee_brown_dark, null))
-                textSize = 14f
-                maxLines = 1
-            }
-            row.addView(meta, ConstraintLayout.LayoutParams(0, ConstraintLayout.LayoutParams.WRAP_CONTENT).apply {
-                marginStart = 14.dp
-                marginEnd = 12.dp
-                startToEnd = thumb.id
-                endToStart = price.id
-                topToBottom = name.id
-            })
 
             binding.layoutReceiptItems.addView(row)
         }
@@ -488,7 +462,7 @@ class PaymentFragment : Fragment() {
     private fun buildReceiptText(receipt: IndividualReceiptResponseDTO, orderNo: String): String {
         val itemLines = receipt.items.joinToString(separator = "\n") { item ->
             val subtotal = item.price * item.quantity
-            "${item.menuName.orEmpty()} x ${item.quantity}  ${formatPrice(subtotal)} won"
+            "${item.menuName.orEmpty()} x ${item.quantity}  ${formatPrice(subtotal)} \uC6D0"
         }
 
         return buildString {
@@ -499,7 +473,7 @@ class PaymentFragment : Fragment() {
             appendLine("Items")
             appendLine(itemLines.ifBlank { "No items" })
             appendLine()
-            append("Total: ${formatPrice(receipt.totalPrice)} won")
+            append("Total: ${formatPrice(receipt.totalPrice)} \uC6D0")
         }
     }
 
@@ -616,16 +590,6 @@ private fun String.toReceiptDateTime(): String {
         .replace("T", " ")
         .replace("-", ".")
         .replace(" ", " ")
-}
-
-private fun String.receiptIconRes(): Int {
-    val name = lowercase()
-    return when {
-        "라떼" in name || "latte" in name || "밀크" in name -> R.drawable.coffee_24px
-        "빵" in name || "bread" in name || "베이글" in name -> R.drawable.ic_bread
-        "말차" in name || "matcha" in name || "파르페" in name -> R.drawable.ic_matcha_parfait
-        else -> R.drawable.ic_cup_line
-    }
 }
 
 private fun String.maskPaymentKey(): String {

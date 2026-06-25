@@ -5,6 +5,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -42,6 +45,7 @@ class CartFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupHeader()
+        setupSystemBarInsets()
         setupRecyclerView()
         setupClickListeners()
         renderCart()
@@ -51,6 +55,18 @@ class CartFragment : Fragment() {
         binding.btnCartBack.setOnClickListener {
             findNavController().popBackStack()
         }
+    }
+
+    private fun setupSystemBarInsets() {
+        val summaryLayout = binding.layoutOrderSummary
+        val baseBottomPadding = summaryLayout.paddingBottom
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val bottomInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            summaryLayout.updatePadding(bottom = baseBottomPadding + bottomInset)
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     private fun setupRecyclerView() {

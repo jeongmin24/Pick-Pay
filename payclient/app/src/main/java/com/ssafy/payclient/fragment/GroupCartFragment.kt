@@ -6,6 +6,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -56,6 +59,7 @@ class GroupCartFragment : Fragment() {
         database = FirebaseDatabase.getInstance("https://pickpay-be337-default-rtdb.firebaseio.com/").reference
 
         setupToolbar()
+        setupSystemBarInsets()
         setupRecyclerView()
         setupCloseButton()
         loadCartData()
@@ -68,6 +72,18 @@ class GroupCartFragment : Fragment() {
         binding.toolbarGroupCart.setNavigationOnClickListener {
             findNavController().popBackStack()
         }
+    }
+
+    private fun setupSystemBarInsets() {
+        val summaryLayout = binding.layoutGroupOrderSummary
+        val baseBottomPadding = summaryLayout.paddingBottom
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val bottomInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            summaryLayout.updatePadding(bottom = baseBottomPadding + bottomInset)
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     private fun setupRecyclerView() {
