@@ -68,8 +68,8 @@ public class SwaggerConfig {
 
     private ObjectSchema loginRequestSchema() {
         ObjectSchema schema = new ObjectSchema();
-        schema.addProperty("loginId", new StringSchema().example("user01"));
-        schema.addProperty("password", new PasswordSchema().example("password123!"));
+        schema.addProperty("loginId", new StringSchema().example("user1"));
+        schema.addProperty("password", new PasswordSchema().example("1234"));
         schema.addRequiredItem("loginId");
         schema.addRequiredItem("password");
         return schema;

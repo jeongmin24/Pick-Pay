@@ -20,11 +20,13 @@ import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.google.gson.Gson
 import com.ssafy.payclient.BuildConfig
 import com.ssafy.payclient.MainActivity
 import com.ssafy.payclient.R
 import com.ssafy.payclient.data.local.PersonalCartStore
 import com.ssafy.payclient.data.local.TokenManager
+import com.ssafy.payclient.data.model.ErrorResponse
 import com.ssafy.payclient.data.model.IndividualReceiptResponseDTO
 import com.ssafy.payclient.data.model.PaymentCompleteRequest
 import com.ssafy.payclient.data.model.PaymentFailRequest
@@ -37,6 +39,7 @@ import com.tosspayments.paymentsdk.model.paymentinfo.TossPaymentMethod
 import java.text.NumberFormat
 import java.util.Locale
 import kotlinx.coroutines.launch
+import retrofit2.Response
 
 class PaymentFragment : Fragment() {
 
@@ -44,6 +47,7 @@ class PaymentFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val tossPayments by lazy { TossPayments(BuildConfig.TOSS_CLIENT_KEY) }
+    private val gson by lazy { Gson() }
     private val paymentResultLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -166,21 +170,11 @@ class PaymentFragment : Fragment() {
             TossPayments.RESULT_PAYMENT_FAILED -> {
                 val fail = data?.getParcelableExtra(TossPayments.EXTRA_PAYMENT_RESULT_FAILED)
                     as? TossPaymentResult.Fail
-                Toast.makeText(
-                    requireContext(),
-                    fail?.errorMessage ?: "Payment failed.",
-                    Toast.LENGTH_SHORT
-                ).show()
                 handlePaymentFailure(fail?.errorMessage ?: "Payment failed.")
             }
 
             else -> {
-                Toast.makeText(
-                    requireContext(),
-                    "Payment was canceled.",
-                    Toast.LENGTH_SHORT
-                ).show()
-                handlePaymentFailure("Payment was canceled.")
+                handlePaymentFailure("결제가 취소되었습니다.")
             }
         }
     }
@@ -230,18 +224,13 @@ class PaymentFragment : Fragment() {
                         fetchReceipt(approvedOrderId)
                     }
                 } else {
-                    Log.e(
-                        TAG,
-                        "Payment complete failed status=${response.code()}, " +
-                            "body=${response.errorBody()?.string()}"
+                    val error = parseErrorResponse(
+                        response = response,
+                        logPrefix = "Payment complete failed"
                     )
-                    Toast.makeText(
-                        requireContext(),
-                        "Payment confirmation failed. (${response.code()})",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    isPaymentCompleting = false
-                    _binding?.btnPayment?.isEnabled = true
+                    val message = error?.message ?: "Payment confirmation failed. (${response.code()})"
+                    showPaymentError(error, message)
+                    navigatePaymentFailure(message)
                 }
             } catch (e: Exception) {
                 Toast.makeText(
@@ -261,36 +250,100 @@ class PaymentFragment : Fragment() {
         binding.btnPayment.isEnabled = false
 
         viewLifecycleOwner.lifecycleScope.launch {
-            notifyPaymentFailed(reason)
+            val notice = notifyPaymentFailed(reason)
             if (_binding != null) {
-                navigatePaymentFailure(reason)
+                Toast.makeText(
+                    requireContext(),
+                    notice.message,
+                    Toast.LENGTH_SHORT
+                ).show()
+                navigatePaymentFailure(notice.message)
             }
         }
     }
 
-    private suspend fun notifyPaymentFailed(reason: String) {
-        try {
-            if (orderId.isBlank()) return
-            val tokenManager = TokenManager(requireContext().applicationContext)
-            val apiService = RetrofitClient.getPaymentApiService(tokenManager)
-            val response = apiService.failPayment(
-                PaymentFailRequest(
-                    orderId = orderId,
-                    reason = reason
-                )
-            )
+    private suspend fun notifyPaymentFailed(reason: String): PaymentFailureNotice {
+        val fallbackMessage = reason.ifBlank { "결제가 취소되었거나 실패했습니다." }
 
-            if (!response.isSuccessful) {
-                Log.e(
-                    TAG,
-                    "Payment fail notify failed status=${response.code()}, " +
-                        "body=${response.errorBody()?.string()}"
+        return try {
+            if (orderId.isBlank()) {
+                PaymentFailureNotice(fallbackMessage)
+            } else {
+                val tokenManager = TokenManager(requireContext().applicationContext)
+                val apiService = RetrofitClient.getPaymentApiService(tokenManager)
+                val response = apiService.failPayment(
+                    PaymentFailRequest(
+                        orderId = orderId,
+                        reason = reason
+                    )
                 )
+
+                if (response.isSuccessful) {
+                    val serverMessage = response.body()?.message
+                    Log.w(
+                        TAG,
+                        "Payment failure recorded reason=$reason, serverMessage=$serverMessage"
+                    )
+                    PaymentFailureNotice(fallbackMessage)
+                } else {
+                    val error = parseErrorResponse(
+                        response = response,
+                        logPrefix = "Payment fail notify failed"
+                    )
+                    PaymentFailureNotice(
+                        message = error?.message ?: "결제 실패 처리 중 오류가 발생했습니다."
+                    )
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Payment fail notify error", e)
+            PaymentFailureNotice(
+                message = e.message ?: fallbackMessage
+            )
         }
     }
+
+    private fun parseErrorResponse(
+        response: Response<*>,
+        logPrefix: String
+    ): ErrorResponse? {
+        val rawBody = response.errorBody()?.string()
+        if (rawBody.isNullOrBlank()) {
+            Log.e(TAG, "$logPrefix status=${response.code()}, body=<empty>")
+            return null
+        }
+
+        val error = runCatching {
+            gson.fromJson(rawBody, ErrorResponse::class.java)
+        }.getOrNull()
+
+        Log.e(
+            TAG,
+            "$logPrefix status=${response.code()}, code=${error?.code}, " +
+                "message=${error?.message}, body=$rawBody"
+        )
+
+        return error
+    }
+
+    private fun showPaymentError(
+        error: ErrorResponse?,
+        fallbackMessage: String
+    ) {
+        Log.e(
+            TAG,
+            "Payment error code=${error?.code}, message=${error?.message ?: fallbackMessage}"
+        )
+        Toast.makeText(
+            requireContext(),
+            error?.message ?: fallbackMessage,
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private data class PaymentFailureNotice(
+        val message: String
+    )
 
     private suspend fun fetchReceipt(orderNo: String) {
         try {

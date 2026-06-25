@@ -19,3 +19,9 @@ data class PaymentCompleteResponse(
     val groupStatus: String?,
     val message: String
 )
+
+data class ErrorResponse(
+    val code: String?,
+    val message: String?,
+    val errors: Map<String, String>? = null
+)
