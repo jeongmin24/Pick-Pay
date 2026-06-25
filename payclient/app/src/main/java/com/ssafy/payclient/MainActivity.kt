@@ -114,6 +114,7 @@ class MainActivity : AppCompatActivity() {
                         val navController = navHostFragment?.navController
 
                         navController?.navigate(R.id.fragment_cart)
+                        Toast.makeText(this, "NFC 상품 장바구니 추가", Toast.LENGTH_SHORT).show()
                     } else {
                         Toast.makeText(this, "NFC 상품 장바구니 추가 실패", Toast.LENGTH_SHORT).show()
                     }
