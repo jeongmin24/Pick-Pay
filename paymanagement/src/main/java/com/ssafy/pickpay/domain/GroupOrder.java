@@ -1,53 +1,95 @@
 package com.ssafy.pickpay.domain;
 
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import org.hibernate.annotations.CreationTimestamp;
+
+import com.ssafy.pickpay.common.GroupOrderStatus;
+import com.ssafy.pickpay.common.GroupPayType;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 @Entity
-@Getter @Setter
+@Getter
+@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class GroupOrder {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long groupId;
+    @Id
+    @Column(name = "group_id", nullable = false, updatable = false, length = 36)
+    private String groupId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "host_id")
     private User host;
 
-    @Column(unique = true)
-    private String shareLink;
+    @Column(nullable = false, unique = true, length = 100)
+    private String shareToken;
 
-    @Column(length = 50)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private GroupOrderStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pickup_user_id") // Nullable 자동 적용
+    @JoinColumn(name = "pickup_user_id")
     private User pickupUser;
 
-    private String payType;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private GroupPayType payType;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
-    
-    // 생성 팩토리 메서드 
+
     public static GroupOrder createGroupOrder(User host) {
         GroupOrder groupOrder = new GroupOrder();
+        groupOrder.setGroupId(UUID.randomUUID().toString());
         groupOrder.setHost(host);
-        groupOrder.setStatus("OPEN");
-        groupOrder.setShareLink(UUID.randomUUID().toString()); // 초대 링크용 고유 UUID 생성 -> 도메인 주소를 포함해서 링크를 생성할것 
+        groupOrder.setStatus(GroupOrderStatus.OPEN);
+        groupOrder.setShareToken(UUID.randomUUID().toString());
         return groupOrder;
     }
-    
-    // 주문 마감 및 결제 방식 확정
-    public void closeAndSetPayType(String payType) {
-        if (!"OPEN".equals(this.status)) {
-            throw new IllegalStateException("이미 마감되었거나 종료된 주문 세션입니다.");
+
+    public void closeAndSetPayType(GroupPayType payType) {
+        if (this.status != GroupOrderStatus.OPEN) {
+            throw new IllegalStateException("Group order is already closed.");
         }
-        this.status = "LOCKED";
-        this.payType = payType; // 결제 방식 확정 
+
+        this.status = payType == GroupPayType.DUTCH
+                ? GroupOrderStatus.PAYMENT_PENDING
+                : GroupOrderStatus.LOCKED;
+        this.payType = payType;
+    }
+
+    public void markPaid() {
+        if (this.status == GroupOrderStatus.PAID) {
+            return;
+        }
+
+        if (this.status != GroupOrderStatus.LOCKED
+                && this.status != GroupOrderStatus.PAYMENT_PENDING) {
+            throw new IllegalStateException("Only locked or payment-pending groups can be paid.");
+        }
+
+        this.status = GroupOrderStatus.PAID;
+    }
+
+    public void markPaymentFailed() {
+        if (this.status == GroupOrderStatus.PAYMENT_FAILED) {
+            return;
+        }
+        this.status = GroupOrderStatus.PAYMENT_FAILED;
     }
 }

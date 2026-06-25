@@ -17,6 +17,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import com.ssafy.pickpay.common.ErrorCode;
+import com.ssafy.pickpay.exception.BusinessException;
+
 @Entity
 @Getter @Setter
 @Builder
@@ -31,6 +34,24 @@ public class Menu {
     private String imageUrl;
     private Boolean isActive;
 
-    @OneToOne(mappedBy = "menu", cascade = CascadeType.ALL)
-    private Inventory inventory;
+    private Integer stockQuantity;
+    
+    public void decreaseStock(int quantity) {
+    	
+    	if (quantity <= 0) {
+            throw new IllegalArgumentException("차감 수량은 1 이상이어야 합니다.");
+        }
+
+        if (this.stockQuantity == null) {
+            throw new BusinessException(ErrorCode.OUT_OF_STOCK);
+        }
+    	
+    	int restStock = this.stockQuantity - quantity;
+    	
+    	if(restStock < 0) {
+            throw new BusinessException(ErrorCode.OUT_OF_STOCK);
+    	}
+    	
+    	this.stockQuantity = restStock;
+    }
 }

@@ -2,31 +2,22 @@ package com.ssafy.payclient.fragment
 
 import android.content.Intent
 import android.os.Bundle
-import androidx.fragment.app.Fragment
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Toast
-import androidx.core.content.ContentProviderCompat.requireContext
-import androidx.core.content.ContextCompat.startActivity
-import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.ssafy.payclient.BuildConfig.BASE_URL
-import com.ssafy.payclient.MainViewModel
 import com.ssafy.payclient.R
-import com.ssafy.payclient.ui.review.ReviewDetailActivity
 import com.ssafy.payclient.data.api.ReviewApiService
 import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.network.RetrofitClient
 import com.ssafy.payclient.databinding.FragmentReviewBinding
 import com.ssafy.payclient.ui.review.ReviewAdapter
 import com.ssafy.payclient.ui.review.ReviewAddActivity
+import com.ssafy.payclient.ui.review.ReviewDetailActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 
 class ReviewFragment : Fragment(R.layout.fragment_review) {
 
@@ -41,11 +32,7 @@ class ReviewFragment : Fragment(R.layout.fragment_review) {
 
         initRetrofit()
         setupRecyclerView()
-
-        binding.fabAddReview.setOnClickListener {
-            val intent = Intent(requireContext(), ReviewAddActivity::class.java)
-            startActivity(intent)
-        }
+        setupClickListeners()
     }
 
     override fun onResume() {
@@ -56,7 +43,6 @@ class ReviewFragment : Fragment(R.layout.fragment_review) {
     private fun initRetrofit() {
         val tokenManager = TokenManager(requireContext())
         apiService = RetrofitClient.getReviewApiService(tokenManager)
-
     }
 
     private fun setupRecyclerView() {
@@ -74,6 +60,13 @@ class ReviewFragment : Fragment(R.layout.fragment_review) {
         }
     }
 
+    private fun setupClickListeners() {
+        binding.fabAddReview.setOnClickListener {
+            val intent = Intent(requireContext(), ReviewAddActivity::class.java)
+            startActivity(intent)
+        }
+    }
+
     private fun fetchReviewsWithCoroutine() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
@@ -82,17 +75,11 @@ class ReviewFragment : Fragment(R.layout.fragment_review) {
                 }
 
                 if (isAdded) {
-//                    context?.let { safeContext ->
-//                        Toast.makeText(safeContext, "가져온 리뷰 개수: ${reviews.size}개", Toast.LENGTH_SHORT).show()
-//                    }
-
                     reviewAdapter.setReviews(reviews)
                 }
             } catch (e: Exception) {
                 if (isAdded) {
-                    context?.let { safeContext ->
-                        Toast.makeText(safeContext, "오류 발생: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
+                    Toast.makeText(requireContext(), "리뷰를 불러오지 못했어요: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -102,6 +89,4 @@ class ReviewFragment : Fragment(R.layout.fragment_review) {
         super.onDestroyView()
         _binding = null
     }
-
-
 }

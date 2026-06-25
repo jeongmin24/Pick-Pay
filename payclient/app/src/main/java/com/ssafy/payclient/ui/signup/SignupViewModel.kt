@@ -2,6 +2,8 @@ package com.ssafy.payclient.ui.signup
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
+import com.ssafy.payclient.data.model.ErrorResponse
 import com.ssafy.payclient.data.model.SignupRequest
 import com.ssafy.payclient.data.repository.AuthRepository
 import com.ssafy.payclient.util.UiState
@@ -10,6 +12,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class SignupViewModel(private val repository: AuthRepository) : ViewModel() {
+
+    private val gson = Gson()
 
     private val _signupState = MutableStateFlow<UiState<Unit>>(UiState.Idle)
     val signupState: StateFlow<UiState<Unit>> = _signupState
@@ -52,11 +56,23 @@ class SignupViewModel(private val repository: AuthRepository) : ViewModel() {
                 if (response.isSuccessful) {
                     _signupState.value = UiState.Success(Unit)
                 } else {
-                    _signupState.value = UiState.Error("회원가입 실패: ${response.message()}")
+                    val errorResponse = parseErrorResponse(response.errorBody()?.string())
+                    _signupState.value = UiState.Error(
+                        message = errorResponse?.message ?: "회원가입 실패: ${response.message()}",
+                        fieldErrors = errorResponse?.errors.orEmpty()
+                    )
                 }
             } catch (e: Exception) {
                 _signupState.value = UiState.Error("네트워크 오류: ${e.message}")
             }
         }
+    }
+
+    private fun parseErrorResponse(rawBody: String?): ErrorResponse? {
+        if (rawBody.isNullOrBlank()) return null
+
+        return runCatching {
+            gson.fromJson(rawBody, ErrorResponse::class.java)
+        }.getOrNull()
     }
 }

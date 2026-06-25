@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72dp"
+    android:height="24dp"
+    android:viewportWidth="72"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M10,8 L20,8 L20,14 C20,17 17.8,19 15,19 C12.2,19 10,17 10,14 Z M20,10 L23,10 C24.2,10 25,10.8 25,12 C25,13.2 24.2,14 23,14 L20,14 M9,21 L22,21"
+        android:strokeColor="@color/receipt_chip"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M31,8 L41,8 L41,14 C41,17 38.8,19 36,19 C33.2,19 31,17 31,14 Z M41,10 L44,10 C45.2,10 46,10.8 46,12 C46,13.2 45.2,14 44,14 L41,14 M30,21 L43,21"
+        android:strokeColor="@color/receipt_chip"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M52,8 L62,8 L62,14 C62,17 59.8,19 57,19 C54.2,19 52,17 52,14 Z M62,10 L65,10 C66.2,10 67,10.8 67,12 C67,13.2 66.2,14 65,14 L62,14 M51,21 L64,21"
+        android:strokeColor="@color/receipt_chip"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

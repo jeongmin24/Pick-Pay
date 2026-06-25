@@ -6,20 +6,19 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
-import com.ssafy.payclient.MainViewModel
-import com.ssafy.payclient.R
 import com.ssafy.payclient.data.api.ReviewApiService
 import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.network.RetrofitClient
@@ -30,7 +29,6 @@ import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -47,9 +45,9 @@ class ReviewAddActivity : AppCompatActivity() {
         if (uri != null) {
             selectedImageUri = uri
             binding.layoutPhotoGuide.visibility = View.GONE
-            Glide.with(this).load(uri).into(binding.ivReviewPhoto)
+            Glide.with(this).load(uri).centerCrop().into(binding.ivReviewPhoto)
         } else {
-            Toast.makeText(this, "사진 선택이 취소되었습니다.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "사진 선택을 취소했어요.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -57,9 +55,9 @@ class ReviewAddActivity : AppCompatActivity() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
         if (isGranted) {
-            openGallery() // 권한 수락 시 바로 갤러리 오픈!
+            openGallery()
         } else {
-            Toast.makeText(this, "권한을 허용해야 사진을 첨부할 수 있습니다.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "사진을 첨부하려면 권한이 필요해요.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -71,8 +69,11 @@ class ReviewAddActivity : AppCompatActivity() {
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.main) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            val bottomPadding = if (ime.bottom > 0) ime.bottom else systemBars.bottom
+
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, bottomPadding)
+            WindowInsetsCompat.CONSUMED
         }
 
         initApiService()
@@ -85,14 +86,29 @@ class ReviewAddActivity : AppCompatActivity() {
     }
 
     private fun initEvent() {
+        binding.btnBack.setOnClickListener {
+            finish()
+        }
+
         binding.cvSelectImage.setOnClickListener {
             checkPhotoPermission()
         }
 
+        binding.rbInputRating.setOnRatingBarChangeListener { _, rating, _ ->
+            binding.tvRatingGuide.text = if (rating > 0f) "${rating.toInt()}점을 선택했어요" else "평가해 주세요"
+        }
+
+        binding.etReviewContent.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                binding.tvReviewCount.text = "${s?.length ?: 0} / 500"
+            }
+            override fun afterTextChanged(s: Editable?) = Unit
+        })
+
         binding.btnSubmitReview.setOnClickListener {
             val content = binding.etReviewContent.text.toString().trim()
             val rating = binding.rbInputRating.rating.toInt()
-            val imageUrl = selectedImageUri?.toString() ?: ""
 
             if (content.length < 10) {
                 Toast.makeText(this, "리뷰 내용을 최소 10자 이상 작성해 주세요.", Toast.LENGTH_SHORT).show()
@@ -107,6 +123,7 @@ class ReviewAddActivity : AppCompatActivity() {
             sendReviewToServer(content, rating)
         }
     }
+
     private fun checkPhotoPermission() {
         val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             Manifest.permission.READ_MEDIA_IMAGES
@@ -130,8 +147,8 @@ class ReviewAddActivity : AppCompatActivity() {
     private fun sendReviewToServer(content: String, rating: Int) {
         lifecycleScope.launch {
             try {
-                val contentBody = content
-                val ratingBody = rating.toString()
+                val contentBody = RequestBody.create("text/plain".toMediaTypeOrNull(), content)
+                val ratingBody = RequestBody.create("text/plain".toMediaTypeOrNull(), rating.toString())
 
                 val imagePart = withContext(Dispatchers.IO) {
                     selectedImageUri?.let { uri -> prepareMultipartPart(uri) }
@@ -142,14 +159,18 @@ class ReviewAddActivity : AppCompatActivity() {
                 }
 
                 if (newReviewId > 0) {
-                    Toast.makeText(this@ReviewAddActivity, "리뷰가 정상적으로 등록되었습니다! (No.$newReviewId)", Toast.LENGTH_SHORT).show()
-                    finish() // 현재 액티비티를 닫고 마이페이지/메뉴 화면으로 복귀
+                    Toast.makeText(
+                        this@ReviewAddActivity,
+                        "리뷰가 등록되었어요. (No.$newReviewId)",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    finish()
                 } else {
-                    Toast.makeText(this@ReviewAddActivity, "리뷰 등록에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@ReviewAddActivity, "리뷰 등록에 실패했어요.", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(this@ReviewAddActivity, "서버 연결에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@ReviewAddActivity, "서버 연결에 실패했어요.", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -168,7 +189,7 @@ class ReviewAddActivity : AppCompatActivity() {
 
         inputStream?.use { input ->
             FileOutputStream(tempFile).use { output ->
-                input.copyTo(output) // 파일 데이터 싹 복사
+                input.copyTo(output)
             }
         }
 
@@ -176,5 +197,4 @@ class ReviewAddActivity : AppCompatActivity() {
         val requestFile = RequestBody.create(mediaType, tempFile)
         return MultipartBody.Part.createFormData("image", tempFile.name, requestFile)
     }
-
 }
