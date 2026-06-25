@@ -1,135 +1,286 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/home_background">
+    android:background="@color/payment_background">
 
-    <com.google.android.material.appbar.AppBarLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/white">
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layout_group_payment_top_bar"
+        android:layout_width="0dp"
+        android:layout_height="66dp"
+        android:background="@color/payment_background"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar_group_payment_waiting"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@android:color/transparent"
+            app:contentInsetStartWithNavigation="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:navigationIcon="@drawable/ic_arrow_back" />
+
+        <TextView
+            android:id="@+id/tv_group_payment_toolbar_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="결제 대기"
+            android:textColor="@color/coffee_brown_dark"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <View
+        android:id="@+id/group_payment_divider"
+        android:layout_width="0dp"
+        android:layout_height="1dp"
+        android:background="@color/payment_divider"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/layout_group_payment_top_bar" />
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/group_payment_scroll"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:overScrollMode="never"
+        android:paddingBottom="18dp"
+        app:layout_constraintBottom_toTopOf="@id/layout_group_payment_bottom"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/group_payment_divider">
+
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="@color/white"
-            app:navigationIcon="@drawable/ic_arrow_back"
-            app:title="결제 대기"
-            app:titleTextColor="@color/coffee_brown_dark" />
-    </com.google.android.material.appbar.AppBarLayout>
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingStart="8dp"
+            android:paddingTop="36dp"
+            android:paddingEnd="8dp">
+
+            <FrameLayout
+                android:id="@+id/group_payment_complete_icon"
+                android:layout_width="74dp"
+                android:layout_height="74dp"
+                android:background="@drawable/bg_group_payment_complete_circle"
+                android:visibility="gone">
+
+                <ImageView
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:layout_gravity="center"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_receipt_check"
+                    app:tint="@color/coffee_brown_dark" />
+            </FrameLayout>
+
+            <ProgressBar
+                android:id="@+id/progress_waiting"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:indeterminateTint="@color/coffee_brown" />
+
+            <TextView
+                android:id="@+id/tv_waiting_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:gravity="center"
+                android:text="결제를 기다리고 있어요"
+                android:textColor="@color/coffee_brown_dark"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_waiting_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:gravity="center"
+                android:lineSpacingExtra="5dp"
+                android:text="멤버들의 결제 상태를 확인하고 있어요."
+                android:textColor="@color/text_primary"
+                android:textSize="15sp" />
+
+            <LinearLayout
+                android:id="@+id/layout_group_payment_amount_card"
+                android:layout_width="match_parent"
+                android:layout_height="118dp"
+                android:layout_marginTop="36dp"
+                android:background="@drawable/bg_group_payment_amount_card"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_waiting_group_id"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="최종 결제 금액"
+                    android:textColor="@color/coffee_brown_dark"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:id="@+id/tv_waiting_total"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="0원"
+                    android:textColor="@color/coffee_brown_dark"
+                    android:textSize="30sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layout_group_member_status_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="30dp"
+                android:background="@drawable/bg_receipt_card"
+                android:elevation="2dp"
+                android:orientation="vertical"
+                android:paddingStart="22dp"
+                android:paddingTop="24dp"
+                android:paddingEnd="22dp"
+                android:paddingBottom="22dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_group_people_pay"
+                        app:tint="@color/coffee_brown" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:text="멤버 결제 현황"
+                        android:textColor="@color/coffee_brown_dark"
+                        android:textSize="15sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/tv_waiting_members"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="22dp"
+                    android:orientation="vertical" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/layout_group_payment_info"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:layout_marginTop="30dp"
+                android:background="@drawable/bg_group_payment_info_box"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_info_outline_16"
+                    app:tint="@color/coffee_brown" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:lineSpacingExtra="2dp"
+                    android:text="주문 내역은 마이페이지 > 주문 히스토리에서 언제든지 확인하실 수 있습니다."
+                    android:textColor="@color/coffee_brown_dark"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:gravity="center_horizontal"
+        android:id="@+id/layout_group_payment_bottom"
+        android:layout_width="0dp"
+        android:layout_height="142dp"
+        android:background="@color/payment_background"
         android:orientation="vertical"
-        android:paddingStart="24dp"
-        android:paddingTop="36dp"
-        android:paddingEnd="24dp"
-        android:paddingBottom="32dp"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:paddingStart="8dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="8dp"
+        android:paddingBottom="12dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
 
-        <ProgressBar
-            android:id="@+id/progress_waiting"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:indeterminateTint="@color/coffee_brown" />
-
-        <TextView
-            android:id="@+id/tv_waiting_title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:gravity="center"
-            android:text="결제를 기다리고 있어요"
-            android:textColor="@color/coffee_brown_dark"
-            android:textSize="22sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tv_waiting_description"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:gravity="center"
-            android:lineSpacingExtra="3dp"
-            android:text="멤버들의 결제 상태를 확인하고 있어요."
-            android:textColor="@color/text_secondary"
-            android:textSize="15sp" />
-
-        <TextView
-            android:id="@+id/tv_waiting_group_id"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:background="@drawable/bg_group_order_chip"
-            android:gravity="center"
-            android:padding="12dp"
-            android:text="주문방 -"
-            android:textColor="@color/white"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tv_waiting_total"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:gravity="center"
-            android:text="0원"
-            android:textColor="@color/coffee_brown"
-            android:textSize="28sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tv_waiting_members"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginTop="20dp"
-            android:layout_weight="1"
-            android:background="@color/white"
-            android:lineSpacingExtra="6dp"
-            android:padding="16dp"
-            android:text="결제 대상 멤버를 준비 중이에요."
-            android:textColor="@color/text_primary"
-            android:textSize="15sp" />
-
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_waiting_pay"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="20dp"
+            android:layout_height="54dp"
             android:backgroundTint="@color/coffee_brown"
-            android:text="내 결제 진행하기"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="결제하기"
             android:textColor="@color/white"
-            android:textSize="16sp"
+            android:textSize="15sp"
             android:textStyle="bold"
-            android:visibility="gone" />
+            android:visibility="gone"
+            app:cornerRadius="27dp"
+            app:icon="@drawable/ic_card_check"
+            app:iconGravity="textEnd"
+            app:iconTint="@color/white" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_waiting_order"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="54dp"
             android:layout_marginTop="10dp"
-            android:backgroundTint="@color/nav_selected_bg"
+            android:backgroundTint="#EDE2D8"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:text="새 방 만들기 또는 입장하기"
             android:textColor="@color/coffee_brown_dark"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:cornerRadius="27dp"
+            app:icon="@drawable/ic_add"
+            app:iconGravity="textStart"
+            app:iconTint="@color/coffee_brown_dark" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_waiting_home"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="54dp"
             android:layout_marginTop="10dp"
-            android:backgroundTint="@color/coffee_brown_dark"
+            android:backgroundTint="@color/payment_amount"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:text="홈으로"
             android:textColor="@color/white"
-            android:textSize="16sp"
+            android:textSize="15sp"
             android:textStyle="bold"
-            android:visibility="gone" />
+            android:visibility="gone"
+            app:cornerRadius="27dp"
+            app:icon="@drawable/family_home_24px"
+            app:iconGravity="textStart"
+            app:iconTint="@color/white" />
     </LinearLayout>
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

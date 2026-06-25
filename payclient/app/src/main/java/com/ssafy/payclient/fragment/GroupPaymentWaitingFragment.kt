@@ -1,10 +1,17 @@
 package com.ssafy.payclient.fragment
 
+import android.graphics.Typeface
 import android.os.Bundle
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -45,6 +52,7 @@ class GroupPaymentWaitingFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         setupToolbar()
+        setupSystemBarInsets()
         setupButtons()
         observePaymentStatus()
     }
@@ -53,6 +61,22 @@ class GroupPaymentWaitingFragment : Fragment() {
         binding.toolbarGroupPaymentWaiting.setNavigationOnClickListener {
             navigateToOrderStart()
         }
+    }
+
+    private fun setupSystemBarInsets() {
+        val bottomLayout = binding.layoutGroupPaymentBottom
+        val baseBottomPadding = bottomLayout.paddingBottom
+        val baseHeight = bottomLayout.layoutParams.height
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val bottomInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            bottomLayout.updatePadding(bottom = baseBottomPadding + bottomInset)
+            bottomLayout.layoutParams = bottomLayout.layoutParams.apply {
+                height = baseHeight + bottomInset
+            }
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     private fun setupButtons() {
@@ -117,9 +141,8 @@ class GroupPaymentWaitingFragment : Fragment() {
             return
         }
 
-        binding.tvWaitingGroupId.text = "주문방 ${receipt.groupId.shortRoomId()}"
-        binding.tvWaitingTotal.text = "${formatWon(receipt.totalGroupPrice)}"
-        binding.tvWaitingMembers.text = buildMemberStatusText(receipt.userReceipts)
+        binding.tvWaitingTotal.text = formatWon(receipt.totalGroupPrice)
+        renderMemberStatusRows(receipt.userReceipts)
 
         when (groupStatus) {
             STATUS_PAID -> renderCompleted()
@@ -128,14 +151,16 @@ class GroupPaymentWaitingFragment : Fragment() {
     }
 
     private fun renderWaiting(myReceipt: UserReceiptDTO?) {
-        binding.toolbarGroupPaymentWaiting.title = "결제 대기"
+        binding.tvGroupPaymentToolbarTitle.text = "결제 대기"
+        binding.groupPaymentCompleteIcon.visibility = View.GONE
+        binding.progressWaiting.visibility = View.VISIBLE
+        binding.tvWaitingGroupId.text = "총 주문 금액"
         binding.tvWaitingTitle.text = "결제를 기다리고 있어요"
         binding.tvWaitingDescription.text = when (myReceipt?.orderStatus) {
             STATUS_PAYMENT_APPROVED -> "내 결제는 승인됐고, 다른 멤버의 결제를 기다리는 중이에요."
-            STATUS_PENDING -> "내 결제를 진행한 뒤 이 화면에서 완료 상태를 확인할 수 있어요."
+            STATUS_PENDING -> "내 결제를 진행하면 완료 상태를 확인할 수 있어요."
             else -> "주문이 마감됐어요. 멤버들의 결제 상태를 확인하고 있어요."
         }
-        binding.progressWaiting.visibility = View.VISIBLE
         binding.btnWaitingPay.visibility = if (myReceipt?.orderStatus == STATUS_PENDING) View.VISIBLE else View.GONE
         binding.btnWaitingPay.tag = myReceipt
         binding.btnWaitingOrder.visibility = View.VISIBLE
@@ -143,25 +168,32 @@ class GroupPaymentWaitingFragment : Fragment() {
     }
 
     private fun renderCompleted() {
-        binding.toolbarGroupPaymentWaiting.title = "결제 완료"
+        binding.tvGroupPaymentToolbarTitle.text = "결제 완료"
+        binding.groupPaymentCompleteIcon.visibility = View.GONE
+        binding.progressWaiting.visibility = View.GONE
+        binding.tvWaitingGroupId.text = "최종 결제 금액"
         binding.tvWaitingTitle.text = "모든 결제가 완료됐어요"
         binding.tvWaitingDescription.text = "새로운 같이 주문은 방을 다시 만들거나 초대 링크로 새롭게 입장해주세요."
-        binding.progressWaiting.visibility = View.GONE
         binding.btnWaitingPay.visibility = View.GONE
         binding.btnWaitingOrder.visibility = View.VISIBLE
         binding.btnWaitingHome.visibility = View.VISIBLE
     }
 
     private fun showWaitingMessage(message: String) {
-        binding.tvWaitingDescription.text = message
+        binding.groupPaymentCompleteIcon.visibility = View.GONE
         binding.progressWaiting.visibility = View.VISIBLE
+        binding.tvWaitingDescription.text = message
         binding.btnWaitingPay.visibility = View.GONE
     }
 
     private fun navigateToPayment(receipt: UserReceiptDTO) {
         val orderNo = receipt.orderNo
         if (orderNo.isNullOrBlank() || receipt.userTotalPrice <= 0L) {
-            Toast.makeText(requireContext(), "결제 주문 정보를 확인할 수 없어요.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                requireContext(),
+                "결제 주문 정보를 확인할 수 없어요.",
+                Toast.LENGTH_SHORT
+            ).show()
             return
         }
 
@@ -203,30 +235,80 @@ class GroupPaymentWaitingFragment : Fragment() {
         }
     }
 
-    private fun buildMemberStatusText(userReceipts: List<UserReceiptDTO>): String {
-        if (userReceipts.isEmpty()) return "결제 대상 멤버를 준비 중이에요."
+    private fun renderMemberStatusRows(userReceipts: List<UserReceiptDTO>) {
+        binding.tvWaitingMembers.removeAllViews()
 
-        return userReceipts.joinToString(separator = "\n") { receipt ->
-            val name = receipt.nickname.orEmpty().ifBlank { "참여자" }
-            val status = when (receipt.orderStatus) {
-                STATUS_PAID -> "결제 완료"
-                STATUS_PAYMENT_APPROVED -> "승인 완료"
-                STATUS_PAYMENT_FAILED -> "결제 실패"
-                STATUS_CANCELLED -> "취소됨"
-                else -> "결제 대기"
+        if (userReceipts.isEmpty()) {
+            binding.tvWaitingMembers.addView(TextView(requireContext()).apply {
+                text = "결제 대상 멤버를 준비 중이에요."
+                setTextColor(resources.getColor(R.color.text_secondary, null))
+                textSize = 14f
+            })
+            return
+        }
+
+        userReceipts.forEachIndexed { index, receipt ->
+            if (index > 0) {
+                binding.tvWaitingMembers.addView(View(requireContext()).apply {
+                    setBackgroundColor(resources.getColor(R.color.payment_divider, null))
+                }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1.dp).apply {
+                    topMargin = 18.dp
+                    bottomMargin = 18.dp
+                })
             }
-            "$name · ${formatWon(receipt.userTotalPrice)} · $status"
+
+            val row = LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+
+            val avatar = TextView(requireContext()).apply {
+                text = receipt.nickname.orEmpty().ifBlank { "참" }.take(1)
+                gravity = Gravity.CENTER
+                setTextColor(resources.getColor(R.color.coffee_brown_dark, null))
+                textSize = 13f
+                typeface = Typeface.DEFAULT_BOLD
+                setBackgroundResource(R.drawable.bg_group_payment_avatar)
+            }
+            row.addView(avatar, LinearLayout.LayoutParams(34.dp, 34.dp))
+
+            val textColumn = LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.VERTICAL
+            }
+            row.addView(textColumn, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = 14.dp
+            })
+
+            textColumn.addView(TextView(requireContext()).apply {
+                text = receipt.nickname.orEmpty().ifBlank { "참여자" }
+                setTextColor(resources.getColor(R.color.text_primary, null))
+                textSize = 15f
+                typeface = Typeface.DEFAULT_BOLD
+                maxLines = 1
+            })
+
+            textColumn.addView(TextView(requireContext()).apply {
+                text = formatWon(receipt.userTotalPrice)
+                setTextColor(resources.getColor(R.color.coffee_brown_dark, null))
+                textSize = 13f
+            })
+
+            row.addView(TextView(requireContext()).apply {
+                text = "✓ ${receipt.orderStatus.groupPaymentStatusText()}"
+                gravity = Gravity.CENTER
+                setTextColor(resources.getColor(R.color.coffee_brown_dark, null))
+                textSize = 13f
+                setBackgroundResource(R.drawable.bg_group_payment_status_pill)
+                setPadding(14.dp, 0, 14.dp, 0)
+            }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, 32.dp))
+
+            binding.tvWaitingMembers.addView(row)
         }
     }
 
     private fun buildGroupOrderName(items: List<OrderItemDTO>): String {
         val firstItemName = items.firstOrNull()?.menuName ?: "단체 주문"
         return if (items.size <= 1) firstItemName else "$firstItemName 외 ${items.size - 1}건"
-    }
-
-    private fun String.shortRoomId(): String {
-        if (isBlank()) return "-"
-        return if (length > 8) "${take(8)}..." else this
     }
 
     override fun onResume() {
@@ -259,3 +341,15 @@ class GroupPaymentWaitingFragment : Fragment() {
 private fun formatWon(value: Long): String {
     return "${NumberFormat.getNumberInstance(Locale.KOREA).format(value)}원"
 }
+
+private fun String?.groupPaymentStatusText(): String {
+    return when (this) {
+        "PAID", "PAYMENT_APPROVED" -> "결제 완료"
+        "PAYMENT_FAILED" -> "결제 실패"
+        "CANCELLED" -> "취소됨"
+        else -> "결제 대기"
+    }
+}
+
+private val Int.dp: Int
+    get() = (this * android.content.res.Resources.getSystem().displayMetrics.density).toInt()

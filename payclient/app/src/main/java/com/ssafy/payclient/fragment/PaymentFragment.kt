@@ -104,15 +104,15 @@ class PaymentFragment : Fragment() {
     }
 
     private fun setupPaymentInfo() {
-        binding.tvPaymentToolbarTitle.text = "\uACB0\uC81C\uD558\uAE30"
+        binding.tvPaymentToolbarTitle.text = "결제하기"
         binding.paymentPulseContainer.visibility = View.VISIBLE
-        binding.tvPaymentAmountLabel.text = "\uCD1D \uAE08\uC561"
+        binding.tvPaymentAmountLabel.text = "총 금액"
         binding.tvPaymentDescription.visibility = View.GONE
         binding.layoutPaymentInfoCards.visibility = View.VISIBLE
         binding.receiptSuccessIcon.visibility = View.GONE
         binding.receiptCard.visibility = View.GONE
         binding.ivReceiptCups.visibility = View.GONE
-        binding.tvPaymentAmount.text = "${formatPrice(totalPrice)} \uC6D0"
+        binding.tvPaymentAmount.text = "${formatPrice(totalPrice)} 원"
 //        binding.tvPaymentDescription.text = "Press Pay to open the card payment window."
         binding.btnPayment.isEnabled = true
         binding.btnHome.visibility = View.GONE
@@ -380,15 +380,15 @@ class PaymentFragment : Fragment() {
         binding.paymentPulseRingFront.clearAnimation()
         binding.receiptSuccessIcon.visibility = View.VISIBLE
         binding.tvPaymentAmountLabel.text = "PAYMENT COMPLETED"
-        binding.tvPaymentAmount.text = "${formatPrice(receipt.totalPrice)} \uC6D0"
+        binding.tvPaymentAmount.text = "${formatPrice(receipt.totalPrice)} 원"
         binding.tvPaymentDescription.visibility = View.GONE
         binding.layoutPaymentInfoCards.visibility = View.GONE
         binding.receiptCard.visibility = View.VISIBLE
         binding.ivReceiptCups.visibility = View.GONE
-        binding.tvReceiptStore.text = "Pick Pay \uC8FC\uBB38"
+        binding.tvReceiptStore.text = "Pick Pay 주문"
         binding.tvReceiptOrderNo.text = "Order #${receipt.displayOrderNo ?: orderNo}"
         binding.tvReceiptTime.text = receipt.createdAt.toReceiptDateTime()
-        binding.tvReceiptTotal.text = "${formatPrice(receipt.totalPrice)} \uC6D0"
+        binding.tvReceiptTotal.text = "${formatPrice(receipt.totalPrice)} 원"
         renderReceiptItems(receipt)
         binding.tvReceiptDetails.visibility = View.GONE
         binding.btnPayment.visibility = View.GONE
@@ -430,7 +430,7 @@ class PaymentFragment : Fragment() {
 
             val price = TextView(requireContext()).apply {
                 id = View.generateViewId()
-                text = "${formatPrice(item.price * item.quantity)} \uC6D0"
+                text = "${formatPrice(item.price * item.quantity)} 원"
                 setTextColor(resources.getColor(R.color.payment_primary, null))
                 textSize = 15f
                 typeface = android.graphics.Typeface.DEFAULT_BOLD
@@ -462,7 +462,7 @@ class PaymentFragment : Fragment() {
     private fun buildReceiptText(receipt: IndividualReceiptResponseDTO, orderNo: String): String {
         val itemLines = receipt.items.joinToString(separator = "\n") { item ->
             val subtotal = item.price * item.quantity
-            "${item.menuName.orEmpty()} x ${item.quantity}  ${formatPrice(subtotal)} \uC6D0"
+            "${item.menuName.orEmpty()} x ${item.quantity}  ${formatPrice(subtotal)} 원"
         }
 
         return buildString {
@@ -473,7 +473,7 @@ class PaymentFragment : Fragment() {
             appendLine("Items")
             appendLine(itemLines.ifBlank { "No items" })
             appendLine()
-            append("Total: ${formatPrice(receipt.totalPrice)} \uC6D0")
+            append("Total: ${formatPrice(receipt.totalPrice)} 원")
         }
     }
 
