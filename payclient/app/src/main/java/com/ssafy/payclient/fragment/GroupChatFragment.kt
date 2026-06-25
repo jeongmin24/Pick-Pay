@@ -208,6 +208,16 @@ class GroupChatFragment : Fragment() {
 
                 if (response.status == ROULETTE_STATUS_SPINNING) {
                     animatePickupWinner(response)
+                } else if (response.winnerUserId <= 0L) {
+                    binding.tvPickupRouletteStatus.text =
+                        if (response.candidates.isEmpty()) {
+                            "방에 입장한 멤버를 기다리고 있습니다."
+                        } else {
+                            "픽업 후보 ${response.candidates.size}명이 준비되었습니다."
+                        }
+                    binding.tvPickupRouletteResult.text = "아직 선정 전입니다."
+                    binding.btnRunPickupRoulette.isEnabled = isHost
+                    binding.btnRunPickupRoulette.text = if (isHost) "시작" else "대기"
                 } else {
                     if (animatingRouletteRoundId == response.stableRoundId()) return
 
@@ -484,7 +494,7 @@ class GroupChatFragment : Fragment() {
     }
 
     private fun DataSnapshot.toPickupRouletteResponse(): PickupRouletteResponse? {
-        val winnerUserId = child("winnerUserId").getValue(Long::class.java) ?: return null
+        val winnerUserId = child("winnerUserId").getValue(Long::class.java) ?: -1L
         val winnerNickname = child("winnerNickname").getValue(String::class.java)
         val candidates = child("candidates").children.mapNotNull { candidateSnapshot ->
             val userId = candidateSnapshot.child("userId").getValue(Long::class.java)
@@ -500,6 +510,8 @@ class GroupChatFragment : Fragment() {
             ?: 0L
         val status = child("status").getValue(String::class.java)
             ?: ROULETTE_STATUS_FINISHED
+
+        if (winnerUserId <= 0L && candidates.isEmpty()) return null
 
         return PickupRouletteResponse(
             groupId = groupId,

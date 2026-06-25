@@ -8,7 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
@@ -17,8 +19,11 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.ssafy.pickpay.common.GroupOrderStatus;
 import com.ssafy.pickpay.common.GroupPayType;
 import com.ssafy.pickpay.domain.GroupOrder;
@@ -62,7 +67,9 @@ public class GroupOrderService {
         Optional<GroupOrder> existingGroupOrder =
                 groupOrderRepository.findByHost_UserIdAndStatus(userId, GroupOrderStatus.OPEN);
         if (existingGroupOrder.isPresent()) {
-            return existingGroupOrder.get();
+            GroupOrder groupOrder = existingGroupOrder.get();
+            upsertFirebasePickupCandidate(groupOrder.getGroupId(), userId);
+            return groupOrder;
         }
 
         User host = userRepository.findById(userId)
@@ -77,13 +84,14 @@ public class GroupOrderService {
         Map<String, Object> initialData = new HashMap<>();
         initialData.put("status", GroupOrderStatus.OPEN.name());
         initialData.put("hostId", userId);
+        initialData.put("pickupRoulette", buildInitialPickupRouletteData(host));
 
         ref.setValueAsync(initialData);
 
         return savedOrder;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public GroupJoinResponseDTO joinGroup(Long userId, String shareToken) {
         GroupOrder groupOrder = groupOrderRepository.findByShareToken(shareToken)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid invite link."));
@@ -99,6 +107,7 @@ public class GroupOrderService {
         }
 
         boolean isHost = groupOrder.getHost().getUserId().equals(userId);
+        upsertFirebasePickupCandidate(groupOrder.getGroupId(), userId);
 
         return new GroupJoinResponseDTO(
                 groupOrder.getGroupId(),
@@ -230,6 +239,11 @@ public class GroupOrderService {
     }
 
     private List<PickupCandidateDTO> getPickupCandidates(String groupId) {
+        List<PickupCandidateDTO> rouletteCandidates = getPickupCandidatesFromRoulette(groupId);
+        if (!rouletteCandidates.isEmpty()) {
+            return rouletteCandidates;
+        }
+
         List<FirebaseCartItemDTO> firebaseItems;
         try {
             firebaseItems = firebaseSyncService.getCartItems(groupId);
@@ -265,6 +279,85 @@ public class GroupOrderService {
                     return new PickupCandidateDTO(user.getUserId(), user.getNickname());
                 })
                 .toList();
+    }
+
+    private List<PickupCandidateDTO> getPickupCandidatesFromRoulette(String groupId) {
+        CompletableFuture<List<PickupCandidateDTO>> future = new CompletableFuture<>();
+        DatabaseReference candidatesRef = FirebaseDatabase.getInstance()
+                .getReference("group_orders/" + groupId + "/pickupRoulette/candidates");
+
+        candidatesRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot snapshot) {
+                List<PickupCandidateDTO> candidates = new ArrayList<>();
+                for (DataSnapshot candidateSnapshot : snapshot.getChildren()) {
+                    Long userId = candidateSnapshot.child("userId").getValue(Long.class);
+                    String nickname = candidateSnapshot.child("nickname").getValue(String.class);
+                    if (userId != null && userId > 0) {
+                        candidates.add(new PickupCandidateDTO(userId, nickname));
+                    }
+                }
+                future.complete(candidates.stream()
+                        .collect(Collectors.collectingAndThen(
+                                Collectors.toMap(
+                                        PickupCandidateDTO::userId,
+                                        candidate -> candidate,
+                                        (first, ignored) -> first,
+                                        java.util.LinkedHashMap::new
+                                ),
+                                map -> new ArrayList<>(map.values())
+                        )));
+            }
+
+            @Override
+            public void onCancelled(DatabaseError error) {
+                future.completeExceptionally(error.toException());
+            }
+        });
+
+        try {
+            return future.get(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while reading pickup candidates.", e);
+        } catch (ExecutionException | TimeoutException e) {
+            throw new RuntimeException("Failed to read pickup candidates.", e);
+        }
+    }
+
+    private Map<String, Object> buildInitialPickupRouletteData(User host) {
+        Map<String, Object> pickupRoulette = new HashMap<>();
+        Map<String, Object> candidates = new HashMap<>();
+        candidates.put(String.valueOf(host.getUserId()), buildPickupCandidateMap(host));
+
+        pickupRoulette.put("status", "READY");
+        pickupRoulette.put("durationMs", PICKUP_ROULETTE_DURATION_MS);
+        pickupRoulette.put("chatPushed", false);
+        pickupRoulette.put("candidates", candidates);
+        return pickupRoulette;
+    }
+
+    private void upsertFirebasePickupCandidate(String groupId, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found."));
+        DatabaseReference candidateRef = FirebaseDatabase.getInstance()
+                .getReference("group_orders/" + groupId + "/pickupRoulette/candidates/" + userId);
+
+        try {
+            candidateRef.setValueAsync(buildPickupCandidateMap(user)).get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while updating pickup candidate.", e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException("Failed to update pickup candidate.", e);
+        }
+    }
+
+    private Map<String, Object> buildPickupCandidateMap(User user) {
+        Map<String, Object> candidate = new HashMap<>();
+        candidate.put("userId", user.getUserId());
+        candidate.put("nickname", user.getNickname());
+        return candidate;
     }
 
     private void updateFirebasePickupRoulette(
