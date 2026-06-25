@@ -46,7 +46,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
-                android:text="따뜻한 일상을 결제하는 Pick Pay"
+                android:text="맛있는 리뷰에 수다 한 스푼, 함께 결제하는 Pick Pay"
                 android:textColor="@color/text_secondary"
                 android:textSize="14sp" />
 
