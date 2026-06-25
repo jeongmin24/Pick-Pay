@@ -544,8 +544,13 @@ class PaymentFragment : Fragment() {
     }
 
     private fun normalizePaymentFailureMessage(message: String): String {
+        val normalized = message.trim().lowercase(Locale.US)
+
         return when {
-            message.equals("Payment has been canceled by customers", ignoreCase = true) ->
+            normalized.contains("canceled by the customer") ||
+                normalized.contains("canceled by customers") ||
+                normalized.contains("cancelled by the customer") ||
+                normalized.contains("cancelled by customers") ->
                 "결제가 취소되었습니다."
             else -> message
         }
