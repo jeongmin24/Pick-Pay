@@ -39,12 +39,17 @@ data class PickupCandidate(
 )
 
 data class PickupRouletteResponse(
-    val groupId: String,
-    val winnerUserId: Long,
-    val winnerNickname: String?,
-    val winnerIndex: Int,
-    val alreadySelected: Boolean,
-    val candidates: List<PickupCandidate>
+    val groupId: String = "",
+    val roundId: String = "",
+    val status: String = "",
+    val startedAt: Long = 0L,
+    val durationMs: Long = 3200L,
+    val winnerUserId: Long = -1L,
+    val winnerNickname: String? = null,
+    val winnerIndex: Int = 0,
+    val alreadySelected: Boolean = false,
+    val chatPushed: Boolean = false,
+    val candidates: List<PickupCandidate> = emptyList()
 )
 
 /**

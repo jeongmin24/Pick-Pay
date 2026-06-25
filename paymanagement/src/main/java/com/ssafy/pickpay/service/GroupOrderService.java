@@ -7,6 +7,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -43,6 +44,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class GroupOrderService {
+
+    private static final long PICKUP_ROULETTE_DURATION_MS = 3200L;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -166,15 +169,22 @@ public class GroupOrderService {
         User winner = userRepository.findById(selectedCandidate.userId())
                 .orElseThrow(() -> new IllegalArgumentException("픽업 유저를 찾을 수 없습니다."));
 
+        String roundId = UUID.randomUUID().toString();
+        long startedAt = System.currentTimeMillis();
+
         groupOrder.setPickupUser(winner);
-        updateFirebasePickupRoulette(groupId, winner, winnerIndex, candidates);
-        pushPickupWinnerChatMessage(groupId, winner);
+        updateFirebasePickupRoulette(groupId, roundId, startedAt, winner, winnerIndex, candidates);
 
         return new PickupRouletteResponseDTO(
                 groupId,
+                roundId,
+                "SPINNING",
+                startedAt,
+                PICKUP_ROULETTE_DURATION_MS,
                 winner.getUserId(),
                 winner.getNickname(),
                 winnerIndex,
+                false,
                 false,
                 candidates
         );
@@ -259,6 +269,8 @@ public class GroupOrderService {
 
     private void updateFirebasePickupRoulette(
             String groupId,
+            String roundId,
+            long startedAt,
             User winner,
             int winnerIndex,
             List<PickupCandidateDTO> candidates
@@ -267,10 +279,15 @@ public class GroupOrderService {
                 .getReference("group_orders/" + groupId + "/pickupRoulette");
 
         Map<String, Object> updates = new HashMap<>();
+        updates.put("roundId", roundId);
+        updates.put("status", "SPINNING");
+        updates.put("startedAt", startedAt);
+        updates.put("durationMs", PICKUP_ROULETTE_DURATION_MS);
         updates.put("winnerUserId", winner.getUserId());
         updates.put("winnerNickname", winner.getNickname());
         updates.put("winnerIndex", winnerIndex);
-        updates.put("selectedAt", System.currentTimeMillis());
+        updates.put("selectedAt", startedAt);
+        updates.put("chatPushed", false);
         updates.put("candidates", candidates.stream()
                 .map(candidate -> {
                     Map<String, Object> candidateMap = new HashMap<>();
@@ -288,19 +305,6 @@ public class GroupOrderService {
         } catch (ExecutionException e) {
             throw new RuntimeException("Failed to update pickup roulette.", e);
         }
-    }
-
-    private void pushPickupWinnerChatMessage(String groupId, User winner) {
-        DatabaseReference messagesRef = FirebaseDatabase.getInstance()
-                .getReference("group_orders/" + groupId + "/chat/messages");
-
-        Map<String, Object> message = new HashMap<>();
-        message.put("senderId", 0L);
-        message.put("sendName", "PickPay");
-        message.put("message", winner.getNickname() + "님이 픽업 담당자로 선정되었습니다.");
-        message.put("createdAt", System.currentTimeMillis());
-
-        messagesRef.push().setValueAsync(message);
     }
 
     private void validateCanCloseGroupOrder(GroupOrder groupOrder, Long requestUserId) {

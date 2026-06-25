@@ -23,8 +23,10 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.MutableData
 import com.google.firebase.database.Query
 import com.google.firebase.database.ServerValue
+import com.google.firebase.database.Transaction
 import com.google.firebase.database.ValueEventListener
 import com.ssafy.payclient.R
 import com.ssafy.payclient.data.local.TokenManager
@@ -52,6 +54,9 @@ class GroupChatFragment : Fragment() {
     private var messagesQuery: Query? = null
     private var messagesListener: ValueEventListener? = null
     private var pickupRouletteListener: ValueEventListener? = null
+    private var currentRouletteAnimator: ObjectAnimator? = null
+    private var animatingRouletteRoundId: String? = null
+    private var completedRouletteRoundId: String? = null
     private var isRouletteRunning: Boolean = false
     private var isRouletteExpanded: Boolean = false
 
@@ -196,11 +201,21 @@ class GroupChatFragment : Fragment() {
     private fun observePickupRoulette() {
         pickupRouletteListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                if (_binding == null || !snapshot.exists() || isRouletteRunning) return
+                if (_binding == null || !snapshot.exists()) return
 
                 val response = snapshot.toPickupRouletteResponse() ?: return
                 renderPickupRoulette(response)
-                renderPickupWinnerResult(response, "픽업 담당자가 선정되었습니다.")
+
+                if (response.status == ROULETTE_STATUS_SPINNING) {
+                    animatePickupWinner(response)
+                } else {
+                    currentRouletteAnimator?.removeAllListeners()
+                    currentRouletteAnimator?.cancel()
+                    currentRouletteAnimator = null
+                    animatingRouletteRoundId = null
+                    isRouletteRunning = false
+                    renderPickupWinnerResult(response, "픽업 담당자가 선정되었습니다.")
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -255,12 +270,10 @@ class GroupChatFragment : Fragment() {
 
                 val body = apiResponse.body()
                 if (apiResponse.isSuccessful && body != null) {
-                    renderPickupRoulette(body)
                     if (body.alreadySelected) {
                         isRouletteRunning = false
+                        renderPickupRoulette(body)
                         renderPickupWinnerResult(body, "이미 선정된 픽업 담당자입니다.")
-                    } else {
-                        animatePickupWinner(body)
                     }
                 } else {
                     isRouletteRunning = false
@@ -302,23 +315,64 @@ class GroupChatFragment : Fragment() {
             return
         }
 
-        val targetRotation = binding.viewPickupRoulette.computeTargetRotation(response.winnerIndex)
-        ObjectAnimator.ofFloat(
+        val roundId = response.stableRoundId()
+        if (animatingRouletteRoundId == roundId || completedRouletteRoundId == roundId) return
+
+        currentRouletteAnimator?.cancel()
+        animatingRouletteRoundId = roundId
+        isRouletteRunning = true
+        isRouletteExpanded = true
+        renderRouletteExpansion()
+        binding.btnRunPickupRoulette.isEnabled = false
+        binding.btnRunPickupRoulette.text = "진행 중"
+        binding.tvPickupRouletteStatus.text = "픽업 담당자 룰렛이 돌아가고 있습니다."
+
+        val durationMs = response.durationMs.takeIf { it > 0L } ?: PICKUP_ROULETTE_DURATION_MS
+        val elapsedMs = if (response.startedAt > 0L) {
+            System.currentTimeMillis() - response.startedAt
+        } else {
+            0L
+        }
+        val remainingMs = (durationMs - elapsedMs).coerceIn(0L, durationMs)
+        val rounds = if (remainingMs > 1200L) 7 else 2
+        val targetRotation = binding.viewPickupRoulette.computeTargetRotation(response.winnerIndex, rounds)
+
+        if (remainingMs <= 0L) {
+            binding.viewPickupRoulette.wheelRotation =
+                binding.viewPickupRoulette.computeTargetRotation(response.winnerIndex, rounds = 0)
+            finishPickupRoulette(response)
+            return
+        }
+
+        currentRouletteAnimator = ObjectAnimator.ofFloat(
             binding.viewPickupRoulette,
             "wheelRotation",
             binding.viewPickupRoulette.wheelRotation,
             targetRotation
         ).apply {
-            duration = 3200L
+            duration = remainingMs
             interpolator = DecelerateInterpolator()
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     if (_binding == null) return
-                    isRouletteRunning = false
-                    renderPickupWinnerResult(response, "픽업 담당자가 선정되었습니다.")
+                    finishPickupRoulette(response)
                 }
             })
             start()
+        }
+    }
+
+    private fun finishPickupRoulette(response: PickupRouletteResponse) {
+        if (_binding == null) return
+
+        completedRouletteRoundId = response.stableRoundId()
+        animatingRouletteRoundId = null
+        currentRouletteAnimator = null
+        isRouletteRunning = false
+        renderPickupWinnerResult(response, "픽업 담당자가 선정되었습니다.")
+
+        if (isHost) {
+            pushPickupWinnerChatOnce(response)
         }
     }
 
@@ -330,6 +384,42 @@ class GroupChatFragment : Fragment() {
         binding.tvPickupRouletteResult.text = "$winnerName 님이 픽업 담당자입니다."
         binding.btnRunPickupRoulette.isEnabled = isHost
         binding.btnRunPickupRoulette.text = if (isHost) "\uB2E4\uC2DC \uB3CC\uB9AC\uAE30" else "\uC120\uC815 \uC644\uB8CC"
+    }
+
+    private fun pushPickupWinnerChatOnce(response: PickupRouletteResponse) {
+        getPickupRouletteRef().child("chatPushed").runTransaction(object : Transaction.Handler {
+            override fun doTransaction(currentData: MutableData): Transaction.Result {
+                val alreadyPushed = currentData.getValue(Boolean::class.java) ?: false
+                if (alreadyPushed) return Transaction.abort()
+
+                currentData.value = true
+                return Transaction.success(currentData)
+            }
+
+            override fun onComplete(
+                error: DatabaseError?,
+                committed: Boolean,
+                currentData: DataSnapshot?
+            ) {
+                if (!committed || error != null) return
+
+                val winnerName = response.winnerNickname?.takeIf { it.isNotBlank() }
+                    ?: "User ${response.winnerUserId}"
+                val message = mapOf(
+                    "senderId" to PICKPAY_SYSTEM_SENDER_ID,
+                    "sendName" to PICKPAY_SYSTEM_SENDER_NAME,
+                    "message" to "$winnerName 님이 픽업 담당자로 선정되었습니다.",
+                    "createdAt" to ServerValue.TIMESTAMP
+                )
+                val rouletteUpdates = mapOf(
+                    "status" to ROULETTE_STATUS_FINISHED,
+                    "finishedAt" to ServerValue.TIMESTAMP
+                )
+
+                getMessagesRef().push().setValue(message)
+                getPickupRouletteRef().updateChildren(rouletteUpdates)
+            }
+        })
     }
 
     private fun sendCurrentMessage() {
@@ -401,15 +491,29 @@ class GroupChatFragment : Fragment() {
         val winnerIndex = child("winnerIndex").getValue(Long::class.java)?.toInt()
             ?: candidates.indexOfFirst { it.userId == winnerUserId }.takeIf { it >= 0 }
             ?: 0
+        val startedAt = child("startedAt").getValue(Long::class.java)
+            ?: child("selectedAt").getValue(Long::class.java)
+            ?: 0L
+        val status = child("status").getValue(String::class.java)
+            ?: ROULETTE_STATUS_FINISHED
 
         return PickupRouletteResponse(
             groupId = groupId,
+            roundId = child("roundId").getValue(String::class.java).orEmpty(),
+            status = status,
+            startedAt = startedAt,
+            durationMs = child("durationMs").getValue(Long::class.java) ?: PICKUP_ROULETTE_DURATION_MS,
             winnerUserId = winnerUserId,
             winnerNickname = winnerNickname,
             winnerIndex = winnerIndex,
             alreadySelected = true,
+            chatPushed = child("chatPushed").getValue(Boolean::class.java) ?: false,
             candidates = candidates
         )
+    }
+
+    private fun PickupRouletteResponse.stableRoundId(): String {
+        return roundId.ifBlank { "$groupId-$startedAt-$winnerUserId-$winnerIndex" }
     }
 
     private fun getMessagesRef(): DatabaseReference {
@@ -445,9 +549,20 @@ class GroupChatFragment : Fragment() {
         pickupRouletteListener?.let { listener ->
             getPickupRouletteRef().removeEventListener(listener)
         }
+        currentRouletteAnimator?.removeAllListeners()
+        currentRouletteAnimator?.cancel()
         messagesListener = null
         messagesQuery = null
         pickupRouletteListener = null
+        currentRouletteAnimator = null
         _binding = null
+    }
+
+    companion object {
+        private const val PICKUP_ROULETTE_DURATION_MS = 3200L
+        private const val ROULETTE_STATUS_SPINNING = "SPINNING"
+        private const val ROULETTE_STATUS_FINISHED = "FINISHED"
+        private const val PICKPAY_SYSTEM_SENDER_ID = 0L
+        private const val PICKPAY_SYSTEM_SENDER_NAME = "PickPay"
     }
 }
