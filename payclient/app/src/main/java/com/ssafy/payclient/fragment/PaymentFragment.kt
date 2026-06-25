@@ -170,7 +170,9 @@ class PaymentFragment : Fragment() {
             TossPayments.RESULT_PAYMENT_FAILED -> {
                 val fail = data?.getParcelableExtra(TossPayments.EXTRA_PAYMENT_RESULT_FAILED)
                     as? TossPaymentResult.Fail
-                handlePaymentFailure(fail?.errorMessage ?: "Payment failed.")
+                handlePaymentFailure(
+                    normalizePaymentFailureMessage(fail?.errorMessage ?: "Payment failed.")
+                )
             }
 
             else -> {
@@ -559,10 +561,19 @@ class PaymentFragment : Fragment() {
             }
 
             "/fail" -> {
-                val message = uri.getQueryParameter("message") ?: "Payment failed."
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                val message = normalizePaymentFailureMessage(
+                    uri.getQueryParameter("message") ?: "Payment failed."
+                )
                 handlePaymentFailure(message)
             }
+        }
+    }
+
+    private fun normalizePaymentFailureMessage(message: String): String {
+        return when {
+            message.equals("Payment has been canceled by customers", ignoreCase = true) ->
+                "결제가 취소되었습니다."
+            else -> message
         }
     }
 
