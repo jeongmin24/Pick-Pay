@@ -316,11 +316,17 @@ class OrderFragment : Fragment() {
     private fun extractShareToken(input: String): String {
         val trimmed = input.trim()
 
-        return if (trimmed.contains("token=")) {
-            Uri.parse(trimmed).getQueryParameter("token") ?: ""
-        } else {
-            trimmed
+        val tokenFromSharedMessage = Regex("""(?:^|[?&\s])token=([^&\s#]+)""")
+            .find(trimmed)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.let { Uri.decode(it).trim() }
+
+        if (!tokenFromSharedMessage.isNullOrBlank()) {
+            return tokenFromSharedMessage
         }
+
+        return trimmed
     }
 
     private fun updateCartBadge() {

@@ -1,6 +1,9 @@
 package com.ssafy.payclient.fragment
 
 import android.animation.ValueAnimator
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.text.SpannableString
@@ -261,13 +264,18 @@ class GroupOrderFragment : Fragment() {
                 return@setOnClickListener
             }
 
-            val shareIntent = Intent().apply {
-                action = Intent.ACTION_SEND
-                putExtra(
-                    Intent.EXTRA_TEXT,
-                    "픽페이 함께 주문에 초대합니다!\n$link"
-                )
+            copyShareLinkToClipboard(link)
+
+            val shareText = """
+                픽페이 함께 주문에 초대합니다!
+                
+                $link
+            """.trimIndent()
+
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, "픽페이 함께 주문 초대")
+                putExtra(Intent.EXTRA_TEXT, shareText)
             }
 
             startActivity(Intent.createChooser(shareIntent, "초대 링크 공유"))
@@ -289,6 +297,20 @@ class GroupOrderFragment : Fragment() {
             }
             findNavController().navigate(R.id.action_fragment_group_order_to_fragment_group_cart, bundle)
         }
+    }
+
+    private fun copyShareLinkToClipboard(link: String) {
+        val clipboard = requireContext()
+            .getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = ClipData.newPlainText("픽페이 초대 링크", link)
+
+        clipboard.setPrimaryClip(clip)
+
+        Toast.makeText(
+            requireContext(),
+            "초대 링크를 복사했어요.",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     private fun addItemToFirebaseCart(menuName: String, productId: Long, price: Long, quantity: Int) {
