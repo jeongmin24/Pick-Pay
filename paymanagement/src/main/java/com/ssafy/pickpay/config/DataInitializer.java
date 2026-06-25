@@ -39,11 +39,52 @@ public class DataInitializer implements CommandLineRunner {
 		if(userRepository.count() == 0) {
 			String localIp = java.net.InetAddress.getLocalHost().getHostAddress();
 		    String baseUrl = "http://" + localIp + ":" + port;
+		    
+		    User ssafyUser = User.builder()
+		            .loginId("ssafy15")
+		            .password(passwordEncoder.encode("1234")) // 비밀번호는 편의상 1234로 설정했습니다.
+		            .nickname("김싸피")
+		            .imageUrl(baseUrl + "/images/profileImgB.png")
+		            .build();
+		    userRepository.save(ssafyUser);
+
+		    User choiUser = User.builder()
+		            .loginId("chlqhrud0208")
+		            .password(passwordEncoder.encode("1234"))
+		            .nickname("최두근")
+		            .imageUrl(baseUrl + "/images/profileImgG.png")
+		            .build();
+		    userRepository.save(choiUser);
+		    
+		    User leeUser = User.builder()
+		            .loginId("jeongmin24")
+		            .password(passwordEncoder.encode("1234"))
+		            .nickname("얼렁뚱땡이")
+		            .imageUrl(baseUrl + "/images/profileImgL.png")
+		            .build();
+		    userRepository.save(leeUser);
+		    
+		    User OtherUser1 = User.builder()
+		            .loginId("otherUser1")
+		            .password(passwordEncoder.encode("1234")) // 비밀번호는 편의상 1234로 설정했습니다.
+		            .nickname("벼락부자핫도그")
+		            .imageUrl(baseUrl + "/images/profileImg.png")
+		            .build();
+		    userRepository.save(OtherUser1);
+		    
+		    User OtherUser2 = User.builder()
+		            .loginId("otherUser2")
+		            .password(passwordEncoder.encode("1234")) // 비밀번호는 편의상 1234로 설정했습니다.
+		            .nickname("요즘잘자쿨냥이")
+		            .imageUrl(baseUrl + "/images/profileImg.png")
+		            .build();
+		    userRepository.save(OtherUser2);
+		    
 			for (int i = 1; i <= 10; i++) {
                 User user = User.builder()
                         .loginId("user" + i)
                         .password(passwordEncoder.encode("1234")) 
-                        .nickname("테스터" + i)
+                        .nickname("user" + i)
                         .imageUrl(baseUrl + "/images/profileImg.png")
                         .build();
                 userRepository.save(user);
