@@ -502,7 +502,7 @@ class PaymentFragment : Fragment() {
                 putString(PaymentFailureFragment.ARG_TITLE, "결제 실패")
                 putString(
                     PaymentFailureFragment.ARG_MESSAGE,
-                    reason.ifBlank { "주문 결제가 완료되지 않았어요. 잠시 후 홈으로 이동합니다." }
+                    reason.ifBlank { "주문 결제가 완료되지 않았어요." }
                 )
             }
         )

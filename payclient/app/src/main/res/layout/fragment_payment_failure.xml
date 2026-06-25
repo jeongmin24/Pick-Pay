@@ -45,7 +45,7 @@
         android:layout_marginTop="10dp"
         android:gravity="center"
         android:lineSpacingExtra="4dp"
-        android:text="주문 결제가 완료되지 않았어요. 잠시 후 홈으로 이동합니다."
+        android:text="주문 결제가 완료되지 않았어요."
         android:textColor="@color/text_secondary"
         android:textSize="15sp"
         app:layout_constraintBottom_toTopOf="@id/btn_payment_failure_home"
