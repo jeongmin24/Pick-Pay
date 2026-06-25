@@ -18,6 +18,7 @@ import jakarta.persistence.LockModeType;
 
 public interface OrderRepository extends JpaRepository<Order, Long>{
 	List<Order> findByGroupOrder_GroupId(String groupId);
+	List<Order> findByUser_UserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 	List<Order> findByUser_UserIdAndGroupOrderIsNullOrderByCreatedAtDesc(Long userId, Pageable pageable);
 	Optional<Order> findByOrderIdAndUser_UserIdAndGroupOrderIsNull(Long orderId, Long userId); //groupOrderIsNull조건 -> 개별 주문 영수증 
 	/**

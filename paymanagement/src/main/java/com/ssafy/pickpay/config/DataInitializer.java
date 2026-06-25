@@ -39,8 +39,8 @@ public class DataInitializer implements CommandLineRunner {
 		if(userRepository.count() == 0) {
 			String localIp = java.net.InetAddress.getLocalHost().getHostAddress();
 		    String baseUrl = "http://" + localIp + ":" + port;
-		    
-		    User ssafyUser = User.builder()
+			
+			User ssafyUser = User.builder()
 		            .loginId("ssafy15")
 		            .password(passwordEncoder.encode("1234")) // 비밀번호는 편의상 1234로 설정했습니다.
 		            .nickname("김싸피")
@@ -80,7 +80,7 @@ public class DataInitializer implements CommandLineRunner {
 		            .build();
 		    userRepository.save(OtherUser2);
 		    
-			for (int i = 1; i <= 10; i++) {
+		    for (int i = 1; i <= 10; i++) {
                 User user = User.builder()
                         .loginId("user" + i)
                         .password(passwordEncoder.encode("1234")) 

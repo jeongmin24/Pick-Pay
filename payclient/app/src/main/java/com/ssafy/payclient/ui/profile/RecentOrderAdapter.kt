@@ -70,6 +70,9 @@ class RecentOrderAdapter(
     private fun formatStatus(status: String): String {
         return when (status.uppercase()) {
             "COMPLETED", "DONE", "PICKED_UP", "PAID" -> "수령 완료"
+            "PENDING" -> "결제 대기"
+            "PAYMENT_APPROVED" -> "결제 승인"
+            "PAYMENT_FAILED" -> "결제 실패"
             "READY" -> "수령 대기"
             "CANCELED", "CANCELLED" -> "취소"
             else -> status
