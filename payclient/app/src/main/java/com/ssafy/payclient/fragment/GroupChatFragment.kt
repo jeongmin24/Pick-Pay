@@ -2,7 +2,7 @@ package com.ssafy.payclient.fragment
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
-import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.LayoutInflater
@@ -54,7 +54,7 @@ class GroupChatFragment : Fragment() {
     private var messagesQuery: Query? = null
     private var messagesListener: ValueEventListener? = null
     private var pickupRouletteListener: ValueEventListener? = null
-    private var currentRouletteAnimator: ObjectAnimator? = null
+    private var currentRouletteAnimator: ValueAnimator? = null
     private var animatingRouletteRoundId: String? = null
     private var completedRouletteRoundId: String? = null
     private var isRouletteRunning: Boolean = false
@@ -209,6 +209,8 @@ class GroupChatFragment : Fragment() {
                 if (response.status == ROULETTE_STATUS_SPINNING) {
                     animatePickupWinner(response)
                 } else {
+                    if (animatingRouletteRoundId == response.stableRoundId()) return
+
                     currentRouletteAnimator?.removeAllListeners()
                     currentRouletteAnimator?.cancel()
                     currentRouletteAnimator = null
@@ -274,6 +276,9 @@ class GroupChatFragment : Fragment() {
                         isRouletteRunning = false
                         renderPickupRoulette(body)
                         renderPickupWinnerResult(body, "이미 선정된 픽업 담당자입니다.")
+                    } else {
+                        renderPickupRoulette(body)
+                        animatePickupWinner(body)
                     }
                 } else {
                     isRouletteRunning = false
@@ -333,25 +338,24 @@ class GroupChatFragment : Fragment() {
         } else {
             0L
         }
-        val remainingMs = (durationMs - elapsedMs).coerceIn(0L, durationMs)
+        val remainingMs = when {
+            response.startedAt <= 0L -> durationMs
+            elapsedMs < 0L -> durationMs
+            elapsedMs >= durationMs -> durationMs
+            else -> (durationMs - elapsedMs).coerceAtLeast(MIN_ROULETTE_ANIMATION_MS)
+        }
         val rounds = if (remainingMs > 1200L) 7 else 2
         val targetRotation = binding.viewPickupRoulette.computeTargetRotation(response.winnerIndex, rounds)
 
-        if (remainingMs <= 0L) {
-            binding.viewPickupRoulette.wheelRotation =
-                binding.viewPickupRoulette.computeTargetRotation(response.winnerIndex, rounds = 0)
-            finishPickupRoulette(response)
-            return
-        }
-
-        currentRouletteAnimator = ObjectAnimator.ofFloat(
-            binding.viewPickupRoulette,
-            "wheelRotation",
+        currentRouletteAnimator = ValueAnimator.ofFloat(
             binding.viewPickupRoulette.wheelRotation,
             targetRotation
         ).apply {
             duration = remainingMs
             interpolator = DecelerateInterpolator()
+            addUpdateListener { animator ->
+                binding.viewPickupRoulette.wheelRotation = animator.animatedValue as Float
+            }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     if (_binding == null) return
@@ -560,6 +564,7 @@ class GroupChatFragment : Fragment() {
 
     companion object {
         private const val PICKUP_ROULETTE_DURATION_MS = 3200L
+        private const val MIN_ROULETTE_ANIMATION_MS = 1800L
         private const val ROULETTE_STATUS_SPINNING = "SPINNING"
         private const val ROULETTE_STATUS_FINISHED = "FINISHED"
         private const val PICKPAY_SYSTEM_SENDER_ID = 0L
