@@ -89,6 +89,7 @@ class LoginActivity : AppCompatActivity() {
         return Intent(this, MainActivity::class.java).apply {
             putExtras(intent)
             action = intent.action
+            data = intent.data
         }
     }
 }

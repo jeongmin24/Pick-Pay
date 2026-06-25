@@ -21,15 +21,13 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.google.firebase.messaging.FirebaseMessaging
 import com.ssafy.payclient.data.model.FcmTokenRequest
+import com.ssafy.payclient.data.model.GroupJoinRequest
 import com.ssafy.payclient.data.local.TokenManager
 import com.ssafy.payclient.data.network.RetrofitClient
-import com.ssafy.payclient.data.repository.AuthRepository
 import com.ssafy.payclient.databinding.ActivityMainBinding
 import com.ssafy.payclient.fragment.PaymentFragment
-import com.ssafy.payclient.ui.login.LoginActivity
 import com.ssafy.payclient.ui.menu.MenuViewModel // 추가
 import com.ssafy.payclient.ui.menu.MenuViewModelFactory
-import com.ssafy.payclient.util.ViewModelFactory
 import kotlinx.coroutines.launch
 import java.nio.charset.Charset
 
@@ -46,6 +44,7 @@ class MainActivity : AppCompatActivity() {
     // NFC 관련 변수
     private var nfcAdapter: NfcAdapter? = null
     private lateinit var nfcPendingIntent: PendingIntent
+    private var lastHandledJoinToken: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,6 +71,7 @@ class MainActivity : AppCompatActivity() {
         registerFcmToken()
         handlePaymentDeepLink(intent)
         handleDutchPaymentIntent(intent)
+        handleGroupJoinDeepLink(intent)
         handlePaymentDeepLink(getIntent())
         handleGoToCartIntent(intent)
     }
@@ -91,6 +91,7 @@ class MainActivity : AppCompatActivity() {
         setIntent(intent)
         handlePaymentDeepLink(intent)
         handleDutchPaymentIntent(intent)
+        handleGroupJoinDeepLink(intent)
         handleMenuNfcIntent(intent)
         handleGoToCartIntent(intent)
     }
@@ -188,6 +189,72 @@ class MainActivity : AppCompatActivity() {
                 putString(PaymentFragment.ARG_ORDER_NAME, orderName)
                 putString(PaymentFragment.ARG_GROUP_ID, groupId)
                 putLong(PaymentFragment.ARG_USER_ID, sharedTokenManager.getUserId())
+            }
+        )
+    }
+
+    private fun handleGroupJoinDeepLink(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme != "pickpay" || uri.host != "group" || uri.path != "/join") return
+
+        val shareToken = uri.getQueryParameter("token")?.trim().orEmpty()
+        if (shareToken.isBlank() || shareToken == lastHandledJoinToken) return
+
+        val userId = sharedTokenManager.getUserId()
+        if (userId <= 0L) {
+            Toast.makeText(this, "로그인 후 초대 링크를 다시 열어주세요.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        lifecycleScope.launch {
+            runCatching {
+                RetrofitClient.getGroupOrderApiService(sharedTokenManager)
+                    .joinGroup(GroupJoinRequest(shareToken))
+            }.onSuccess { response ->
+                val body = response.body()
+                if (!response.isSuccessful || body == null) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "방 입장 실패: ${response.code()}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@onSuccess
+                }
+
+                lastHandledJoinToken = shareToken
+                openGroupOrder(
+                    groupId = body.groupId,
+                    isHost = body.host,
+                    userId = userId,
+                    shareLink = "pickpay://group/join?token=$shareToken"
+                )
+            }.onFailure { error ->
+                Toast.makeText(
+                    this@MainActivity,
+                    "방 입장 오류: ${error.message}",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
+
+    private fun openGroupOrder(
+        groupId: String,
+        isHost: Boolean,
+        userId: Long,
+        shareLink: String
+    ) {
+        val navHostFragment =
+            supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
+        val navController = navHostFragment?.navController ?: return
+
+        navController.navigate(
+            R.id.fragment_group_order,
+            Bundle().apply {
+                putString("GROUP_ID", groupId)
+                putBoolean("IS_HOST", isHost)
+                putLong("USER_ID", userId)
+                putString("SHARE_LINK", shareLink)
             }
         )
     }

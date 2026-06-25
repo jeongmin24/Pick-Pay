@@ -42,7 +42,7 @@ class RouletteWheelView @JvmOverloads constructor(
         style = Paint.Style.FILL
     }
     private val textPaint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#8B674E")
+        color = Color.parseColor("#FFFFFF")
         textAlign = Paint.Align.CENTER
         textSize = 34f
         setFakeBoldText(true)
