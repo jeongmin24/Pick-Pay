@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ssafy.pickpay.common.OrderStatus;
 import com.ssafy.pickpay.config.DisplayOrderNoGenerator;
 import com.ssafy.pickpay.config.OrderNoGenerator;
 import com.ssafy.pickpay.domain.GroupOrder;
@@ -177,8 +178,9 @@ public class OrderService {
         int safeLimit = Math.min(Math.max(limit, 1), 50);
 
         List<Order> orders = orderRepository
-                .findByUser_UserIdAndGroupOrderIsNullOrderByCreatedAtDesc(
+                .findByUser_UserIdAndGroupOrderIsNullAndStatusOrderByCreatedAtDesc(
                         userId,
+                        OrderStatus.PAID,
                         PageRequest.of(0, safeLimit)
                 );
 

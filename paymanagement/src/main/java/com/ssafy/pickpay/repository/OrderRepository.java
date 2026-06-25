@@ -78,4 +78,10 @@ public interface OrderRepository extends JpaRepository<Order, Long>{
             String groupId,
             OrderStatus status
     );
+	
+	List<Order> findByUser_UserIdAndGroupOrderIsNullAndStatusOrderByCreatedAtDesc(
+	        Long userId,
+	        OrderStatus status,
+	        Pageable pageable
+	);
 }
